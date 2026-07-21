@@ -1,4 +1,6 @@
-# vocalbin
+# 🎙️ vocalbin
+
+![vocalbin — typed, async voice for OpenAI](static/banner.png)
 
 `vocalbin` is a small, typed, asynchronous wrapper around OpenAI's speech-to-text
 and text-to-speech endpoints. It validates model capabilities up front, normalizes

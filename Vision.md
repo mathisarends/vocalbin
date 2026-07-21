@@ -1,73 +1,55 @@
 # Vision
 
-## Was dieses Projekt macht
+## What it does
 
-`vocalbin` ist eine kleine, eigenständige Python-Bibliothek für die dateibasierte
-OpenAI Audio API. Sie stellt eine saubere, typisierte und asynchrone API für zwei
-Anwendungsfälle bereit:
+`vocalbin` is a small, standalone Python library for the file-based OpenAI Audio
+API. It offers a clean, typed, async API for two things:
 
-- Audiodateien oder Audio-Bytes mit OpenAI Speech-to-Text transkribieren
-- Text mit OpenAI Text-to-Speech in Audio-Bytes umwandeln
+- Transcribe audio files or bytes with OpenAI speech-to-text
+- Turn text into audio bytes with OpenAI text-to-speech
 
-Die Bibliothek kapselt OpenAI-spezifische SDK-Aufrufe hinter stabilen ABC-Ports,
-validiert Modellfähigkeiten frühzeitig und normalisiert Antworten, ohne relevante
-Rohdaten zu verlieren. Eine kleine Credentials-Grenze liest die für den OpenAI-Client
-benötigten Umgebungsvariablen ein. Die Bibliothek bleibt unabhängig von Settings-,
-Web-, Storage- und Domain-Code einer konkreten Anwendung.
+It wraps OpenAI's SDK behind stable ABC ports, validates model capabilities early,
+and normalizes responses without dropping useful raw data. A thin credentials
+boundary reads the environment variables the OpenAI client needs. The library stays
+independent of any application's settings, web, storage, and domain code.
 
-Das Projekt soll bewusst klein bleiben. Eine geringe API-Oberfläche, klare Typen,
-wenige Abhängigkeiten und vorhersehbares Verhalten sind wichtiger als eine große
-Feature-Liste.
+The goal is to stay small: a minimal API surface, clear types, few dependencies, and
+predictable behavior over a long feature list.
 
-## Was dieses Projekt nicht macht
+## What it does not do
 
-`vocalbin` ist keine allgemeine Audio- oder Voice-Agent-Plattform. Insbesondere
-gehören folgende Aufgaben nicht zum Kernumfang:
+`vocalbin` is not a general audio or voice-agent platform. Out of scope:
 
-- Audioaufnahme, Wiedergabe oder Gerätesteuerung
-- Audio-Konvertierung, Schneiden, Normalisierung oder sonstige Signalverarbeitung
-- Persistenz, Uploads, Objekt-Storage oder Datenbankintegration
-- Realtime-Sprachdialoge, Voice-Agent-Orchestrierung oder Telefonie
-- Web-Framework-, UI-, CLI- oder anwendungsspezifische Integrationen
-- Eine allgemeine Credentials- oder Settings-Infrastruktur über das Einlesen der
-  für den OpenAI-Client benötigten Umgebungsvariablen hinaus
-- Anwendungsspezifische Geschäftslogik oder Abhängigkeiten zu anderen Projekten
+- Recording, playback, or device control
+- Conversion, cutting, normalization, or other signal processing
+- Persistence, uploads, object storage, or databases
+- Realtime voice dialogs, orchestration, or telephony
+- Web, UI, CLI, or application-specific integrations
+- Credentials or settings beyond the env vars the OpenAI client needs
+- Application business logic or dependencies on other projects
 
-Providerunabhängige Ports definieren die Grenze der Bibliothek. Sie sind kein Ziel,
-beliebig viele Speech-Provider und deren unterschiedliche Konzepte in einer großen
-Abstraktion zu vereinheitlichen.
+Provider-independent ports define the boundary. Unifying many speech providers into
+one large abstraction is a non-goal.
 
-## Leitlinie für zukünftige Pull Requests
+## Guideline for pull requests
 
-Ein Feature ist grundsätzlich im Einklang mit der Vision, wenn es mindestens einen
-der beiden Kernabläufe direkt verbessert und dabei die Bibliotheksgrenze respektiert.
-Typische passende Änderungen sind:
+A change fits if it directly improves one of the two core flows while respecting the
+library boundary — for example: new OpenAI models, voices, formats, or parameters;
+fixes to capability validation and response normalization; better typing, error
+handling, or client config; backward-compatible API simplifications; tests, docs,
+and packaging.
 
-- Neue oder geänderte OpenAI-Modelle, Stimmen, Formate und Endpoint-Parameter
-- Korrekturen an Capability-Validierung und Antwortnormalisierung
-- Verbesserungen an Typisierung, Fehlerverhalten oder Client-Konfiguration
-- Rückwärtskompatible Vereinfachungen der öffentlichen API
-- Tests, Dokumentation, Packaging und Wartbarkeit
+Before accepting a PR, all of these should be yes:
 
-Vor der Umsetzung oder Annahme eines Pull Requests sollten folgende Fragen mit Ja
-beantwortet werden können:
+1. Does it directly support speech-to-text or text-to-speech via the OpenAI Audio API?
+2. Does it fit the existing request, response, port, and client boundaries without
+   application-specific dependencies?
+3. Does the public API stay small, async, typed, and understandable?
+4. Is the added dependency or complexity worth it?
+5. Are behavior, validation, and backward compatibility covered by tests?
 
-1. Unterstützt die Änderung unmittelbar Speech-to-Text oder Text-to-Speech über die
-   OpenAI Audio API?
-2. Passt sie in die vorhandenen Request-, Response-, Port- und Client-Grenzen, ohne
-   anwendungsspezifische Abhängigkeiten einzuführen?
-3. Bleibt die öffentliche API klein, asynchron, typisiert und verständlich?
-4. Ist die zusätzliche Abhängigkeit oder Komplexität durch einen konkreten Nutzen
-   gerechtfertigt?
-5. Sind Verhalten, Validierung und Rückwärtskompatibilität durch Tests abgesichert?
-
-Wenn eine Änderung Audioverarbeitung, Framework-Integration, Persistenz oder
-Orchestrierung benötigt, sollte sie bevorzugt in der aufrufenden Anwendung oder in
-einem separaten Paket umgesetzt werden. Grenzfälle sollten nur aufgenommen werden,
-wenn sie für mehrere Nutzer relevant sind, den Kernablauf deutlich vereinfachen und
-keine dauerhafte Kopplung an einen einzelnen Anwendungskontext erzeugen.
-
-Ein Pull Request sollte abgelehnt oder aufgeteilt werden, wenn er den Projektumfang
-nur deshalb erweitert, weil die technische Umsetzung hier möglich ist. Maßgeblich
-ist nicht, ob ein Feature mit Sprache oder Audio zu tun hat, sondern ob es die klare
-Aufgabe dieser Bibliothek besser erfüllt.
+Changes needing audio processing, framework integration, persistence, or
+orchestration belong in the calling application or a separate package. Reject or
+split a PR that widens scope just because it's technically possible here. What
+matters is not whether a feature involves audio, but whether it makes this library
+better at its one job.
