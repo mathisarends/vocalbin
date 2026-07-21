@@ -16,6 +16,9 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
 ]
+release = [
+    "twine>=6.2.0",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.30"
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Verify release tag
+        shell: bash
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          tag_version="${GITHUB_REF_NAME#v}"
+          project_version="$(uv version --short)"
+          if [[ "$tag_version" != "$project_version" ]]; then
+            echo "Tag version $tag_version does not match project version $project_version."
+            exit 1
+          fi
+
+      - name: Install locked dependencies
+        run: uv sync --locked --dev --group release
+
+      - name: Run unit tests
+        run: uv run pytest
+
+      - name: Build distributions
+        run: uv build --out-dir dist
+
+      - name: Check distribution metadata
+        run: uv run twine check dist/*
+
+      - name: Smoke-test wheel
+        shell: bash
+        run: |
+          wheel="$(find dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          if [[ -z "$wheel" ]]; then
+            echo "No wheel found in dist/."
+            exit 1
+          fi
+          uv venv --python 3.13 .smoke-venv
+          uv pip install --python .smoke-venv/bin/python "$wheel"
+          .smoke-venv/bin/python -c "import vocalbin; from importlib.metadata import version; print(version('vocalbin'))"
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/vocalbin
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.14.0
+
+  github-release:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag
+          --generate-notes
+          --title "$GITHUB_REF_NAME"
