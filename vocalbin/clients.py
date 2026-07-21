@@ -4,13 +4,13 @@ from typing import Any, Self, cast
 from openai import AsyncOpenAI, omit
 from openai.types.audio import TranscriptionCreateResponse
 
-from vocalbin.interfaces import SpeechToText, TextToSpeech
 from vocalbin.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
+from vocalbin.ports import SpeechToText, TextToSpeech
 
 _CONTENT_TYPES = {
     "mp3": "audio/mpeg",

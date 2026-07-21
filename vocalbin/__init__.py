@@ -1,5 +1,4 @@
 from .clients import OpenAISpeechToText, OpenAITextToSpeech
-from .interfaces import SpeechToText, TextToSpeech
 from .models import (
     SpeechToTextFormat,
     SpeechToTextModel,
@@ -12,6 +11,7 @@ from .models import (
     TextToSpeechVoice,
     TimestampGranularity,
 )
+from .ports import SpeechToText, TextToSpeech
 
 __all__ = [
     "OpenAISpeechToText",
