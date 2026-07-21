@@ -4,6 +4,7 @@ from typing import Any, Self, cast
 from openai import AsyncOpenAI, omit
 from openai.types.audio import TranscriptionCreateResponse
 
+from vocalbin.credentials import OpenAICredentials
 from vocalbin.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
@@ -28,7 +29,15 @@ class _OpenAIClientOwner:
     def __init__(self, api_key: str | None, client: AsyncOpenAI | None) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
-        self.client = client if client is not None else AsyncOpenAI(api_key=api_key)
+        if client is not None:
+            self.client = client
+        else:
+            resolved_api_key = (
+                api_key
+                if api_key is not None
+                else OpenAICredentials().api_key.get_secret_value()
+            )
+            self.client = AsyncOpenAI(api_key=resolved_api_key)
         self._owns_client = client is None
 
     async def aclose(self) -> None:

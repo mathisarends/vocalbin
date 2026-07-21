@@ -1,4 +1,5 @@
 from .clients import OpenAISpeechToText, OpenAITextToSpeech
+from .credentials import OpenAICredentials
 from .models import (
     SpeechToTextFormat,
     SpeechToTextModel,
@@ -14,6 +15,7 @@ from .models import (
 from .ports import SpeechToText, TextToSpeech
 
 __all__ = [
+    "OpenAICredentials",
     "OpenAISpeechToText",
     "OpenAITextToSpeech",
     "SpeechToText",
