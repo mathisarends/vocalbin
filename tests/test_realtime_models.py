@@ -1,14 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from vocalbin.transcription import (
+from vocalbin.realtime import (
     RealtimeErrorDetails,
     RealtimeNoiseReduction,
+    RealtimeSessionType,
     RealtimeTranscriptionConfig,
     RealtimeTranscriptionDelay,
     RealtimeTranscriptionModel,
-)
-from vocalbin.translation import (
     RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
     RealtimeTranslationModel,
@@ -24,6 +23,10 @@ def test_realtime_transcription_config_defaults_and_normalizes_language() -> Non
     assert config.noise_reduction == RealtimeNoiseReduction.FAR_FIELD
     assert config.include_logprobs is False
     assert RealtimeTranscriptionConfig(language=None).language is None
+    assert {session_type.value for session_type in RealtimeSessionType} == {
+        "transcription",
+        "translation",
+    }
 
 
 def test_realtime_transcription_config_rejects_invalid_fields() -> None:
@@ -43,6 +46,7 @@ def test_realtime_translation_config_supports_documented_languages() -> None:
 
     assert config.model == RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
     assert config.target_language == "de"
+    assert isinstance(config.target_language, RealtimeTranslationLanguage)
     assert config.noise_reduction is None
     assert config.include_source_transcript is False
     assert {language.value for language in RealtimeTranslationLanguage} == {

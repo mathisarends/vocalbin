@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import importlib
 import json
 from abc import ABC, abstractmethod
@@ -11,21 +10,14 @@ from urllib.parse import urlencode
 
 from vocalbin.credentials import OpenAICredentials
 from vocalbin.models import (
-    RealtimeError,
-    RealtimeErrorDetails,
     RealtimeSessionConnected,
-    RealtimeSourceTranscriptDelta,
-    RealtimeSpeechStarted,
-    RealtimeSpeechStopped,
+    RealtimeSessionType,
     RealtimeTranscriptCompleted,
-    RealtimeTranscriptDelta,
     RealtimeTranscriptionConfig,
     RealtimeTranscriptionEvent,
-    RealtimeTranslationAudioDelta,
     RealtimeTranslationClosed,
     RealtimeTranslationConfig,
     RealtimeTranslationEvent,
-    RealtimeTranslationTranscriptDelta,
 )
 from vocalbin.ports import (
     AudioInput,
@@ -34,8 +26,33 @@ from vocalbin.ports import (
     RealtimeTranslation,
 )
 from vocalbin.realtime._audio import MicrophoneInput
-
-type JsonObject = dict[str, Any]
+from vocalbin.realtime._models import (
+    TRANSCRIPTION_EVENT_TYPES,
+    TRANSLATION_EVENT_TYPES,
+    RealtimeAudioAppend,
+    RealtimeClientMessage,
+    RealtimeInputFinished,
+    RealtimeNoiseReductionConfig,
+    RealtimePcmFormat,
+    RealtimeSessionUpdate,
+    RealtimeTranscriptionAudio,
+    RealtimeTranscriptionAudioAppend,
+    RealtimeTranscriptionAudioCommit,
+    RealtimeTranscriptionAudioInput,
+    RealtimeTranscriptionSession,
+    RealtimeTranscriptionSessionUpdate,
+    RealtimeTranscriptionSettings,
+    RealtimeTranslationAudio,
+    RealtimeTranslationAudioAppend,
+    RealtimeTranslationInputAudio,
+    RealtimeTranslationOutputAudio,
+    RealtimeTranslationSession,
+    RealtimeTranslationSessionClose,
+    RealtimeTranslationSessionUpdate,
+    RealtimeTranslationTranscriptionSettings,
+    transcription_event_adapter,
+    translation_event_adapter,
+)
 
 
 async def _connect_websocket(url: str, headers: dict[str, str]) -> Any:
@@ -69,10 +86,10 @@ class OpenAIRealtimeProvider(RealtimeProvider):
 
     def build_url(
         self,
-        session_type: Literal["transcription", "translation"],
+        session_type: RealtimeSessionType,
         model: str,
     ) -> str:
-        if session_type == "translation":
+        if session_type == RealtimeSessionType.TRANSLATION:
             query = urlencode({"model": model})
             return f"{self._base_url}/translations?{query}"
         query = urlencode({"intent": "transcription"})
@@ -89,7 +106,7 @@ class _RealtimeWebSocket:
     def __init__(
         self,
         provider: RealtimeProvider,
-        session_type: Literal["transcription", "translation"],
+        session_type: RealtimeSessionType,
         model: str,
     ) -> None:
         self._provider = provider
@@ -109,12 +126,15 @@ class _RealtimeWebSocket:
             self._provider.build_headers(),
         )
 
-    async def send(self, payload: JsonObject) -> None:
+    async def send(self, payload: RealtimeClientMessage | dict[str, Any]) -> None:
         if self._connection is None:
             raise RuntimeError("Realtime session is not connected.")
-        await self._connection.send(json.dumps(payload))
+        message = (
+            payload if isinstance(payload, dict) else payload.model_dump(mode="json")
+        )
+        await self._connection.send(json.dumps(message))
 
-    async def events(self) -> AsyncIterator[JsonObject]:
+    async def events(self) -> AsyncIterator[dict[str, Any]]:
         if self._connection is None:
             raise RuntimeError("Realtime session is not connected.")
         async for message in self._connection:
@@ -139,7 +159,7 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
         *,
         audio_input: AudioInput,
         provider: RealtimeProvider,
-        session_type: Literal["transcription", "translation"],
+        session_type: RealtimeSessionType,
         model: str,
     ) -> None:
         self._audio_input = audio_input
@@ -223,16 +243,16 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
             await self._connection.close()
 
     @abstractmethod
-    def _build_session_update(self) -> JsonObject: ...
+    def _build_session_update(self) -> RealtimeSessionUpdate: ...
 
     @abstractmethod
-    def _build_audio_append(self, chunk: bytes) -> JsonObject: ...
+    def _build_audio_append(self, chunk: bytes) -> RealtimeAudioAppend: ...
 
     @abstractmethod
-    def _build_input_finished(self) -> JsonObject: ...
+    def _build_input_finished(self) -> RealtimeInputFinished: ...
 
     @abstractmethod
-    def _map_event(self, payload: JsonObject) -> EventT | None: ...
+    def _map_event(self, payload: dict[str, Any]) -> EventT | None: ...
 
     @abstractmethod
     def _should_finish(self, event: EventT) -> bool: ...
@@ -263,7 +283,7 @@ class OpenAIRealtimeTranscriber(
         super().__init__(
             audio_input=audio_input or MicrophoneInput(),
             provider=selected_provider,
-            session_type="transcription",
+            session_type=RealtimeSessionType.TRANSCRIPTION,
             model=self.config.model,
         )
 
@@ -274,41 +294,41 @@ class OpenAIRealtimeTranscriber(
             raise RuntimeError("Cannot flush after the realtime session has closed.")
         await self._connection.send(self._build_input_finished())
 
-    def _build_session_update(self) -> JsonObject:
-        transcription: JsonObject = {
-            "model": self.config.model,
-            "delay": self.config.delay,
-        }
-        if self.config.language is not None:
-            transcription["language"] = self.config.language
-        audio_input: JsonObject = {
-            "format": {"type": "audio/pcm", "rate": 24000},
-            "transcription": transcription,
-            "turn_detection": None,
-            "noise_reduction": (
-                {"type": self.config.noise_reduction}
-                if self.config.noise_reduction is not None
-                else None
+    def _build_session_update(self) -> RealtimeTranscriptionSessionUpdate:
+        noise_reduction = (
+            RealtimeNoiseReductionConfig(type=self.config.noise_reduction)
+            if self.config.noise_reduction is not None
+            else None
+        )
+        include: list[Literal["item.input_audio_transcription.logprobs"]] | None = (
+            ["item.input_audio_transcription.logprobs"]
+            if self.config.include_logprobs
+            else None
+        )
+        return RealtimeTranscriptionSessionUpdate(
+            session=RealtimeTranscriptionSession(
+                audio=RealtimeTranscriptionAudio(
+                    input=RealtimeTranscriptionAudioInput(
+                        format=RealtimePcmFormat(),
+                        transcription=RealtimeTranscriptionSettings(
+                            model=self.config.model,
+                            delay=self.config.delay,
+                            language=self.config.language,
+                        ),
+                        noise_reduction=noise_reduction,
+                    )
+                ),
+                include=include,
             ),
-        }
-        session: JsonObject = {
-            "type": "transcription",
-            "audio": {"input": audio_input},
-        }
-        if self.config.include_logprobs:
-            session["include"] = ["item.input_audio_transcription.logprobs"]
-        return {"type": "session.update", "session": session}
+        )
 
-    def _build_audio_append(self, chunk: bytes) -> JsonObject:
-        return {
-            "type": "input_audio_buffer.append",
-            "audio": base64.b64encode(chunk).decode("ascii"),
-        }
+    def _build_audio_append(self, chunk: bytes) -> RealtimeTranscriptionAudioAppend:
+        return RealtimeTranscriptionAudioAppend.from_audio(chunk)
 
-    def _build_input_finished(self) -> JsonObject:
-        return {"type": "input_audio_buffer.commit"}
+    def _build_input_finished(self) -> RealtimeTranscriptionAudioCommit:
+        return RealtimeTranscriptionAudioCommit()
 
-    def _map_event(self, payload: JsonObject) -> RealtimeTranscriptionEvent | None:
+    def _map_event(self, payload: dict[str, Any]) -> RealtimeTranscriptionEvent | None:
         return _map_transcription_event(payload)
 
     def _should_finish(self, event: RealtimeTranscriptionEvent) -> bool:
@@ -340,123 +360,59 @@ class OpenAIRealtimeTranslator(
         super().__init__(
             audio_input=audio_input or MicrophoneInput(),
             provider=selected_provider,
-            session_type="translation",
+            session_type=RealtimeSessionType.TRANSLATION,
             model=self.config.model,
         )
 
-    def _build_session_update(self) -> JsonObject:
+    def _build_session_update(self) -> RealtimeTranslationSessionUpdate:
         transcription = (
-            {"model": "gpt-realtime-whisper"}
+            RealtimeTranslationTranscriptionSettings()
             if self.config.include_source_transcript
             else None
         )
-        return {
-            "type": "session.update",
-            "session": {
-                "audio": {
-                    "input": {
-                        "transcription": transcription,
-                        "noise_reduction": (
-                            {"type": self.config.noise_reduction}
-                            if self.config.noise_reduction is not None
-                            else None
-                        ),
-                    },
-                    "output": {"language": self.config.target_language},
-                }
-            },
-        }
+        noise_reduction = (
+            RealtimeNoiseReductionConfig(type=self.config.noise_reduction)
+            if self.config.noise_reduction is not None
+            else None
+        )
+        return RealtimeTranslationSessionUpdate(
+            session=RealtimeTranslationSession(
+                audio=RealtimeTranslationAudio(
+                    input=RealtimeTranslationInputAudio(
+                        transcription=transcription,
+                        noise_reduction=noise_reduction,
+                    ),
+                    output=RealtimeTranslationOutputAudio(
+                        language=self.config.target_language
+                    ),
+                )
+            )
+        )
 
-    def _build_audio_append(self, chunk: bytes) -> JsonObject:
-        return {
-            "type": "session.input_audio_buffer.append",
-            "audio": base64.b64encode(chunk).decode("ascii"),
-        }
+    def _build_audio_append(self, chunk: bytes) -> RealtimeTranslationAudioAppend:
+        return RealtimeTranslationAudioAppend.from_audio(chunk)
 
-    def _build_input_finished(self) -> JsonObject:
-        return {"type": "session.close"}
+    def _build_input_finished(self) -> RealtimeTranslationSessionClose:
+        return RealtimeTranslationSessionClose()
 
-    def _map_event(self, payload: JsonObject) -> RealtimeTranslationEvent | None:
+    def _map_event(self, payload: dict[str, Any]) -> RealtimeTranslationEvent | None:
         return _map_translation_event(payload)
 
     def _should_finish(self, event: RealtimeTranslationEvent) -> bool:
         return isinstance(event, RealtimeTranslationClosed)
 
 
-def _map_error(payload: JsonObject) -> RealtimeError:
-    error = payload["error"]
-    return RealtimeError(
-        error=RealtimeErrorDetails(
-            type=error["type"],
-            message=error["message"],
-            code=error.get("code"),
-            event_id=error.get("event_id"),
-            param=error.get("param"),
-        )
-    )
-
-
 def _map_transcription_event(
-    payload: JsonObject,
+    payload: dict[str, Any],
 ) -> RealtimeTranscriptionEvent | None:
-    match payload.get("type"):
-        case "conversation.item.input_audio_transcription.delta":
-            return RealtimeTranscriptDelta(
-                delta=payload["delta"],
-                item_id=payload["item_id"],
-                event_id=payload.get("event_id"),
-                logprobs=payload.get("logprobs"),
-            )
-        case "conversation.item.input_audio_transcription.completed":
-            return RealtimeTranscriptCompleted(
-                transcript=payload["transcript"],
-                item_id=payload["item_id"],
-                event_id=payload.get("event_id"),
-                logprobs=payload.get("logprobs"),
-                usage=payload.get("usage"),
-            )
-        case "input_audio_buffer.speech_started":
-            return RealtimeSpeechStarted(
-                item_id=payload["item_id"],
-                audio_start_ms=payload["audio_start_ms"],
-            )
-        case "input_audio_buffer.speech_stopped":
-            return RealtimeSpeechStopped(
-                item_id=payload["item_id"],
-                audio_end_ms=payload["audio_end_ms"],
-            )
-        case "error":
-            return _map_error(payload)
-        case _:
-            return None
+    if payload.get("type") not in TRANSCRIPTION_EVENT_TYPES:
+        return None
+    return transcription_event_adapter.validate_python(payload).to_event()
 
 
-def _map_translation_event(payload: JsonObject) -> RealtimeTranslationEvent | None:
-    match payload.get("type"):
-        case "session.input_transcript.delta":
-            return RealtimeSourceTranscriptDelta(
-                delta=payload["delta"],
-                elapsed_ms=payload.get("elapsed_ms"),
-                event_id=payload.get("event_id"),
-            )
-        case "session.output_transcript.delta":
-            return RealtimeTranslationTranscriptDelta(
-                delta=payload["delta"],
-                elapsed_ms=payload.get("elapsed_ms"),
-                event_id=payload.get("event_id"),
-            )
-        case "session.output_audio.delta":
-            return RealtimeTranslationAudioDelta(
-                audio=base64.b64decode(payload["delta"]),
-                elapsed_ms=payload.get("elapsed_ms"),
-                sample_rate=payload.get("sample_rate", 24000),
-                channels=payload.get("channels", 1),
-                format=payload.get("format", "pcm16"),
-                event_id=payload.get("event_id"),
-            )
-        case "session.closed":
-            return RealtimeTranslationClosed(event_id=payload.get("event_id"))
-        case "error":
-            return _map_error(payload)
-        case _:
-            return None
+def _map_translation_event(
+    payload: dict[str, Any],
+) -> RealtimeTranslationEvent | None:
+    if payload.get("type") not in TRANSLATION_EVENT_TYPES:
+        return None
+    return translation_event_adapter.validate_python(payload).to_event()

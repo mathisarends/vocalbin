@@ -58,7 +58,7 @@ jobs:
           fi
           uv venv --python 3.13 .smoke-venv
           uv pip install --python .smoke-venv/bin/python "$wheel"
-          .smoke-venv/bin/python -c "import vocalbin; from importlib.metadata import version; print(version('vocalbin'))"
+          .smoke-venv/bin/python -c "import vocalbin; from importlib.metadata import version; from vocalbin.transcription import RealtimeTranscriptionConfig; from vocalbin.translation import RealtimeTranslationConfig; print(version('vocalbin'))"
 
       - name: Upload distributions
         uses: actions/upload-artifact@v7

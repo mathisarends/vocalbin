@@ -1,9 +1,10 @@
 # Contributing to vocalbin
 
 Thanks for your interest in improving `vocalbin`. This project is intentionally
-small: a typed, asynchronous wrapper around OpenAI's speech-to-text and
-text-to-speech endpoints. A small API surface, clear types, few dependencies and
-predictable behavior matter more than a long feature list.
+small: a typed, asynchronous wrapper around OpenAI's speech, realtime
+transcription, and realtime translation APIs. A small API surface, clear types,
+few required dependencies and predictable behavior matter more than a long
+feature list.
 
 ## Scope: read the Vision first
 
@@ -15,20 +16,23 @@ A change is in scope only if you can answer **yes** to the five questions listed
 under _"Leitlinie für zukünftige Pull Requests"_ in [`vision.md`](vision.md) — in
 short:
 
-1. Does it directly support speech-to-text or text-to-speech via the OpenAI Audio API?
+1. Does it directly support one of vocalbin's request-response or realtime OpenAI
+   audio flows?
 2. Does it fit the existing request/response/port/client boundaries without adding
    application-specific dependencies?
 3. Does the public API stay small, async, typed and understandable?
 4. Is the added dependency or complexity justified by a concrete benefit?
 5. Are behavior, validation and backward compatibility covered by tests?
 
-Work that needs audio processing, framework integration, persistence or
-orchestration belongs in the calling application or a separate package, not here.
+Work that needs general audio processing, framework integration, persistence,
+voice-agent behavior or orchestration belongs in the calling application or a
+separate package, not here.
 
 ## Development setup
 
 ```bash
 uv sync
+uv sync --extra audio
 uv run pytest
 ```
 

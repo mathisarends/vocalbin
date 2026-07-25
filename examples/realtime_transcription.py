@@ -1,6 +1,6 @@
 import asyncio
 
-from vocalbin.transcription import (
+from vocalbin.realtime import (
     OpenAIRealtimeTranscriber,
     RealtimeError,
     RealtimeTranscriptCompleted,

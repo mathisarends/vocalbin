@@ -3,9 +3,10 @@ import base64
 import json
 from collections.abc import AsyncIterator
 from types import SimpleNamespace
-from typing import Any, Literal
+from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 import vocalbin.realtime._clients as realtime_module
 from vocalbin.realtime import (
@@ -13,22 +14,19 @@ from vocalbin.realtime import (
     AudioStreamInput,
     MicrophoneInput,
     OpenAIRealtimeProvider,
-    RealtimeProvider,
-)
-from vocalbin.transcription import (
     OpenAIRealtimeTranscriber,
+    OpenAIRealtimeTranslator,
     RealtimeError,
     RealtimeNoiseReduction,
+    RealtimeProvider,
     RealtimeSessionConnected,
+    RealtimeSessionType,
+    RealtimeSourceTranscriptDelta,
     RealtimeSpeechStarted,
     RealtimeSpeechStopped,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
     RealtimeTranscriptionConfig,
-)
-from vocalbin.translation import (
-    OpenAIRealtimeTranslator,
-    RealtimeSourceTranscriptDelta,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationClosed,
     RealtimeTranslationConfig,
@@ -48,7 +46,7 @@ class DummyProvider(RealtimeProvider):
 
     def build_url(
         self,
-        session_type: Literal["transcription", "translation"],
+        session_type: RealtimeSessionType,
         model: str,
     ) -> str:
         self.calls.append((session_type, model))
@@ -113,12 +111,12 @@ def test_openai_realtime_provider_builds_urls_and_headers(
         base_url="wss://example.test/v1/realtime/",
     )
 
-    assert provider.build_url("transcription", "ignored") == (
+    assert provider.build_url(RealtimeSessionType.TRANSCRIPTION, "ignored") == (
         "wss://example.test/v1/realtime?intent=transcription"
     )
-    assert provider.build_url("translation", "gpt-realtime-translate") == (
-        "wss://example.test/v1/realtime/translations?model=gpt-realtime-translate"
-    )
+    assert provider.build_url(
+        RealtimeSessionType.TRANSLATION, "gpt-realtime-translate"
+    ) == ("wss://example.test/v1/realtime/translations?model=gpt-realtime-translate")
     assert provider.build_headers() == {
         "Authorization": "Bearer key",
         "OpenAI-Safety-Identifier": "hashed-user",
@@ -180,7 +178,7 @@ async def test_realtime_websocket_connects_sends_reads_and_reconnects(
     install_connection(monkeypatch, first, second)
     websocket = realtime_module._RealtimeWebSocket(
         provider,
-        "transcription",
+        RealtimeSessionType.TRANSCRIPTION,
         "gpt-realtime-whisper",
     )
 
@@ -213,7 +211,7 @@ async def test_realtime_websocket_rejects_non_object_events(
     install_connection(monkeypatch, connection)
     websocket = realtime_module._RealtimeWebSocket(
         DummyProvider(),
-        "translation",
+        RealtimeSessionType.TRANSLATION,
         "gpt-realtime-translate",
     )
     await websocket.connect()
@@ -539,10 +537,13 @@ async def test_context_manager_and_default_realtime_components(
 
     assert isinstance(transcriber._audio_input, MicrophoneInput)
     assert isinstance(translator._audio_input, MicrophoneInput)
-    assert transcriber._build_session_update()["session"]["audio"]["input"][
-        "noise_reduction"
-    ] == {"type": "far_field"}
-    assert translator._build_session_update()["session"]["audio"] == {
+    transcriber_update = transcriber._build_session_update().model_dump(mode="json")
+    translator_update = translator._build_session_update().model_dump(mode="json")
+
+    assert transcriber_update["session"]["audio"]["input"]["noise_reduction"] == {
+        "type": "far_field"
+    }
+    assert translator_update["session"]["audio"] == {
         "input": {
             "transcription": {"model": "gpt-realtime-whisper"},
             "noise_reduction": {"type": "near_field"},
@@ -580,3 +581,11 @@ def test_event_mappers_preserve_defaults_and_ignore_unknown_events() -> None:
     assert audio == RealtimeTranslationAudioDelta(audio=b"audio")
     assert realtime_module._map_translation_event({"type": "unknown"}) is None
     assert realtime_module._map_transcription_event({"type": "unknown"}) is None
+
+    with pytest.raises(ValidationError):
+        realtime_module._map_transcription_event(
+            {
+                "type": "conversation.item.input_audio_transcription.delta",
+                "delta": "missing item id",
+            }
+        )

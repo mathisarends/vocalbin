@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from typing import Literal
 
 from vocalbin.models import (
+    RealtimeSessionType,
     RealtimeTranscriptionEvent,
     RealtimeTranslationEvent,
     SpeechToTextRequest,
@@ -45,7 +45,7 @@ class RealtimeProvider(ABC):
     @abstractmethod
     def build_url(
         self,
-        session_type: Literal["transcription", "translation"],
+        session_type: RealtimeSessionType,
         model: str,
     ) -> str: ...
 

@@ -2,7 +2,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-from vocalbin.translation import (
+from vocalbin.realtime import (
     OpenAIRealtimeTranslator,
     RealtimeError,
     RealtimeSourceTranscriptDelta,

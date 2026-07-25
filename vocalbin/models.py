@@ -66,6 +66,11 @@ class RealtimeTranslationModel(StrEnum):
     GPT_REALTIME_TRANSLATE = "gpt-realtime-translate"
 
 
+class RealtimeSessionType(StrEnum):
+    TRANSCRIPTION = "transcription"
+    TRANSLATION = "translation"
+
+
 class RealtimeTranscriptionDelay(StrEnum):
     MINIMAL = "minimal"
     LOW = "low"

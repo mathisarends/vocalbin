@@ -2,10 +2,10 @@
 
 ![vocalbin — typed, async voice for OpenAI](static/banner.png)
 
-`vocalbin` is a small, typed, asynchronous wrapper around OpenAI's speech-to-text
-and text-to-speech endpoints. It validates model capabilities up front, normalizes
-responses without discarding raw data, and stays independent of any
-application-specific settings or domain code.
+`vocalbin` is a small, typed, asynchronous wrapper around OpenAI's speech,
+realtime transcription, and realtime translation APIs. It validates model
+capabilities up front, normalizes responses without discarding raw data, and stays
+independent of any application-specific settings or domain code.
 
 ## Installation
 
@@ -90,10 +90,10 @@ async def synthesize() -> bytes:
 ## Realtime transcription
 
 Realtime transcription uses `gpt-realtime-whisper` and streams partial and final
-transcripts. Its public API is grouped under `vocalbin.transcription`:
+transcripts. Its public API is grouped under `vocalbin.realtime`:
 
 ```python
-from vocalbin.transcription import (
+from vocalbin.realtime import (
     OpenAIRealtimeTranscriber,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
@@ -126,7 +126,7 @@ deltas. Optional source-language transcripts use `gpt-realtime-whisper` on the
 same session:
 
 ```python
-from vocalbin.translation import (
+from vocalbin.realtime import (
     OpenAIRealtimeTranslator,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationConfig,
@@ -139,6 +139,7 @@ async def translate_live() -> None:
     config = RealtimeTranslationConfig(
         target_language=RealtimeTranslationLanguage.ENGLISH
     )
+    translated_audio = bytearray()
 
     async with OpenAIRealtimeTranslator(config) as translator:
         async for event in translator.stream():
@@ -146,14 +147,15 @@ async def translate_live() -> None:
                 case RealtimeTranslationTranscriptDelta(delta=delta):
                     print(delta, end="", flush=True)
                 case RealtimeTranslationAudioDelta(audio=audio):
-                    await play_pcm16(audio)
+                    translated_audio.extend(audio)
 ```
 
 Translation sessions have no assistant turns and do not use `response.create`.
 For finite custom inputs, vocalbin sends `session.close` after the last chunk and
 keeps draining output until `session.closed`.
 
-Shared realtime infrastructure is intentionally separate:
+The same realtime namespace also provides audio inputs, providers, shared events,
+and session enums:
 
 ```python
 from vocalbin.realtime import (
@@ -161,6 +163,10 @@ from vocalbin.realtime import (
     AudioStreamInput,
     MicrophoneInput,
     OpenAIRealtimeProvider,
+    RealtimeError,
+    RealtimeNoiseReduction,
+    RealtimeSessionConnected,
+    RealtimeSessionType,
 )
 ```
 
@@ -192,6 +198,8 @@ uv run python examples/text_to_speech.py   # every TTS model, voice and format
 uv run python examples/speech_to_text.py   # every STT model and response format
 uv run python examples/round_trip.py       # synthesize -> transcribe, self-checking
 uv run python examples/shared_client.py    # one AsyncOpenAI client for both services
+uv run python examples/realtime_transcription.py
+uv run python examples/realtime_translation.py
 ```
 
 Generated audio and transcripts are written to `examples/output/` (git-ignored).
