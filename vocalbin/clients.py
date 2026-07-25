@@ -70,8 +70,10 @@ class OpenAITextToSpeech(_OpenAIClientOwner, TextToSpeech):
             input=request.text,
             model=request.model,
             voice=request.voice,
-            instructions=request.instructions if request.instructions is not None else omit,
-            response_format=request.response_format,
+            instructions=request.instructions
+            if request.instructions is not None
+            else omit,
+            response_format=cast(Any, request.response_format),
             speed=request.speed if request.speed is not None else omit,
         )
 
@@ -108,7 +110,9 @@ class OpenAISpeechToText(_OpenAIClientOwner, SpeechToText):
             with audio_path.open("rb") as audio_file:
                 result = cast(
                     TranscriptionResult,
-                    await self.client.audio.transcriptions.create(file=audio_file, **params),
+                    await self.client.audio.transcriptions.create(
+                        file=audio_file, **params
+                    ),
                 )
 
         return SpeechToTextResponse(

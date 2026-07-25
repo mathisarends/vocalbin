@@ -1,7 +1,7 @@
 [project]
 name = "vocalbin"
-version = "0.1.0"
-description = "Typed async wrappers for OpenAI speech-to-text and text-to-speech APIs"
+version = "0.2.0"
+description = "Typed async wrappers for OpenAI speech, realtime transcription, and translation APIs"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,11 +10,21 @@ dependencies = [
     "pydantic-settings>=2.14.2",
 ]
 
+[project.optional-dependencies]
+realtime = [
+    "websockets>=13,<16",
+]
+audio = [
+    "sounddevice>=0.5.1",
+    "websockets>=13,<16",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
+    "ruff>=0.12.0",
 ]
 release = [
     "twine>=6.2.0",
@@ -33,3 +43,10 @@ addopts = [
     "--cov-fail-under=100",
 ]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "RUF", "UP"]

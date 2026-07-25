@@ -37,9 +37,7 @@ LEGACY_VOICES = [
 async def basic() -> None:
     """Defaults: gpt-4o-mini-tts, voice 'marin', mp3."""
     async with OpenAITextToSpeech() as tts:
-        response = await tts.synthesize(
-            TextToSpeechRequest(text="Hallo aus vocalbin!")
-        )
+        response = await tts.synthesize(TextToSpeechRequest(text="Hallo aus vocalbin!"))
     _save(response.audio, "basic.mp3")
     print(f"basic: {len(response.audio)} bytes, {response.content_type}")
 

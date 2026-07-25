@@ -91,7 +91,7 @@ async def diarized() -> None:
 
 
 async def whisper_verbose_json_with_timestamps() -> None:
-    """whisper-1: verbose_json is the only format that carries word/segment timestamps."""
+    """Use whisper-1 verbose_json for word and segment timestamps."""
     async with OpenAISpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(

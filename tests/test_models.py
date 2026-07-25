@@ -179,14 +179,14 @@ def test_request_field_constraints_and_unknown_fields() -> None:
     with pytest.raises(ValidationError):
         SpeechToTextRequest(audio=b"audio", temperature=1.1)
     with pytest.raises(ValidationError):
-        SpeechToTextRequest(audio=b"audio", unknown=True)
+        SpeechToTextRequest.model_validate({"audio": b"audio", "unknown": True})
 
     with pytest.raises(ValidationError):
         TextToSpeechRequest(text="x", speed=0.24)
     with pytest.raises(ValidationError):
         TextToSpeechRequest(text="x" * 4097)
     with pytest.raises(ValidationError):
-        TextToSpeechRequest(text="x", unknown=True)
+        TextToSpeechRequest.model_validate({"text": "x", "unknown": True})
 
 
 def test_tts_text_must_not_be_blank() -> None:

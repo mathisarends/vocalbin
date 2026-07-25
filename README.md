@@ -13,6 +13,14 @@ application-specific settings or domain code.
 uv add vocalbin
 ```
 
+Realtime support is optional so the base package does not install a WebSocket
+stack:
+
+```bash
+uv add "vocalbin[realtime]"  # custom audio input
+uv add "vocalbin[audio]"     # WebSockets plus microphone input
+```
+
 Set `OPENAI_API_KEY` in the environment, or pass an API key directly when creating
 a service. The default path reads the environment through `OpenAICredentials`:
 
@@ -79,6 +87,83 @@ async def synthesize() -> bytes:
 
 `response.content_type` gives the matching MIME type (e.g. `audio/mpeg`).
 
+## Realtime transcription
+
+Realtime transcription uses `gpt-realtime-whisper` and streams partial and final
+transcripts. Its public API is grouped under `vocalbin.transcription`:
+
+```python
+from vocalbin.transcription import (
+    OpenAIRealtimeTranscriber,
+    RealtimeTranscriptCompleted,
+    RealtimeTranscriptDelta,
+    RealtimeTranscriptionConfig,
+)
+
+
+async def transcribe_live() -> None:
+    async with OpenAIRealtimeTranscriber(
+        RealtimeTranscriptionConfig(language="de")
+    ) as transcriber:
+        async for event in transcriber.stream():
+            match event:
+                case RealtimeTranscriptDelta(delta=delta):
+                    print(delta, end="", flush=True)
+                case RealtimeTranscriptCompleted(transcript=transcript):
+                    print(f"\n{transcript}")
+```
+
+The default `MicrophoneInput` sends raw 24 kHz mono PCM16 chunks. Pass an
+`AudioInput` implementation or wrap an async byte source with `AudioStreamInput`
+from `vocalbin.realtime` when audio already comes from a media pipeline.
+`flush()` manually commits the current transcription buffer.
+
+## Realtime translation
+
+Live interpretation uses the dedicated `gpt-realtime-translate` endpoint. It
+continuously returns translated 24 kHz PCM16 audio and target-language transcript
+deltas. Optional source-language transcripts use `gpt-realtime-whisper` on the
+same session:
+
+```python
+from vocalbin.translation import (
+    OpenAIRealtimeTranslator,
+    RealtimeTranslationAudioDelta,
+    RealtimeTranslationConfig,
+    RealtimeTranslationLanguage,
+    RealtimeTranslationTranscriptDelta,
+)
+
+
+async def translate_live() -> None:
+    config = RealtimeTranslationConfig(
+        target_language=RealtimeTranslationLanguage.ENGLISH
+    )
+
+    async with OpenAIRealtimeTranslator(config) as translator:
+        async for event in translator.stream():
+            match event:
+                case RealtimeTranslationTranscriptDelta(delta=delta):
+                    print(delta, end="", flush=True)
+                case RealtimeTranslationAudioDelta(audio=audio):
+                    await play_pcm16(audio)
+```
+
+Translation sessions have no assistant turns and do not use `response.create`.
+For finite custom inputs, vocalbin sends `session.close` after the last chunk and
+keeps draining output until `session.closed`.
+
+Shared realtime infrastructure is intentionally separate:
+
+```python
+from vocalbin.realtime import (
+    AudioInput,
+    AudioStreamInput,
+    MicrophoneInput,
+    OpenAIRealtimeProvider,
+)
+```
+
 ## Supported models, voices and formats
 
 **Speech to text** — `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`,
@@ -90,6 +175,11 @@ with `json`).
 **Text to speech** — `gpt-4o-mini-tts`, `tts-1`, `tts-1-hd`; output formats `mp3`,
 `opus`, `aac`, `flac`, `wav`, `pcm`. The legacy `tts-1`/`tts-1-hd` models accept
 only the legacy voices and do not support `instructions`.
+
+**Realtime** — `gpt-realtime-whisper` for live transcription and
+`gpt-realtime-translate` for live speech-to-speech translation. Translation
+targets are English, Spanish, Portuguese, French, Japanese, Russian, Chinese,
+German, Korean, Hindi, Indonesian, Vietnamese, and Italian.
 
 ## Examples
 

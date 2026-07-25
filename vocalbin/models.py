@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal, Self
@@ -55,6 +56,171 @@ class TextToSpeechFormat(StrEnum):
     FLAC = "flac"
     WAV = "wav"
     PCM = "pcm"
+
+
+class RealtimeTranscriptionModel(StrEnum):
+    GPT_REALTIME_WHISPER = "gpt-realtime-whisper"
+
+
+class RealtimeTranslationModel(StrEnum):
+    GPT_REALTIME_TRANSLATE = "gpt-realtime-translate"
+
+
+class RealtimeTranscriptionDelay(StrEnum):
+    MINIMAL = "minimal"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    XHIGH = "xhigh"
+
+
+class RealtimeNoiseReduction(StrEnum):
+    NEAR_FIELD = "near_field"
+    FAR_FIELD = "far_field"
+
+
+class RealtimeTranslationLanguage(StrEnum):
+    CHINESE = "zh"
+    ENGLISH = "en"
+    FRENCH = "fr"
+    GERMAN = "de"
+    HINDI = "hi"
+    INDONESIAN = "id"
+    ITALIAN = "it"
+    JAPANESE = "ja"
+    KOREAN = "ko"
+    PORTUGUESE = "pt"
+    RUSSIAN = "ru"
+    SPANISH = "es"
+    VIETNAMESE = "vi"
+
+
+class RealtimeTranscriptionConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    model: RealtimeTranscriptionModel = RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    language: str | None = None
+    delay: RealtimeTranscriptionDelay = RealtimeTranscriptionDelay.MEDIUM
+    noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
+    include_logprobs: bool = False
+
+    @field_validator("language")
+    @classmethod
+    def language_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("language must not be blank")
+        return normalized
+
+
+class RealtimeTranslationConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    model: RealtimeTranslationModel = RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
+    target_language: RealtimeTranslationLanguage
+    noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
+    include_source_transcript: bool = True
+
+
+@dataclass(frozen=True)
+class RealtimeSessionConnected:
+    pass
+
+
+@dataclass(frozen=True)
+class RealtimeErrorDetails:
+    type: str
+    message: str
+    code: str | None = None
+    event_id: str | None = None
+    param: str | None = None
+
+    def __str__(self) -> str:
+        return f"[{self.type}] {self.message}"
+
+
+@dataclass(frozen=True)
+class RealtimeError:
+    error: RealtimeErrorDetails
+
+
+@dataclass(frozen=True)
+class RealtimeTranscriptDelta:
+    delta: str
+    item_id: str
+    event_id: str | None = None
+    logprobs: list[dict[str, Any]] | None = None
+
+
+@dataclass(frozen=True)
+class RealtimeTranscriptCompleted:
+    transcript: str
+    item_id: str
+    event_id: str | None = None
+    logprobs: list[dict[str, Any]] | None = None
+    usage: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class RealtimeSpeechStarted:
+    item_id: str
+    audio_start_ms: int
+
+
+@dataclass(frozen=True)
+class RealtimeSpeechStopped:
+    item_id: str
+    audio_end_ms: int
+
+
+@dataclass(frozen=True)
+class RealtimeSourceTranscriptDelta:
+    delta: str
+    elapsed_ms: int | None = None
+    event_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RealtimeTranslationTranscriptDelta:
+    delta: str
+    elapsed_ms: int | None = None
+    event_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RealtimeTranslationAudioDelta:
+    audio: bytes
+    elapsed_ms: int | None = None
+    sample_rate: int = 24000
+    channels: int = 1
+    format: Literal["pcm16"] = "pcm16"
+    event_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RealtimeTranslationClosed:
+    event_id: str | None = None
+
+
+type RealtimeTranscriptionEvent = (
+    RealtimeSessionConnected
+    | RealtimeTranscriptDelta
+    | RealtimeTranscriptCompleted
+    | RealtimeSpeechStarted
+    | RealtimeSpeechStopped
+    | RealtimeError
+)
+
+type RealtimeTranslationEvent = (
+    RealtimeSessionConnected
+    | RealtimeSourceTranscriptDelta
+    | RealtimeTranslationTranscriptDelta
+    | RealtimeTranslationAudioDelta
+    | RealtimeTranslationClosed
+    | RealtimeError
+)
 
 
 class SpeechToTextRequest(BaseModel):
@@ -120,7 +286,9 @@ class SpeechToTextRequest(BaseModel):
         if self.model in gpt_transcribe_models:
             supported = {SpeechToTextFormat.JSON, SpeechToTextFormat.TEXT}
             if self.response_format not in supported:
-                raise ValueError(f"{self.model} supports only response_format json or text")
+                raise ValueError(
+                    f"{self.model} supports only response_format json or text"
+                )
 
         if self.model == SpeechToTextModel.GPT_4O_TRANSCRIBE_DIARIZE:
             supported = {
@@ -130,14 +298,17 @@ class SpeechToTextRequest(BaseModel):
             }
             if self.response_format not in supported:
                 raise ValueError(
-                    f"{self.model} supports only response_format json, text, or diarized_json"
+                    f"{self.model} supports only response_format json, text, "
+                    "or diarized_json"
                 )
             if self.prompt is not None:
                 raise ValueError(f"{self.model} does not support prompt")
             if self.include is not None:
                 raise ValueError(f"{self.model} does not support include/logprobs")
             if self.timestamp_granularities is not None:
-                raise ValueError(f"{self.model} does not support timestamp_granularities")
+                raise ValueError(
+                    f"{self.model} does not support timestamp_granularities"
+                )
 
         if self.model == SpeechToTextModel.WHISPER_1:
             supported = {
@@ -155,13 +326,19 @@ class SpeechToTextRequest(BaseModel):
 
         if self.timestamp_granularities is not None:
             if self.model != SpeechToTextModel.WHISPER_1:
-                raise ValueError("timestamp_granularities is supported only by whisper-1")
+                raise ValueError(
+                    "timestamp_granularities is supported only by whisper-1"
+                )
             if self.response_format != SpeechToTextFormat.VERBOSE_JSON:
-                raise ValueError("timestamp_granularities requires response_format='verbose_json'")
+                raise ValueError(
+                    "timestamp_granularities requires response_format='verbose_json'"
+                )
 
         if self.include is not None:
             if self.model not in gpt_transcribe_models:
-                raise ValueError("include/logprobs is supported only by GPT transcription models")
+                raise ValueError(
+                    "include/logprobs is supported only by GPT transcription models"
+                )
             if self.response_format != SpeechToTextFormat.JSON:
                 raise ValueError("include/logprobs requires response_format='json'")
 

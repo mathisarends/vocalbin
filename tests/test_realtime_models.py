@@ -1,0 +1,71 @@
+import pytest
+from pydantic import ValidationError
+
+from vocalbin.transcription import (
+    RealtimeErrorDetails,
+    RealtimeNoiseReduction,
+    RealtimeTranscriptionConfig,
+    RealtimeTranscriptionDelay,
+    RealtimeTranscriptionModel,
+)
+from vocalbin.translation import (
+    RealtimeTranslationConfig,
+    RealtimeTranslationLanguage,
+    RealtimeTranslationModel,
+)
+
+
+def test_realtime_transcription_config_defaults_and_normalizes_language() -> None:
+    config = RealtimeTranscriptionConfig(language=" de ")
+
+    assert config.model == RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    assert config.language == "de"
+    assert config.delay == RealtimeTranscriptionDelay.MEDIUM
+    assert config.noise_reduction == RealtimeNoiseReduction.FAR_FIELD
+    assert config.include_logprobs is False
+    assert RealtimeTranscriptionConfig(language=None).language is None
+
+
+def test_realtime_transcription_config_rejects_invalid_fields() -> None:
+    with pytest.raises(ValidationError, match="language must not be blank"):
+        RealtimeTranscriptionConfig(language=" ")
+
+    with pytest.raises(ValidationError, match="Extra inputs"):
+        RealtimeTranscriptionConfig.model_validate({"unknown": True})
+
+
+def test_realtime_translation_config_supports_documented_languages() -> None:
+    config = RealtimeTranslationConfig(
+        target_language=RealtimeTranslationLanguage.GERMAN,
+        noise_reduction=None,
+        include_source_transcript=False,
+    )
+
+    assert config.model == RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
+    assert config.target_language == "de"
+    assert config.noise_reduction is None
+    assert config.include_source_transcript is False
+    assert {language.value for language in RealtimeTranslationLanguage} == {
+        "zh",
+        "en",
+        "fr",
+        "de",
+        "hi",
+        "id",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru",
+        "es",
+        "vi",
+    }
+
+    with pytest.raises(ValidationError):
+        RealtimeTranslationConfig(target_language="nl")
+
+
+def test_realtime_error_details_have_readable_string() -> None:
+    error = RealtimeErrorDetails(type="server_error", message="Unavailable")
+
+    assert str(error) == "[server_error] Unavailable"

@@ -29,7 +29,9 @@ async def test_client_uses_environment_api_key(monkeypatch: pytest.MonkeyPatch) 
         await service.aclose()
 
 
-async def test_explicit_api_key_takes_precedence(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_explicit_api_key_takes_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
     service = OpenAISpeechToText(api_key="explicit-key")
 
