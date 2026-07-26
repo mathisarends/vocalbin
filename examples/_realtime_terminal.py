@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import textwrap
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TextIO
@@ -101,26 +102,28 @@ class RealtimeTerminal:
 
     def _panel_lines(self) -> list[str]:
         terminal = shutil.get_terminal_size(fallback=(80, 24))
-        width = max(20, min(terminal.columns - 1, 100))
+        width = max(10, min(terminal.columns - 1, 100))
         fixed_lines = 4 + len(self._fields)
         available = max(len(self._fields), terminal.lines - fixed_lines - 1)
         lines_per_field = max(1, available // len(self._fields))
 
         lines = [
-            self._style(self._title.upper(), BOLD, CYAN),
+            self._style(self._fit(self._title.upper(), width), BOLD, CYAN),
             self._style("─" * width, DIM),
         ]
         for field in self._fields.values():
-            lines.append(self._style(self._display_label(field.label), BOLD))
+            label = self._fit(self._display_label(field.label), width)
+            lines.append(self._style(label, BOLD))
             wrapped = self._wrap(field.value or "Waiting for speech…", width - 2)
             if len(wrapped) > lines_per_field:
                 wrapped = wrapped[-lines_per_field:]
                 wrapped[0] = f"…{wrapped[0][1:]}"
             lines.extend(f"  {line}" for line in wrapped)
+        status = self._fit(f"● {self._status}  ·  Ctrl+C to stop", width)
         lines.extend(
             [
                 self._style("─" * width, DIM),
-                self._style(f"● {self._status}  ·  Ctrl+C to stop", DIM),
+                self._style(status, DIM),
             ]
         )
         return lines
@@ -134,21 +137,61 @@ class RealtimeTerminal:
 
     def _write_wrapped(self, prefix: str, text: str, *, color: str = "") -> None:
         width = max(20, shutil.get_terminal_size(fallback=(80, 24)).columns - 1)
-        lines = self._wrap(text, max(1, width - len(prefix))) or [""]
+        prefix_width = self._cell_width(prefix)
+        lines = self._wrap(text, max(1, width - prefix_width)) or [""]
         styled_prefix = self._style(prefix, BOLD, color)
         self._stream.write(f"{styled_prefix}{lines[0]}\n")
-        indent = " " * len(prefix)
+        indent = " " * prefix_width
         for line in lines[1:]:
             self._stream.write(f"{indent}{line}\n")
         self._stream.flush()
 
-    @staticmethod
-    def _wrap(value: str, width: int) -> list[str]:
-        return textwrap.wrap(
+    @classmethod
+    def _wrap(cls, value: str, width: int) -> list[str]:
+        roughly_wrapped = textwrap.wrap(
             " ".join(value.split()),
             width=width,
             break_long_words=True,
             break_on_hyphens=False,
+        )
+        return [
+            part
+            for line in roughly_wrapped
+            for part in cls._split_by_cell_width(line, width)
+        ]
+
+    @classmethod
+    def _fit(cls, value: str, width: int) -> str:
+        if cls._cell_width(value) <= width:
+            return value
+        return f"{cls._split_by_cell_width(value, width - 1)[0]}…"
+
+    @classmethod
+    def _split_by_cell_width(cls, value: str, width: int) -> list[str]:
+        lines: list[str] = []
+        current = ""
+        current_width = 0
+        for character in value:
+            character_width = cls._cell_width(character)
+            if current and current_width + character_width > width:
+                lines.append(current)
+                current = ""
+                current_width = 0
+            current += character
+            current_width += character_width
+        if current or not lines:
+            lines.append(current)
+        return lines
+
+    @staticmethod
+    def _cell_width(value: str) -> int:
+        return sum(
+            0
+            if unicodedata.combining(character)
+            else 2
+            if unicodedata.east_asian_width(character) in {"F", "W"}
+            else 1
+            for character in value
         )
 
     def _style(self, text: str, *styles: str) -> str:

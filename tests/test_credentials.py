@@ -16,7 +16,7 @@ def test_credentials_require_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     with pytest.raises(ValidationError, match="api_key"):
-        OpenAICredentials()
+        OpenAICredentials(_env_file=None)
 
 
 async def test_client_uses_environment_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
