@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-import vocalbin.realtime._clients as realtime_module
+import vocalbin.realtime.clients as realtime_module
 from vocalbin.realtime import (
     AudioInput,
     AudioStreamInput,
@@ -33,6 +33,8 @@ from vocalbin.realtime import (
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
 )
+from vocalbin.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
+from vocalbin.realtime.models import RealtimeTranscriptionAudioCommit
 
 
 async def chunks(*values: bytes) -> AsyncIterator[bytes]:
@@ -185,13 +187,13 @@ async def test_realtime_websocket_connects_sends_reads_and_reconnects(
     assert websocket.is_connected is False
     await websocket.connect()
     await websocket.connect()
-    await websocket.send({"type": "client.event"})
+    await websocket.send(RealtimeTranscriptionAudioCommit())
     assert [event async for event in websocket.events()] == [{"type": "known"}]
     await websocket.close()
     await websocket.close()
 
     assert first.closed is True
-    assert second.sent == [{"type": "client.event"}]
+    assert second.sent == [{"type": "input_audio_buffer.commit"}]
     assert second.closed is True
     assert provider.calls == [
         ("transcription", "gpt-realtime-whisper"),
@@ -199,7 +201,7 @@ async def test_realtime_websocket_connects_sends_reads_and_reconnects(
     ]
 
     with pytest.raises(RuntimeError, match="not connected"):
-        await websocket.send({})
+        await websocket.send(RealtimeTranscriptionAudioCommit())
     with pytest.raises(RuntimeError, match="not connected"):
         await anext(websocket.events())
 
@@ -537,8 +539,8 @@ async def test_context_manager_and_default_realtime_components(
 
     assert isinstance(transcriber._audio_input, MicrophoneInput)
     assert isinstance(translator._audio_input, MicrophoneInput)
-    transcriber_update = transcriber._build_session_update().model_dump(mode="json")
-    translator_update = translator._build_session_update().model_dump(mode="json")
+    transcriber_update = transcriber._session_update.model_dump(mode="json")
+    translator_update = translator._session_update.model_dump(mode="json")
 
     assert transcriber_update["session"]["audio"]["input"]["noise_reduction"] == {
         "type": "far_field"
@@ -571,7 +573,7 @@ def test_provider_and_credentials_are_mutually_exclusive() -> None:
 
 
 def test_event_mappers_preserve_defaults_and_ignore_unknown_events() -> None:
-    audio = realtime_module._map_translation_event(
+    audio = TRANSLATION_SPEC.parse_event(
         {
             "type": "session.output_audio.delta",
             "delta": base64.b64encode(b"audio").decode("ascii"),
@@ -579,11 +581,11 @@ def test_event_mappers_preserve_defaults_and_ignore_unknown_events() -> None:
     )
 
     assert audio == RealtimeTranslationAudioDelta(audio=b"audio")
-    assert realtime_module._map_translation_event({"type": "unknown"}) is None
-    assert realtime_module._map_transcription_event({"type": "unknown"}) is None
+    assert TRANSLATION_SPEC.parse_event({"type": "unknown"}) is None
+    assert TRANSCRIPTION_SPEC.parse_event({"type": "unknown"}) is None
 
     with pytest.raises(ValidationError):
-        realtime_module._map_transcription_event(
+        TRANSCRIPTION_SPEC.parse_event(
             {
                 "type": "conversation.item.input_audio_transcription.delta",
                 "delta": "missing item id",

@@ -1,8 +1,9 @@
 import base64
+from abc import abstractmethod
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field
 
 from vocalbin.models import (
     RealtimeError,
@@ -13,10 +14,14 @@ from vocalbin.models import (
     RealtimeSpeechStopped,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
+    RealtimeTranscriptionConfig,
     RealtimeTranscriptionDelay,
+    RealtimeTranscriptionEvent,
     RealtimeTranscriptionModel,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationClosed,
+    RealtimeTranslationConfig,
+    RealtimeTranslationEvent,
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
 )
@@ -41,45 +46,41 @@ class RealtimeMessageType(StrEnum):
     ERROR = "error"
 
 
-class RealtimePcmFormat(BaseModel):
+class RealtimeClientMessage(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+
+class RealtimePcmFormat(RealtimeClientMessage):
     type: Literal[RealtimeMessageType.PCM_AUDIO] = RealtimeMessageType.PCM_AUDIO
     rate: Literal[24000] = 24000
 
 
-class RealtimeNoiseReductionConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeNoiseReductionConfig(RealtimeClientMessage):
     type: RealtimeNoiseReduction
 
+    @classmethod
+    def from_setting(cls, setting: RealtimeNoiseReduction | None) -> Self | None:
+        return None if setting is None else cls(type=setting)
 
-class RealtimeTranscriptionSettings(BaseModel):
-    model_config = ConfigDict(extra="forbid")
 
+class RealtimeTranscriptionSettings(RealtimeClientMessage):
     model: RealtimeTranscriptionModel
     delay: RealtimeTranscriptionDelay
     language: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
-class RealtimeTranscriptionAudioInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranscriptionAudioInput(RealtimeClientMessage):
     format: RealtimePcmFormat
     transcription: RealtimeTranscriptionSettings
     turn_detection: None = None
     noise_reduction: RealtimeNoiseReductionConfig | None
 
 
-class RealtimeTranscriptionAudio(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranscriptionAudio(RealtimeClientMessage):
     input: RealtimeTranscriptionAudioInput
 
 
-class RealtimeTranscriptionSession(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranscriptionSession(RealtimeClientMessage):
     type: Literal[RealtimeMessageType.TRANSCRIPTION_SESSION] = (
         RealtimeMessageType.TRANSCRIPTION_SESSION
     )
@@ -90,114 +91,130 @@ class RealtimeTranscriptionSession(BaseModel):
     )
 
 
-class RealtimeTranscriptionSessionUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    type: Literal[RealtimeMessageType.SESSION_UPDATE] = (
-        RealtimeMessageType.SESSION_UPDATE
-    )
-    session: RealtimeTranscriptionSession
-
-
-class RealtimeTranslationTranscriptionSettings(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranslationTranscriptionSettings(RealtimeClientMessage):
     model: RealtimeTranscriptionModel = RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
 
 
-class RealtimeTranslationInputAudio(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranslationInputAudio(RealtimeClientMessage):
     transcription: RealtimeTranslationTranscriptionSettings | None
     noise_reduction: RealtimeNoiseReductionConfig | None
 
 
-class RealtimeTranslationOutputAudio(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranslationOutputAudio(RealtimeClientMessage):
     language: RealtimeTranslationLanguage
 
 
-class RealtimeTranslationAudio(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranslationAudio(RealtimeClientMessage):
     input: RealtimeTranslationInputAudio
     output: RealtimeTranslationOutputAudio
 
 
-class RealtimeTranslationSession(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranslationSession(RealtimeClientMessage):
     audio: RealtimeTranslationAudio
 
 
-class RealtimeTranslationSessionUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeSessionUpdate(RealtimeClientMessage):
     type: Literal[RealtimeMessageType.SESSION_UPDATE] = (
         RealtimeMessageType.SESSION_UPDATE
     )
+
+
+class RealtimeTranscriptionSessionUpdate(RealtimeSessionUpdate):
+    session: RealtimeTranscriptionSession
+
+    @classmethod
+    def from_config(cls, config: RealtimeTranscriptionConfig) -> Self:
+        return cls(
+            session=RealtimeTranscriptionSession(
+                audio=RealtimeTranscriptionAudio(
+                    input=RealtimeTranscriptionAudioInput(
+                        format=RealtimePcmFormat(),
+                        transcription=RealtimeTranscriptionSettings(
+                            model=config.model,
+                            delay=config.delay,
+                            language=config.language,
+                        ),
+                        noise_reduction=RealtimeNoiseReductionConfig.from_setting(
+                            config.noise_reduction
+                        ),
+                    )
+                ),
+                include=(
+                    ["item.input_audio_transcription.logprobs"]
+                    if config.include_logprobs
+                    else None
+                ),
+            )
+        )
+
+
+class RealtimeTranslationSessionUpdate(RealtimeSessionUpdate):
     session: RealtimeTranslationSession
 
+    @classmethod
+    def from_config(cls, config: RealtimeTranslationConfig) -> Self:
+        return cls(
+            session=RealtimeTranslationSession(
+                audio=RealtimeTranslationAudio(
+                    input=RealtimeTranslationInputAudio(
+                        transcription=(
+                            RealtimeTranslationTranscriptionSettings()
+                            if config.include_source_transcript
+                            else None
+                        ),
+                        noise_reduction=RealtimeNoiseReductionConfig.from_setting(
+                            config.noise_reduction
+                        ),
+                    ),
+                    output=RealtimeTranslationOutputAudio(
+                        language=config.target_language
+                    ),
+                )
+            )
+        )
 
-class RealtimeTranscriptionAudioAppend(BaseModel):
-    model_config = ConfigDict(extra="forbid")
 
-    type: Literal[RealtimeMessageType.TRANSCRIPTION_AUDIO_APPEND] = (
-        RealtimeMessageType.TRANSCRIPTION_AUDIO_APPEND
-    )
+class RealtimeAudioAppend(RealtimeClientMessage):
     audio: str
 
     @classmethod
-    def from_audio(cls, audio: bytes) -> "RealtimeTranscriptionAudioAppend":
+    def from_audio(cls, audio: bytes) -> Self:
         return cls(audio=base64.b64encode(audio).decode("ascii"))
 
 
-class RealtimeTranscriptionAudioCommit(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class RealtimeTranscriptionAudioAppend(RealtimeAudioAppend):
+    type: Literal[RealtimeMessageType.TRANSCRIPTION_AUDIO_APPEND] = (
+        RealtimeMessageType.TRANSCRIPTION_AUDIO_APPEND
+    )
 
+
+class RealtimeTranslationAudioAppend(RealtimeAudioAppend):
+    type: Literal[RealtimeMessageType.TRANSLATION_AUDIO_APPEND] = (
+        RealtimeMessageType.TRANSLATION_AUDIO_APPEND
+    )
+
+
+class RealtimeInputFinished(RealtimeClientMessage):
+    """Announces that no further audio will follow."""
+
+
+class RealtimeTranscriptionAudioCommit(RealtimeInputFinished):
     type: Literal[RealtimeMessageType.TRANSCRIPTION_AUDIO_COMMIT] = (
         RealtimeMessageType.TRANSCRIPTION_AUDIO_COMMIT
     )
 
 
-class RealtimeTranslationAudioAppend(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    type: Literal[RealtimeMessageType.TRANSLATION_AUDIO_APPEND] = (
-        RealtimeMessageType.TRANSLATION_AUDIO_APPEND
-    )
-    audio: str
-
-    @classmethod
-    def from_audio(cls, audio: bytes) -> "RealtimeTranslationAudioAppend":
-        return cls(audio=base64.b64encode(audio).decode("ascii"))
-
-
-class RealtimeTranslationSessionClose(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RealtimeTranslationSessionClose(RealtimeInputFinished):
     type: Literal[RealtimeMessageType.TRANSLATION_SESSION_CLOSE] = (
         RealtimeMessageType.TRANSLATION_SESSION_CLOSE
     )
 
 
-type RealtimeSessionUpdate = (
-    RealtimeTranscriptionSessionUpdate | RealtimeTranslationSessionUpdate
-)
-type RealtimeAudioAppend = (
-    RealtimeTranscriptionAudioAppend | RealtimeTranslationAudioAppend
-)
-type RealtimeInputFinished = (
-    RealtimeTranscriptionAudioCommit | RealtimeTranslationSessionClose
-)
-type RealtimeClientMessage = (
-    RealtimeSessionUpdate | RealtimeAudioAppend | RealtimeInputFinished
-)
-
-
 class RealtimeServerEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
+
+    @abstractmethod
+    def to_event(self) -> RealtimeTranscriptionEvent | RealtimeTranslationEvent: ...
 
 
 class RealtimeErrorPayload(BaseModel):
@@ -358,21 +375,3 @@ type RealtimeTranslationServerEvent = Annotated[
     | RealtimeErrorEvent,
     Field(discriminator="type"),
 ]
-
-TRANSCRIPTION_EVENT_TYPES = {
-    RealtimeMessageType.TRANSCRIPT_DELTA,
-    RealtimeMessageType.TRANSCRIPT_COMPLETED,
-    RealtimeMessageType.SPEECH_STARTED,
-    RealtimeMessageType.SPEECH_STOPPED,
-    RealtimeMessageType.ERROR,
-}
-TRANSLATION_EVENT_TYPES = {
-    RealtimeMessageType.SOURCE_TRANSCRIPT_DELTA,
-    RealtimeMessageType.TRANSLATION_TRANSCRIPT_DELTA,
-    RealtimeMessageType.TRANSLATION_AUDIO_DELTA,
-    RealtimeMessageType.TRANSLATION_CLOSED,
-    RealtimeMessageType.ERROR,
-}
-
-transcription_event_adapter = TypeAdapter(RealtimeTranscriptionServerEvent)
-translation_event_adapter = TypeAdapter(RealtimeTranslationServerEvent)

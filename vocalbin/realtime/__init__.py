@@ -27,8 +27,8 @@ from ..ports import (
     RealtimeTranscription,
     RealtimeTranslation,
 )
-from ._audio import AudioStreamInput, MicrophoneInput
-from ._clients import (
+from .audio import AudioStreamInput, MicrophoneInput
+from .clients import (
     OpenAIRealtimeProvider,
     OpenAIRealtimeTranscriber,
     OpenAIRealtimeTranslator,

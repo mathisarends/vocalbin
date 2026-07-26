@@ -1,21 +1,18 @@
 import asyncio
 import importlib
 import json
-from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import suppress
 from types import TracebackType
-from typing import Any, Literal, Self, cast
+from typing import Any, Self, cast
 from urllib.parse import urlencode
 
 from vocalbin.credentials import OpenAICredentials
 from vocalbin.models import (
     RealtimeSessionConnected,
     RealtimeSessionType,
-    RealtimeTranscriptCompleted,
     RealtimeTranscriptionConfig,
     RealtimeTranscriptionEvent,
-    RealtimeTranslationClosed,
     RealtimeTranslationConfig,
     RealtimeTranslationEvent,
 )
@@ -25,33 +22,17 @@ from vocalbin.ports import (
     RealtimeTranscription,
     RealtimeTranslation,
 )
-from vocalbin.realtime._audio import MicrophoneInput
-from vocalbin.realtime._models import (
-    TRANSCRIPTION_EVENT_TYPES,
-    TRANSLATION_EVENT_TYPES,
-    RealtimeAudioAppend,
+from vocalbin.realtime.audio import MicrophoneInput
+from vocalbin.realtime.base import (
+    TRANSCRIPTION_SPEC,
+    TRANSLATION_SPEC,
+    RealtimeSessionSpec,
+)
+from vocalbin.realtime.models import (
     RealtimeClientMessage,
-    RealtimeInputFinished,
-    RealtimeNoiseReductionConfig,
-    RealtimePcmFormat,
     RealtimeSessionUpdate,
-    RealtimeTranscriptionAudio,
-    RealtimeTranscriptionAudioAppend,
-    RealtimeTranscriptionAudioCommit,
-    RealtimeTranscriptionAudioInput,
-    RealtimeTranscriptionSession,
     RealtimeTranscriptionSessionUpdate,
-    RealtimeTranscriptionSettings,
-    RealtimeTranslationAudio,
-    RealtimeTranslationAudioAppend,
-    RealtimeTranslationInputAudio,
-    RealtimeTranslationOutputAudio,
-    RealtimeTranslationSession,
-    RealtimeTranslationSessionClose,
     RealtimeTranslationSessionUpdate,
-    RealtimeTranslationTranscriptionSettings,
-    transcription_event_adapter,
-    translation_event_adapter,
 )
 
 
@@ -102,6 +83,18 @@ class OpenAIRealtimeProvider(RealtimeProvider):
         return headers
 
 
+def _resolve_provider(
+    provider: RealtimeProvider | None,
+    api_key: str | None,
+    safety_identifier: str | None,
+) -> RealtimeProvider:
+    if provider is None:
+        return OpenAIRealtimeProvider(api_key, safety_identifier=safety_identifier)
+    if api_key is not None or safety_identifier is not None:
+        raise ValueError("Pass either 'provider' or OpenAI credentials, not both.")
+    return provider
+
+
 class _RealtimeWebSocket:
     def __init__(
         self,
@@ -126,13 +119,10 @@ class _RealtimeWebSocket:
             self._provider.build_headers(),
         )
 
-    async def send(self, payload: RealtimeClientMessage | dict[str, Any]) -> None:
+    async def send(self, message: RealtimeClientMessage) -> None:
         if self._connection is None:
             raise RuntimeError("Realtime session is not connected.")
-        message = (
-            payload if isinstance(payload, dict) else payload.model_dump(mode="json")
-        )
-        await self._connection.send(json.dumps(message))
+        await self._connection.send(json.dumps(message.model_dump(mode="json")))
 
     async def events(self) -> AsyncIterator[dict[str, Any]]:
         if self._connection is None:
@@ -151,19 +141,20 @@ class _RealtimeWebSocket:
         await connection.close()
 
 
-class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslationEvent)](
-    ABC
-):
+class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslationEvent)]:
     def __init__(
         self,
         *,
+        spec: RealtimeSessionSpec[EventT],
+        session_update: RealtimeSessionUpdate,
         audio_input: AudioInput,
         provider: RealtimeProvider,
-        session_type: RealtimeSessionType,
         model: str,
     ) -> None:
+        self._spec = spec
+        self._session_update = session_update
         self._audio_input = audio_input
-        self._connection = _RealtimeWebSocket(provider, session_type, model)
+        self._connection = _RealtimeWebSocket(provider, spec.session_type, model)
         self._sender_task: asyncio.Task[None] | None = None
         self._sender_error: Exception | None = None
         self._stream_taken = False
@@ -204,7 +195,7 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
 
     async def _stream_events(self) -> AsyncIterator[EventT]:
         await self._connection.connect()
-        await self._connection.send(self._build_session_update())
+        await self._connection.send(self._session_update)
         self._session_started = True
         await self._audio_input.start()
         self._sender_task = asyncio.create_task(self._send_audio())
@@ -214,11 +205,13 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
             if self._stop_called:
                 return
             async for payload in self._connection.events():
-                event = self._map_event(payload)
+                event = self._spec.parse_event(payload)
                 if event is None:
                     continue
                 yield event
-                if self._should_finish(event):
+                if self._spec.is_final_event(
+                    event, input_finished=self._input_finished
+                ):
                     break
             if self._sender_error is not None:
                 raise self._sender_error
@@ -232,30 +225,15 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
                     return
                 if not chunk:
                     continue
-                await self._connection.send(self._build_audio_append(chunk))
+                await self._connection.send(self._spec.audio_append.from_audio(chunk))
             self._input_finished = True
             if not self._stop_called and self._connection.is_connected:
-                await self._connection.send(self._build_input_finished())
+                await self._connection.send(self._spec.input_finished())
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             self._sender_error = exc
             await self._connection.close()
-
-    @abstractmethod
-    def _build_session_update(self) -> RealtimeSessionUpdate: ...
-
-    @abstractmethod
-    def _build_audio_append(self, chunk: bytes) -> RealtimeAudioAppend: ...
-
-    @abstractmethod
-    def _build_input_finished(self) -> RealtimeInputFinished: ...
-
-    @abstractmethod
-    def _map_event(self, payload: dict[str, Any]) -> EventT | None: ...
-
-    @abstractmethod
-    def _should_finish(self, event: EventT) -> bool: ...
 
 
 class OpenAIRealtimeTranscriber(
@@ -271,19 +249,13 @@ class OpenAIRealtimeTranscriber(
         api_key: str | None = None,
         safety_identifier: str | None = None,
     ) -> None:
-        if provider is not None and (
-            api_key is not None or safety_identifier is not None
-        ):
-            raise ValueError("Pass either 'provider' or OpenAI credentials, not both.")
+        resolved_provider = _resolve_provider(provider, api_key, safety_identifier)
         self.config = config or RealtimeTranscriptionConfig()
-        selected_provider = provider or OpenAIRealtimeProvider(
-            api_key,
-            safety_identifier=safety_identifier,
-        )
         super().__init__(
+            spec=TRANSCRIPTION_SPEC,
+            session_update=RealtimeTranscriptionSessionUpdate.from_config(self.config),
             audio_input=audio_input or MicrophoneInput(),
-            provider=selected_provider,
-            session_type=RealtimeSessionType.TRANSCRIPTION,
+            provider=resolved_provider,
             model=self.config.model,
         )
 
@@ -292,47 +264,7 @@ class OpenAIRealtimeTranscriber(
             raise RuntimeError("Cannot flush before stream() has started.")
         if not self._connection.is_connected:
             raise RuntimeError("Cannot flush after the realtime session has closed.")
-        await self._connection.send(self._build_input_finished())
-
-    def _build_session_update(self) -> RealtimeTranscriptionSessionUpdate:
-        noise_reduction = (
-            RealtimeNoiseReductionConfig(type=self.config.noise_reduction)
-            if self.config.noise_reduction is not None
-            else None
-        )
-        include: list[Literal["item.input_audio_transcription.logprobs"]] | None = (
-            ["item.input_audio_transcription.logprobs"]
-            if self.config.include_logprobs
-            else None
-        )
-        return RealtimeTranscriptionSessionUpdate(
-            session=RealtimeTranscriptionSession(
-                audio=RealtimeTranscriptionAudio(
-                    input=RealtimeTranscriptionAudioInput(
-                        format=RealtimePcmFormat(),
-                        transcription=RealtimeTranscriptionSettings(
-                            model=self.config.model,
-                            delay=self.config.delay,
-                            language=self.config.language,
-                        ),
-                        noise_reduction=noise_reduction,
-                    )
-                ),
-                include=include,
-            ),
-        )
-
-    def _build_audio_append(self, chunk: bytes) -> RealtimeTranscriptionAudioAppend:
-        return RealtimeTranscriptionAudioAppend.from_audio(chunk)
-
-    def _build_input_finished(self) -> RealtimeTranscriptionAudioCommit:
-        return RealtimeTranscriptionAudioCommit()
-
-    def _map_event(self, payload: dict[str, Any]) -> RealtimeTranscriptionEvent | None:
-        return _map_transcription_event(payload)
-
-    def _should_finish(self, event: RealtimeTranscriptionEvent) -> bool:
-        return self._input_finished and isinstance(event, RealtimeTranscriptCompleted)
+        await self._connection.send(self._spec.input_finished())
 
 
 class OpenAIRealtimeTranslator(
@@ -348,71 +280,12 @@ class OpenAIRealtimeTranslator(
         api_key: str | None = None,
         safety_identifier: str | None = None,
     ) -> None:
-        if provider is not None and (
-            api_key is not None or safety_identifier is not None
-        ):
-            raise ValueError("Pass either 'provider' or OpenAI credentials, not both.")
+        resolved_provider = _resolve_provider(provider, api_key, safety_identifier)
         self.config = config
-        selected_provider = provider or OpenAIRealtimeProvider(
-            api_key,
-            safety_identifier=safety_identifier,
-        )
         super().__init__(
+            spec=TRANSLATION_SPEC,
+            session_update=RealtimeTranslationSessionUpdate.from_config(self.config),
             audio_input=audio_input or MicrophoneInput(),
-            provider=selected_provider,
-            session_type=RealtimeSessionType.TRANSLATION,
+            provider=resolved_provider,
             model=self.config.model,
         )
-
-    def _build_session_update(self) -> RealtimeTranslationSessionUpdate:
-        transcription = (
-            RealtimeTranslationTranscriptionSettings()
-            if self.config.include_source_transcript
-            else None
-        )
-        noise_reduction = (
-            RealtimeNoiseReductionConfig(type=self.config.noise_reduction)
-            if self.config.noise_reduction is not None
-            else None
-        )
-        return RealtimeTranslationSessionUpdate(
-            session=RealtimeTranslationSession(
-                audio=RealtimeTranslationAudio(
-                    input=RealtimeTranslationInputAudio(
-                        transcription=transcription,
-                        noise_reduction=noise_reduction,
-                    ),
-                    output=RealtimeTranslationOutputAudio(
-                        language=self.config.target_language
-                    ),
-                )
-            )
-        )
-
-    def _build_audio_append(self, chunk: bytes) -> RealtimeTranslationAudioAppend:
-        return RealtimeTranslationAudioAppend.from_audio(chunk)
-
-    def _build_input_finished(self) -> RealtimeTranslationSessionClose:
-        return RealtimeTranslationSessionClose()
-
-    def _map_event(self, payload: dict[str, Any]) -> RealtimeTranslationEvent | None:
-        return _map_translation_event(payload)
-
-    def _should_finish(self, event: RealtimeTranslationEvent) -> bool:
-        return isinstance(event, RealtimeTranslationClosed)
-
-
-def _map_transcription_event(
-    payload: dict[str, Any],
-) -> RealtimeTranscriptionEvent | None:
-    if payload.get("type") not in TRANSCRIPTION_EVENT_TYPES:
-        return None
-    return transcription_event_adapter.validate_python(payload).to_event()
-
-
-def _map_translation_event(
-    payload: dict[str, Any],
-) -> RealtimeTranslationEvent | None:
-    if payload.get("type") not in TRANSLATION_EVENT_TYPES:
-        return None
-    return translation_event_adapter.validate_python(payload).to_event()
