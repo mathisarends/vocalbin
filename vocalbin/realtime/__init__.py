@@ -1,6 +1,7 @@
 from ..models import (
     RealtimeError,
     RealtimeErrorDetails,
+    RealtimeEvent,
     RealtimeNoiseReduction,
     RealtimeSessionConnected,
     RealtimeSessionType,
@@ -43,6 +44,7 @@ __all__ = [
     "OpenAIRealtimeTranslator",
     "RealtimeError",
     "RealtimeErrorDetails",
+    "RealtimeEvent",
     "RealtimeNoiseReduction",
     "RealtimeProvider",
     "RealtimeSessionConnected",

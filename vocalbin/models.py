@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal, Self
@@ -129,13 +128,13 @@ class RealtimeTranslationConfig(BaseModel):
     include_source_transcript: bool = True
 
 
-@dataclass(frozen=True)
-class RealtimeSessionConnected:
-    pass
+class RealtimeEvent(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-@dataclass(frozen=True)
-class RealtimeErrorDetails:
+class RealtimeErrorDetails(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     type: str
     message: str
     code: str | None = None
@@ -146,21 +145,22 @@ class RealtimeErrorDetails:
         return f"[{self.type}] {self.message}"
 
 
-@dataclass(frozen=True)
-class RealtimeError:
+class RealtimeSessionConnected(RealtimeEvent):
+    pass
+
+
+class RealtimeError(RealtimeEvent):
     error: RealtimeErrorDetails
 
 
-@dataclass(frozen=True)
-class RealtimeTranscriptDelta:
+class RealtimeTranscriptDelta(RealtimeEvent):
     delta: str
     item_id: str
     event_id: str | None = None
     logprobs: list[dict[str, Any]] | None = None
 
 
-@dataclass(frozen=True)
-class RealtimeTranscriptCompleted:
+class RealtimeTranscriptCompleted(RealtimeEvent):
     transcript: str
     item_id: str
     event_id: str | None = None
@@ -168,34 +168,29 @@ class RealtimeTranscriptCompleted:
     usage: dict[str, Any] | None = None
 
 
-@dataclass(frozen=True)
-class RealtimeSpeechStarted:
+class RealtimeSpeechStarted(RealtimeEvent):
     item_id: str
     audio_start_ms: int
 
 
-@dataclass(frozen=True)
-class RealtimeSpeechStopped:
+class RealtimeSpeechStopped(RealtimeEvent):
     item_id: str
     audio_end_ms: int
 
 
-@dataclass(frozen=True)
-class RealtimeSourceTranscriptDelta:
+class RealtimeSourceTranscriptDelta(RealtimeEvent):
     delta: str
     elapsed_ms: int | None = None
     event_id: str | None = None
 
 
-@dataclass(frozen=True)
-class RealtimeTranslationTranscriptDelta:
+class RealtimeTranslationTranscriptDelta(RealtimeEvent):
     delta: str
     elapsed_ms: int | None = None
     event_id: str | None = None
 
 
-@dataclass(frozen=True)
-class RealtimeTranslationAudioDelta:
+class RealtimeTranslationAudioDelta(RealtimeEvent):
     audio: bytes
     elapsed_ms: int | None = None
     sample_rate: int = 24000
@@ -204,8 +199,7 @@ class RealtimeTranslationAudioDelta:
     event_id: str | None = None
 
 
-@dataclass(frozen=True)
-class RealtimeTranslationClosed:
+class RealtimeTranslationClosed(RealtimeEvent):
     event_id: str | None = None
 
 
