@@ -1,49 +1,62 @@
 import asyncio
 from pathlib import Path
 
+from examples._realtime_terminal import RealtimeTerminal
 from vocalbin.realtime import (
     OpenAIRealtimeTranslator,
     RealtimeError,
+    RealtimeSessionConnected,
     RealtimeSourceTranscriptDelta,
     RealtimeTranslationAudioDelta,
+    RealtimeTranslationClosed,
     RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
 )
+
+OUTPUT_PATH = Path("examples/output/realtime-translation.pcm")
 
 
 async def main() -> None:
     config = RealtimeTranslationConfig(
         target_language=RealtimeTranslationLanguage.ENGLISH
     )
-    output_path = Path("examples/output/realtime-translation.pcm")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     source_text = ""
     target_text = ""
 
-    def render() -> None:
-        print(f"\x1b[2K\r[source] {source_text}", end="")
-        print(f"\n\x1b[2K\r[target] {target_text}", end="")
-        print("\x1b[1A\r", end="", flush=True)
-
-    print()  # reserve the source/target lines below the cursor
-    with output_path.open("wb") as output:
+    with (
+        OUTPUT_PATH.open("wb") as output,
+        RealtimeTerminal(
+            title="Live translation · Auto → English",
+            fields=["source", "translation"],
+        ) as terminal,
+    ):
         async with OpenAIRealtimeTranslator(config) as translator:
             async for event in translator.stream():
                 match event:
+                    case RealtimeSessionConnected():
+                        terminal.update(status="Ready")
                     case RealtimeSourceTranscriptDelta(delta=delta):
                         source_text += delta
-                        render()
+                        terminal.update(status="Listening", source=source_text)
                     case RealtimeTranslationTranscriptDelta(delta=delta):
                         target_text += delta
-                        render()
+                        terminal.update(
+                            status="Translating",
+                            translation=target_text,
+                        )
                     case RealtimeTranslationAudioDelta(audio=audio):
                         output.write(audio)
+                    case RealtimeTranslationClosed():
+                        terminal.update(status=f"Saved audio to {OUTPUT_PATH}")
                     case RealtimeError(error=error):
-                        print(f"\n\nRealtime error: {error}")
-    print("\n")
+                        terminal.error(str(error))
+                        return
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
