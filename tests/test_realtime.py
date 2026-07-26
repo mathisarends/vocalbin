@@ -17,6 +17,7 @@ from vocalbin.realtime import (
     OpenAIRealtimeTranscriber,
     OpenAIRealtimeTranslator,
     RealtimeError,
+    RealtimeLogprob,
     RealtimeNoiseReduction,
     RealtimeProvider,
     RealtimeSessionConnected,
@@ -34,7 +35,7 @@ from vocalbin.realtime import (
     RealtimeTranslationTranscriptDelta,
 )
 from vocalbin.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
-from vocalbin.realtime.models import RealtimeTranscriptionAudioCommit
+from vocalbin.realtime.messages import RealtimeTranscriptionAudioCommit
 
 
 async def chunks(*values: bytes) -> AsyncIterator[bytes]:
@@ -283,6 +284,7 @@ async def test_realtime_transcriber_streams_and_maps_events(
     assert isinstance(events[0], RealtimeSessionConnected)
     assert isinstance(events[1], RealtimeTranscriptDelta)
     assert events[1].delta == "Hal"
+    assert events[1].logprobs == [RealtimeLogprob(token="Hal", logprob=-0.1)]
     assert isinstance(events[2], RealtimeSpeechStarted)
     assert isinstance(events[3], RealtimeSpeechStopped)
     assert isinstance(events[4], RealtimeError)

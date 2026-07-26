@@ -228,8 +228,10 @@ await client.close()
 ## Ports
 
 The provider-independent `SpeechToText` and `TextToSpeech` ports are abstract base
-classes (`vocalbin/ports.py`). They mark the boundary of the library, so callers
-can depend on the interface rather than the OpenAI implementation.
+classes (`vocalbin/ports.py`); the realtime ports `AudioInput`, `RealtimeProvider`,
+`RealtimeTranscription` and `RealtimeTranslation` live in `vocalbin/realtime/ports.py`.
+They mark the boundary of the library, so callers can depend on the interface
+rather than the OpenAI implementation.
 
 ## Development
 

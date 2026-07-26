@@ -1,7 +1,14 @@
-from ..models import (
+from .audio import AudioStreamInput, MicrophoneInput
+from .clients import (
+    OpenAIRealtimeProvider,
+    OpenAIRealtimeTranscriber,
+    OpenAIRealtimeTranslator,
+)
+from .models import (
     RealtimeError,
     RealtimeErrorDetails,
     RealtimeEvent,
+    RealtimeLogprob,
     RealtimeNoiseReduction,
     RealtimeSessionConnected,
     RealtimeSessionType,
@@ -22,17 +29,11 @@ from ..models import (
     RealtimeTranslationModel,
     RealtimeTranslationTranscriptDelta,
 )
-from ..ports import (
+from .ports import (
     AudioInput,
     RealtimeProvider,
     RealtimeTranscription,
     RealtimeTranslation,
-)
-from .audio import AudioStreamInput, MicrophoneInput
-from .clients import (
-    OpenAIRealtimeProvider,
-    OpenAIRealtimeTranscriber,
-    OpenAIRealtimeTranslator,
 )
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     "RealtimeError",
     "RealtimeErrorDetails",
     "RealtimeEvent",
+    "RealtimeLogprob",
     "RealtimeNoiseReduction",
     "RealtimeProvider",
     "RealtimeSessionConnected",
