@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from vocalbin.models import (
+from vocalbin.openai.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
 )

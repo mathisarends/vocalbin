@@ -1,7 +1,5 @@
-from .credentials import OpenAICredentials
-from .openai import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
+from .clients import OpenAISpeechToText, OpenAITextToSpeech
+from .models import (
     SpeechToTextFormat,
     SpeechToTextModel,
     SpeechToTextRequest,
@@ -13,19 +11,14 @@ from .openai import (
     TextToSpeechVoice,
     TimestampGranularity,
 )
-from .ports import SpeechToText, StreamingTextToSpeech, TextToSpeech
 
 __all__ = [
-    "OpenAICredentials",
     "OpenAISpeechToText",
     "OpenAITextToSpeech",
-    "SpeechToText",
     "SpeechToTextFormat",
     "SpeechToTextModel",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
-    "StreamingTextToSpeech",
-    "TextToSpeech",
     "TextToSpeechFormat",
     "TextToSpeechModel",
     "TextToSpeechRequest",

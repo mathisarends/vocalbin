@@ -5,7 +5,7 @@ from openai import AsyncOpenAI, omit
 from openai.types.audio import TranscriptionCreateResponse
 
 from vocalbin.credentials import OpenAICredentials
-from vocalbin.models import (
+from vocalbin.openai.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechRequest,

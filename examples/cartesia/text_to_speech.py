@@ -13,6 +13,8 @@ import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from vocalbin.cartesia import (
     CartesiaGenerationConfig,
     CartesiaTextToSpeech,
@@ -20,6 +22,8 @@ from vocalbin.cartesia import (
     CartesiaTextToSpeechRequest,
     CartesiaWavOutputFormat,
 )
+
+load_dotenv()
 
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
