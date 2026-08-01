@@ -102,6 +102,57 @@ async def synthesize() -> bytes:
 
 `response.content_type` gives the matching MIME type (e.g. `audio/mpeg`).
 
+## Cartesia text to speech
+
+Cartesia is an alternative text-to-speech provider, grouped under
+`vocalbin.cartesia`. Install it with `uv add "vocalbin[cartesia]"` and set
+`CARTESIA_API_KEY` in the environment:
+
+```python
+from vocalbin.cartesia import (
+    CartesiaTextToSpeech,
+    CartesiaTextToSpeechRequest,
+    CartesiaWavOutputFormat,
+)
+
+
+async def synthesize(voice_id: str) -> bytes:
+    async with CartesiaTextToSpeech() as text_to_speech:
+        response = await text_to_speech.synthesize(
+            CartesiaTextToSpeechRequest(
+                text="Hallo aus vocalbin mit Cartesia!",
+                voice_id=voice_id,
+                language="de",
+                output_format=CartesiaWavOutputFormat(),
+            )
+        )
+    return response.audio
+```
+
+`CartesiaTextToSpeech` also implements `StreamingTextToSpeech`. `stream()` returns
+one full request as an audio chunk stream; `stream_text()` takes an async iterable
+of text chunks and streams matching audio back over the same WebSocket connection,
+so text can be sent incrementally as it becomes available:
+
+```python
+from collections.abc import AsyncIterator
+
+from vocalbin.cartesia import CartesiaTextToSpeechConfig
+
+
+async def stream_text(voice_id: str, text_chunks: AsyncIterator[str]) -> bytes:
+    config = CartesiaTextToSpeechConfig(voice_id=voice_id, language="de")
+    audio = bytearray()
+
+    async with CartesiaTextToSpeech() as text_to_speech:
+        async for chunk in text_to_speech.stream_text(text_chunks, config):
+            audio.extend(chunk)
+    return bytes(audio)
+```
+
+WebSocket streaming requires `output_format=CartesiaRawOutputFormat()` (the
+default), which returns raw 16-bit PCM audio.
+
 ## Realtime transcription
 
 Realtime transcription uses `gpt-realtime-whisper` and streams partial and final
@@ -196,6 +247,11 @@ with `json`).
 **Text to speech** — `gpt-4o-mini-tts`, `tts-1`, `tts-1-hd`; output formats `mp3`,
 `opus`, `aac`, `flac`, `wav`, `pcm`. The legacy `tts-1`/`tts-1-hd` models accept
 only the legacy voices and do not support `instructions`.
+
+**Cartesia text to speech** — `sonic-3.5`, `sonic-3`, dated model snapshots, and
+`sonic-latest`; output containers `raw` (16-bit PCM, WAV, µ-law or A-law
+encoding), `wav`, and `mp3`. WebSocket streaming via `stream()`/`stream_text()`
+requires the `raw` container.
 
 **Realtime** — `gpt-realtime-whisper` for live transcription and
 `gpt-realtime-translate` for live speech-to-speech translation. Translation
