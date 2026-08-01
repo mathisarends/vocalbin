@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 
 from vocalbin.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
-    TextToSpeechRequest,
-    TextToSpeechResponse,
 )
 
 
@@ -15,8 +14,11 @@ class SpeechToText(ABC):
     ) -> SpeechToTextResponse: ...
 
 
-class TextToSpeech(ABC):
+class TextToSpeech[RequestT, ResponseT](ABC):
     @abstractmethod
-    async def synthesize(
-        self, request: TextToSpeechRequest
-    ) -> TextToSpeechResponse: ...
+    async def synthesize(self, request: RequestT) -> ResponseT: ...
+
+
+class StreamingTextToSpeech[RequestT, EventT](ABC):
+    @abstractmethod
+    def stream(self, request: RequestT) -> AsyncIterator[EventT]: ...

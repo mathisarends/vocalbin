@@ -56,7 +56,10 @@ class _OpenAIClientOwner:
         await self.aclose()
 
 
-class OpenAITextToSpeech(_OpenAIClientOwner, TextToSpeech):
+class OpenAITextToSpeech(
+    _OpenAIClientOwner,
+    TextToSpeech[TextToSpeechRequest, TextToSpeechResponse],
+):
     def __init__(
         self,
         api_key: str | None = None,

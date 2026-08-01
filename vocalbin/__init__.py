@@ -12,7 +12,7 @@ from .models import (
     TextToSpeechVoice,
     TimestampGranularity,
 )
-from .ports import SpeechToText, TextToSpeech
+from .ports import SpeechToText, StreamingTextToSpeech, TextToSpeech
 
 __all__ = [
     "OpenAICredentials",
@@ -23,6 +23,7 @@ __all__ = [
     "SpeechToTextModel",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
+    "StreamingTextToSpeech",
     "TextToSpeech",
     "TextToSpeechFormat",
     "TextToSpeechModel",

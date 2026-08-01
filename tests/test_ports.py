@@ -3,7 +3,14 @@ import inspect
 import pytest
 
 import vocalbin
-from vocalbin import OpenAISpeechToText, OpenAITextToSpeech, SpeechToText, TextToSpeech
+from vocalbin import (
+    OpenAISpeechToText,
+    OpenAITextToSpeech,
+    SpeechToText,
+    StreamingTextToSpeech,
+    TextToSpeech,
+)
+from vocalbin.cartesia import CartesiaTextToSpeech
 from vocalbin.realtime import (
     AudioInput,
     MicrophoneInput,
@@ -19,13 +26,18 @@ from vocalbin.realtime import (
 def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
     assert inspect.isabstract(SpeechToText)
     assert inspect.isabstract(TextToSpeech)
+    assert inspect.isabstract(StreamingTextToSpeech)
     assert issubclass(OpenAISpeechToText, SpeechToText)
     assert issubclass(OpenAITextToSpeech, TextToSpeech)
+    assert issubclass(CartesiaTextToSpeech, TextToSpeech)
+    assert issubclass(CartesiaTextToSpeech, StreamingTextToSpeech)
 
     with pytest.raises(TypeError):
         SpeechToText()
     with pytest.raises(TypeError):
         TextToSpeech()
+    with pytest.raises(TypeError):
+        StreamingTextToSpeech()
 
 
 def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> None:

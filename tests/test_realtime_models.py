@@ -37,6 +37,17 @@ def test_realtime_transcription_config_rejects_invalid_fields() -> None:
         RealtimeTranscriptionConfig.model_validate({"unknown": True})
 
 
+def test_realtime_configs_forward_unknown_model_ids() -> None:
+    transcription = RealtimeTranscriptionConfig(model="transcription-future")
+    translation = RealtimeTranslationConfig(
+        model="translation-future",
+        target_language=RealtimeTranslationLanguage.GERMAN,
+    )
+
+    assert transcription.model == "transcription-future"
+    assert translation.model == "translation-future"
+
+
 def test_realtime_translation_config_supports_documented_languages() -> None:
     config = RealtimeTranslationConfig(
         target_language=RealtimeTranslationLanguage.GERMAN,

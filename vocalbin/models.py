@@ -63,7 +63,7 @@ class SpeechToTextRequest(BaseModel):
     audio_path: Path | None = None
     audio: bytes | None = Field(default=None, min_length=1, repr=False)
     filename: str = Field(default="utterance.wav", min_length=1)
-    model: SpeechToTextModel = SpeechToTextModel.GPT_4O_TRANSCRIBE
+    model: SpeechToTextModel | str = SpeechToTextModel.GPT_4O_TRANSCRIBE
     response_format: SpeechToTextFormat = SpeechToTextFormat.JSON
     language: str | None = Field(
         default=None,
@@ -190,7 +190,7 @@ class SpeechToTextResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     text: str
-    model: SpeechToTextModel
+    model: SpeechToTextModel | str
     response_format: SpeechToTextFormat
     raw: dict[str, Any] | str
 
@@ -199,8 +199,8 @@ class TextToSpeechRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str = Field(min_length=1, max_length=4096)
-    model: TextToSpeechModel = TextToSpeechModel.GPT_4O_MINI_TTS
-    voice: TextToSpeechVoice = TextToSpeechVoice.MARIN
+    model: TextToSpeechModel | str = TextToSpeechModel.GPT_4O_MINI_TTS
+    voice: TextToSpeechVoice | str = TextToSpeechVoice.MARIN
     response_format: TextToSpeechFormat = TextToSpeechFormat.MP3
     instructions: str | None = None
     speed: float | None = Field(default=None, ge=0.25, le=4.0)
@@ -235,7 +235,7 @@ class TextToSpeechRequest(BaseModel):
 
 class TextToSpeechResponse(BaseModel):
     audio: bytes
-    model: TextToSpeechModel
-    voice: TextToSpeechVoice
+    model: TextToSpeechModel | str
+    voice: TextToSpeechVoice | str
     response_format: TextToSpeechFormat
     content_type: str

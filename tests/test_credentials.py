@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from vocalbin import OpenAICredentials, OpenAISpeechToText
+from vocalbin.credentials import CartesiaCredentials
 
 
 def test_credentials_read_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -17,6 +18,21 @@ def test_credentials_require_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> 
 
     with pytest.raises(ValidationError, match="api_key"):
         OpenAICredentials(_env_file=None)
+
+
+def test_credentials_read_cartesia_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CARTESIA_API_KEY", "cartesia-key")
+
+    credentials = CartesiaCredentials()
+
+    assert credentials.api_key.get_secret_value() == "cartesia-key"
+
+
+def test_credentials_require_cartesia_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CARTESIA_API_KEY", raising=False)
+
+    with pytest.raises(ValidationError, match="api_key"):
+        CartesiaCredentials(_env_file=None)
 
 
 async def test_client_uses_environment_api_key(monkeypatch: pytest.MonkeyPatch) -> None:

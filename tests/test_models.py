@@ -194,6 +194,20 @@ def test_tts_text_must_not_be_blank() -> None:
         TextToSpeechRequest(text="  ")
 
 
+def test_requests_forward_unknown_model_and_voice_ids() -> None:
+    speech_to_text = SpeechToTextRequest(audio=b"audio", model="stt-future")
+    text_to_speech = TextToSpeechRequest(
+        text="Hello",
+        model="tts-future",
+        voice="voice-future",
+    )
+
+    assert speech_to_text.model == "stt-future"
+    assert speech_to_text.to_openai_params()["model"] == "stt-future"
+    assert text_to_speech.model == "tts-future"
+    assert text_to_speech.voice == "voice-future"
+
+
 def test_legacy_tts_rejects_new_voice_and_instructions() -> None:
     with pytest.raises(ValidationError, match="does not support voice"):
         TextToSpeechRequest(

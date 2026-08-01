@@ -65,7 +65,7 @@ class RealtimeNoiseReductionConfig(RealtimeClientMessage):
 
 
 class RealtimeTranscriptionSettings(RealtimeClientMessage):
-    model: RealtimeTranscriptionModel
+    model: RealtimeTranscriptionModel | str
     delay: RealtimeTranscriptionDelay
     language: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
@@ -93,7 +93,9 @@ class RealtimeTranscriptionSession(RealtimeClientMessage):
 
 
 class RealtimeTranslationTranscriptionSettings(RealtimeClientMessage):
-    model: RealtimeTranscriptionModel = RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    model: RealtimeTranscriptionModel | str = (
+        RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    )
 
 
 class RealtimeTranslationInputAudio(RealtimeClientMessage):

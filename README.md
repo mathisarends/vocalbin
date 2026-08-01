@@ -1,17 +1,18 @@
 # 🎙️ vocalbin
 
-![vocalbin — typed, async voice for OpenAI](static/banner.png)
+![vocalbin — typed, async voice APIs](static/banner.png)
 
-`vocalbin` is a small, typed, asynchronous wrapper around OpenAI's speech,
-realtime transcription, and realtime translation APIs. It validates model
-capabilities up front, normalizes responses without discarding raw data, and stays
-independent of any application-specific settings or domain code.
+`vocalbin` is a small, typed, asynchronous wrapper around OpenAI and Cartesia
+speech APIs. It validates known model capabilities up front, forwards future
+model IDs as strings, normalizes responses without discarding useful data, and
+stays independent of application-specific settings or domain code.
 
 ## Inhaltsverzeichnis
 
 - [Installation](#installation)
 - [Speech to text](#speech-to-text)
 - [Text to speech](#text-to-speech)
+- [Cartesia text to speech](#cartesia-text-to-speech)
 - [Realtime transcription](#realtime-transcription)
 - [Realtime translation](#realtime-translation)
 - [Supported models, voices and formats](#supported-models-voices-and-formats)
@@ -32,6 +33,7 @@ stack:
 ```bash
 uv add "vocalbin[realtime]"  # custom audio input
 uv add "vocalbin[audio]"     # WebSockets plus microphone input
+uv add "vocalbin[cartesia]"  # Cartesia TTS plus WebSocket streaming
 ```
 
 Set `OPENAI_API_KEY` in the environment, or pass an API key directly when creating

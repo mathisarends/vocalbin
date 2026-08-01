@@ -49,7 +49,9 @@ class RealtimeTranslationLanguage(StrEnum):
 class RealtimeTranscriptionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model: RealtimeTranscriptionModel = RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    model: RealtimeTranscriptionModel | str = (
+        RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    )
     language: str | None = None
     delay: RealtimeTranscriptionDelay = RealtimeTranscriptionDelay.MEDIUM
     noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
@@ -69,7 +71,9 @@ class RealtimeTranscriptionConfig(BaseModel):
 class RealtimeTranslationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model: RealtimeTranslationModel = RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
+    model: RealtimeTranslationModel | str = (
+        RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
+    )
     target_language: RealtimeTranslationLanguage
     noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
     include_source_transcript: bool = True
