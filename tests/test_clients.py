@@ -159,7 +159,7 @@ async def test_owned_client_is_closed_by_context_manager(
         assert api_key == "explicit-key"
         return cast(AsyncOpenAI, fake_client)
 
-    monkeypatch.setattr("vocalbin.clients.AsyncOpenAI", create_client)
+    monkeypatch.setattr("vocalbin.openai.clients.AsyncOpenAI", create_client)
 
     async with OpenAISpeechToText(api_key="explicit-key") as service:
         assert service.client is fake_client
