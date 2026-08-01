@@ -1,5 +1,5 @@
-from .credentials import OpenAICredentials
 from .openai import (
+    OpenAICredentials,
     OpenAISpeechToText,
     OpenAITextToSpeech,
     SpeechToTextFormat,

@@ -4,7 +4,7 @@ from typing import Any, Self, cast
 from openai import AsyncOpenAI, omit
 from openai.types.audio import TranscriptionCreateResponse
 
-from vocalbin.credentials import OpenAICredentials
+from vocalbin.openai.credentials import OpenAICredentials
 from vocalbin.openai.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,

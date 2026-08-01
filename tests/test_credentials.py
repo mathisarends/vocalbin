@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from vocalbin import OpenAICredentials, OpenAISpeechToText
-from vocalbin.credentials import CartesiaCredentials
+from vocalbin.cartesia.credentials import CartesiaCredentials
 
 
 def test_credentials_read_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> None:

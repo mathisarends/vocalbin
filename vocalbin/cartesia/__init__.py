@@ -1,5 +1,5 @@
-from ..credentials import CartesiaCredentials
 from .clients import CartesiaTextToSpeech, CartesiaTextToSpeechError
+from .credentials import CartesiaCredentials
 from .models import (
     CartesiaAudioEncoding,
     CartesiaBitRate,

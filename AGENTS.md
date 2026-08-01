@@ -6,7 +6,9 @@
   `vocalbin/ports.py`, realtime ports in `vocalbin/realtime/ports.py`.
 - Keep the realtime package self-contained: it must not import from
   `vocalbin/models.py` or `vocalbin/ports.py`.
-- Keep credential loading in `vocalbin/credentials.py` and use `pydantic-settings`.
+- Keep credential loading beside each provider's client (e.g.
+  `vocalbin/openai/credentials.py`, `vocalbin/cartesia/credentials.py`) and use
+  `pydantic-settings`.
 - Avoid comments and docstrings that merely restate what the code already says.
 - Add a comment only when it explains a non-obvious reason, constraint, or tradeoff.
 - Do not add module docstrings that only summarize the module name or contents.

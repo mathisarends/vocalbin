@@ -7,7 +7,7 @@ from types import TracebackType
 from typing import Any, Self, cast
 from urllib.parse import urlencode
 
-from vocalbin.credentials import OpenAICredentials
+from vocalbin.openai.credentials import OpenAICredentials
 from vocalbin.realtime.audio import MicrophoneInput
 from vocalbin.realtime.base import (
     TRANSCRIPTION_SPEC,

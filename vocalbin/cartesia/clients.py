@@ -6,12 +6,12 @@ from contextlib import suppress
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
+from vocalbin.cartesia.credentials import CartesiaCredentials
 from vocalbin.cartesia.models import (
     CartesiaTextToSpeechConfig,
     CartesiaTextToSpeechRequest,
     CartesiaTextToSpeechResponse,
 )
-from vocalbin.credentials import CartesiaCredentials
 from vocalbin.ports import StreamingTextToSpeech, TextToSpeech
 
 if TYPE_CHECKING:
