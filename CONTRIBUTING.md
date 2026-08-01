@@ -48,11 +48,11 @@ These follow [`AGENTS.md`](AGENTS.md):
   imports everywhere else.
 - Model provider interfaces with `ABC` and `@abstractmethod`, not `Protocol`.
   Keep the provider ports beside the models they describe: speech ports in
-  `vocalbin/ports.py`, realtime ports in `vocalbin/realtime/ports.py`.
+  `vocalbin/ports.py`, realtime ports in `vocalbin/openai/realtime/ports.py`.
 - Avoid comments and docstrings that merely restate the code. Add a comment only
   when it explains a non-obvious reason, constraint or tradeoff.
-- Validate model capabilities up front (see `vocalbin/models.py`) and keep raw
-  provider data available on responses rather than discarding it.
+- Validate model capabilities up front (see `vocalbin/openai/models.py`) and keep
+  raw provider data available on responses rather than discarding it.
 
 ## Pull requests
 

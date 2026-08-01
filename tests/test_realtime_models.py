@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from vocalbin.realtime import (
+from vocalbin.openai.realtime import (
     RealtimeErrorDetails,
     RealtimeNoiseReduction,
     RealtimeSessionType,

@@ -105,10 +105,10 @@ async def synthesize() -> bytes:
 ## Realtime transcription
 
 Realtime transcription uses `gpt-realtime-whisper` and streams partial and final
-transcripts. Its public API is grouped under `vocalbin.realtime`:
+transcripts. Its public API is grouped under `vocalbin.openai.realtime`:
 
 ```python
-from vocalbin.realtime import (
+from vocalbin.openai.realtime import (
     OpenAIRealtimeTranscriber,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
@@ -130,7 +130,7 @@ async def transcribe_live() -> None:
 
 The default `MicrophoneInput` sends raw 24 kHz mono PCM16 chunks. Pass an
 `AudioInput` implementation or wrap an async byte source with `AudioStreamInput`
-from `vocalbin.realtime` when audio already comes from a media pipeline.
+from `vocalbin.openai.realtime` when audio already comes from a media pipeline.
 `flush()` manually commits the current transcription buffer.
 
 ## Realtime translation
@@ -141,7 +141,7 @@ deltas. Optional source-language transcripts use `gpt-realtime-whisper` on the
 same session:
 
 ```python
-from vocalbin.realtime import (
+from vocalbin.openai.realtime import (
     OpenAIRealtimeTranslator,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationConfig,
@@ -173,7 +173,7 @@ The same realtime namespace also provides audio inputs, providers, shared events
 and session enums:
 
 ```python
-from vocalbin.realtime import (
+from vocalbin.openai.realtime import (
     AudioInput,
     AudioStreamInput,
     MicrophoneInput,
@@ -253,7 +253,7 @@ await client.close()
 
 The provider-independent `SpeechToText` and `TextToSpeech` ports are abstract base
 classes (`vocalbin/ports.py`); the realtime ports `AudioInput`, `RealtimeProvider`,
-`RealtimeTranscription` and `RealtimeTranslation` live in `vocalbin/realtime/ports.py`.
+`RealtimeTranscription` and `RealtimeTranslation` live in `vocalbin/openai/realtime/ports.py`.
 They mark the boundary of the library, so callers can depend on the interface
 rather than the OpenAI implementation.
 

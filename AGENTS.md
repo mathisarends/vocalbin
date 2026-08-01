@@ -3,9 +3,9 @@
 - Use relative imports for package re-exports in `__init__.py`; use absolute imports in all other modules.
 - Model provider interfaces with `ABC` and `@abstractmethod`, not `Protocol`.
 - Keep provider ports beside the models they describe: speech ports in
-  `vocalbin/ports.py`, realtime ports in `vocalbin/realtime/ports.py`.
+  `vocalbin/ports.py`, realtime ports in `vocalbin/openai/realtime/ports.py`.
 - Keep the realtime package self-contained: it must not import from
-  `vocalbin/models.py` or `vocalbin/ports.py`.
+  `vocalbin/openai/models.py` or `vocalbin/ports.py`.
 - Keep credential loading beside each provider's client (e.g.
   `vocalbin/openai/credentials.py`, `vocalbin/cartesia/credentials.py`) and use
   `pydantic-settings`.

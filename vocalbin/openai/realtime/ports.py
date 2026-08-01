@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from vocalbin.realtime.models import (
+from vocalbin.openai.realtime.models import (
     RealtimeSessionType,
     RealtimeTranscriptionEvent,
     RealtimeTranslationEvent,

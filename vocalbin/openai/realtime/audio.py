@@ -4,7 +4,7 @@ import threading
 from collections.abc import AsyncIterable, AsyncIterator
 from typing import Any
 
-from vocalbin.realtime.ports import AudioInput
+from vocalbin.openai.realtime.ports import AudioInput
 
 
 class AudioStreamInput(AudioInput):

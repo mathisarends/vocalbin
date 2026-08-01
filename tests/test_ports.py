@@ -11,7 +11,7 @@ from vocalbin import (
     TextToSpeech,
 )
 from vocalbin.cartesia import CartesiaTextToSpeech
-from vocalbin.realtime import (
+from vocalbin.openai.realtime import (
     AudioInput,
     MicrophoneInput,
     OpenAIRealtimeProvider,

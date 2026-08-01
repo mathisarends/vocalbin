@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 
 from examples.openai.realtime._terminal import RealtimeTerminal
-from vocalbin.realtime import (
+from vocalbin.openai.realtime import (
     OpenAIRealtimeTranslator,
     RealtimeError,
     RealtimeSessionConnected,

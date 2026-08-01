@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from vocalbin.realtime.models import (
+from vocalbin.openai.realtime.models import (
     RealtimeError,
     RealtimeErrorDetails,
     RealtimeLogprob,

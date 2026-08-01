@@ -3,7 +3,7 @@ from typing import Any, cast
 
 from pydantic import TypeAdapter
 
-from vocalbin.realtime.messages import (
+from vocalbin.openai.realtime.messages import (
     RealtimeAudioAppend,
     RealtimeInputFinished,
     RealtimeMessageType,
@@ -14,7 +14,7 @@ from vocalbin.realtime.messages import (
     RealtimeTranslationServerEvent,
     RealtimeTranslationSessionClose,
 )
-from vocalbin.realtime.models import (
+from vocalbin.openai.realtime.models import (
     RealtimeSessionType,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptionEvent,

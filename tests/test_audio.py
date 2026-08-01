@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from vocalbin.realtime import AudioStreamInput, MicrophoneInput
+from vocalbin.openai.realtime import AudioStreamInput, MicrophoneInput
 
 
 async def chunks(*values: bytes) -> AsyncIterator[bytes]:

@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-import vocalbin.realtime.clients as realtime_module
-from vocalbin.realtime import (
+import vocalbin.openai.realtime.clients as realtime_module
+from vocalbin.openai.realtime import (
     AudioInput,
     AudioStreamInput,
     MicrophoneInput,
@@ -34,8 +34,8 @@ from vocalbin.realtime import (
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
 )
-from vocalbin.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
-from vocalbin.realtime.messages import RealtimeTranscriptionAudioCommit
+from vocalbin.openai.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
+from vocalbin.openai.realtime.messages import RealtimeTranscriptionAudioCommit
 
 
 async def chunks(*values: bytes) -> AsyncIterator[bytes]:

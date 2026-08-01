@@ -8,19 +8,19 @@ from typing import Any, Self, cast
 from urllib.parse import urlencode
 
 from vocalbin.openai.credentials import OpenAICredentials
-from vocalbin.realtime.audio import MicrophoneInput
-from vocalbin.realtime.base import (
+from vocalbin.openai.realtime.audio import MicrophoneInput
+from vocalbin.openai.realtime.base import (
     TRANSCRIPTION_SPEC,
     TRANSLATION_SPEC,
     RealtimeSessionSpec,
 )
-from vocalbin.realtime.messages import (
+from vocalbin.openai.realtime.messages import (
     RealtimeClientMessage,
     RealtimeSessionUpdate,
     RealtimeTranscriptionSessionUpdate,
     RealtimeTranslationSessionUpdate,
 )
-from vocalbin.realtime.models import (
+from vocalbin.openai.realtime.models import (
     RealtimeSessionConnected,
     RealtimeSessionType,
     RealtimeTranscriptionConfig,
@@ -28,7 +28,7 @@ from vocalbin.realtime.models import (
     RealtimeTranslationConfig,
     RealtimeTranslationEvent,
 )
-from vocalbin.realtime.ports import (
+from vocalbin.openai.realtime.ports import (
     AudioInput,
     RealtimeProvider,
     RealtimeTranscription,
