@@ -24,6 +24,28 @@ wheels = [
 ]
 
 [[package]]
+name = "cartesia"
+version = "3.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/83/658a26b16c04a28a56a74d6a5bc3102af9b0617af051919eb83869880ed8/cartesia-3.5.1.tar.gz", hash = "sha256:fa825e8725683ef1c1574e26ccf9baa064fb964a56ff74491be76f17f6d6011c", size = 338018, upload-time = "2026-07-29T04:01:23.001Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/ab/24908a1f103edf738d7d9e116c6a2927db8d799cc22c1cf26e9566ddde9d/cartesia-3.5.1-py3-none-any.whl", hash = "sha256:427c832286cf716f032eb8d19527f5ce29b3e313cf1a628667e160a8d3145270", size = 216418, upload-time = "2026-07-29T04:01:21.794Z" },
+]
+
+[package.optional-dependencies]
+websockets = [
+    { name = "websockets" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.6.17"
 source = { registry = "https://pypi.org/simple" }
@@ -908,7 +930,7 @@ wheels = [
 
 [[package]]
 name = "vocalbin"
-version = "0.3.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "openai" },
@@ -920,6 +942,9 @@ dependencies = [
 audio = [
     { name = "sounddevice" },
     { name = "websockets" },
+]
+cartesia = [
+    { name = "cartesia", extra = ["websockets"] },
 ]
 realtime = [
     { name = "websockets" },
@@ -938,6 +963,7 @@ release = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cartesia", extras = ["websockets"], marker = "extra == 'cartesia'", specifier = ">=3.4.0,<4" },
     { name = "openai", specifier = ">=2.46.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
@@ -945,7 +971,7 @@ requires-dist = [
     { name = "websockets", marker = "extra == 'audio'", specifier = ">=13,<16" },
     { name = "websockets", marker = "extra == 'realtime'", specifier = ">=13,<16" },
 ]
-provides-extras = ["realtime", "audio"]
+provides-extras = ["realtime", "audio", "cartesia"]
 
 [package.metadata.requires-dev]
 dev = [

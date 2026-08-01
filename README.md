@@ -7,6 +7,19 @@ realtime transcription, and realtime translation APIs. It validates model
 capabilities up front, normalizes responses without discarding raw data, and stays
 independent of any application-specific settings or domain code.
 
+## Inhaltsverzeichnis
+
+- [Installation](#installation)
+- [Speech to text](#speech-to-text)
+- [Text to speech](#text-to-speech)
+- [Realtime transcription](#realtime-transcription)
+- [Realtime translation](#realtime-translation)
+- [Supported models, voices and formats](#supported-models-voices-and-formats)
+- [Examples](#examples)
+- [Bring your own client](#bring-your-own-client)
+- [Ports](#ports)
+- [Development](#development)
+
 ## Installation
 
 ```bash
