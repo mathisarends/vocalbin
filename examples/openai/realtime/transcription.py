@@ -1,6 +1,6 @@
 import asyncio
 
-from examples._realtime_terminal import RealtimeTerminal
+from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.realtime import (
     OpenAIRealtimeTranscriber,
     RealtimeError,

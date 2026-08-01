@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from examples._realtime_terminal import RealtimeTerminal
+from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.realtime import (
     OpenAIRealtimeTranslator,
     RealtimeError,
@@ -14,7 +14,8 @@ from vocalbin.realtime import (
     RealtimeTranslationTranscriptDelta,
 )
 
-OUTPUT_PATH = Path("examples/output/realtime-translation.pcm")
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+OUTPUT_PATH = OUTPUT_DIR / "realtime-translation.pcm"
 
 
 async def main() -> None:

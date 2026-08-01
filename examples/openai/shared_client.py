@@ -1,6 +1,6 @@
 """Share one AsyncOpenAI client across both services.
 
-    uv run python examples/shared_client.py
+    uv run python examples/openai/shared_client.py
 
 When you pass `client=`, vocalbin does not own or close it. This lets you reuse
 a single configured client (custom base_url, timeouts, retries) for both

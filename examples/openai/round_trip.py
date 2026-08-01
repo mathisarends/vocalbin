@@ -2,7 +2,7 @@
 
 This doubles as a smoke test for a live OPENAI_API_KEY:
 
-    uv run python examples/round_trip.py
+    uv run python examples/openai/round_trip.py
 
 It fails loudly if the transcript does not contain the key phrase, so it is a
 cheap end-to-end check that both endpoints are reachable and wired correctly.

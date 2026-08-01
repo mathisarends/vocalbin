@@ -2,7 +2,7 @@
 
 Run with a valid OPENAI_API_KEY:
 
-    uv run python examples/speech_to_text.py
+    uv run python examples/openai/speech_to_text.py
 
 The examples need an audio file. If examples/output/sample.wav does not exist,
 it is generated once via text-to-speech so every example below is self-contained.
@@ -22,7 +22,7 @@ from vocalbin import (
     TimestampGranularity,
 )
 
-OUTPUT_DIR = Path(__file__).parent / "output"
+OUTPUT_DIR = Path(__file__).parent.parent / "output"
 SAMPLE = OUTPUT_DIR / "sample.wav"
 SAMPLE_TEXT = "Guten Morgen, dies ist ein Test der Transkription mit vocalbin."
 

@@ -204,15 +204,17 @@ German, Korean, Hindi, Indonesian, Vietnamese, and Italian.
 
 The [`examples/`](examples/) directory holds runnable, integration-testable scripts
 that exercise every model/voice/format combination and double as documentation.
-With a valid `OPENAI_API_KEY` set:
+Scripts are grouped by provider (`examples/openai/`), with the realtime
+transcription and translation examples and their shared terminal renderer under
+`examples/openai/realtime/`. With a valid `OPENAI_API_KEY` set:
 
 ```bash
-uv run python examples/text_to_speech.py   # every TTS model, voice and format
-uv run python examples/speech_to_text.py   # every STT model and response format
-uv run python examples/round_trip.py       # synthesize -> transcribe, self-checking
-uv run python examples/shared_client.py    # one AsyncOpenAI client for both services
-uv run python examples/realtime_transcription.py
-uv run python examples/realtime_translation.py
+uv run python examples/openai/text_to_speech.py   # every TTS model, voice and format
+uv run python examples/openai/speech_to_text.py   # every STT model and response format
+uv run python examples/openai/round_trip.py       # synthesize -> transcribe, self-checking
+uv run python examples/openai/shared_client.py    # one AsyncOpenAI client for both services
+uv run python examples/openai/realtime/transcription.py
+uv run python examples/openai/realtime/translation.py
 ```
 
 Generated audio and transcripts are written to `examples/output/` (git-ignored).

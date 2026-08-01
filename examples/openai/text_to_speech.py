@@ -2,7 +2,7 @@
 
 Run with a valid OPENAI_API_KEY:
 
-    uv run python examples/text_to_speech.py
+    uv run python examples/openai/text_to_speech.py
 
 Generated audio is written to examples/output/.
 """
@@ -18,7 +18,7 @@ from vocalbin import (
     TextToSpeechVoice,
 )
 
-OUTPUT_DIR = Path(__file__).parent / "output"
+OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 # tts-1 and tts-1-hd only accept these voices and do not accept `instructions`.
 LEGACY_VOICES = [
