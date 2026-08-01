@@ -204,9 +204,9 @@ German, Korean, Hindi, Indonesian, Vietnamese, and Italian.
 
 The [`examples/`](examples/) directory holds runnable, integration-testable scripts
 that exercise every model/voice/format combination and double as documentation.
-Scripts are grouped by provider (`examples/openai/`), with the realtime
-transcription and translation examples and their shared terminal renderer under
-`examples/openai/realtime/`. With a valid `OPENAI_API_KEY` set:
+Scripts are grouped by provider. OpenAI's realtime transcription and translation
+examples and their shared terminal renderer live under `examples/openai/realtime/`.
+With a valid `OPENAI_API_KEY` set:
 
 ```bash
 uv run python examples/openai/text_to_speech.py   # every TTS model, voice and format
@@ -215,6 +215,13 @@ uv run python examples/openai/round_trip.py       # synthesize -> transcribe, se
 uv run python examples/openai/shared_client.py    # one AsyncOpenAI client for both services
 uv run python examples/openai/realtime/transcription.py
 uv run python examples/openai/realtime/translation.py
+```
+
+Cartesia's request-response and WebSocket streaming calls are demonstrated in one
+script. Set `CARTESIA_API_KEY` and `CARTESIA_VOICE_ID`, then run:
+
+```bash
+uv run --extra cartesia python examples/cartesia/text_to_speech.py
 ```
 
 Generated audio and transcripts are written to `examples/output/` (git-ignored).
