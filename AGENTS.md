@@ -8,7 +8,9 @@
   `vocalbin/openai/models.py` or `vocalbin/ports.py`.
 - Keep credential loading beside each provider's client (e.g.
   `vocalbin/openai/credentials.py`, `vocalbin/cartesia/credentials.py`) and use
-  `pydantic-settings`.
+  `pydantic-settings`. Providers with no remote credentials (e.g. the local
+  `vocalbin/piper/config.py`) follow the same beside-the-client,
+  `pydantic-settings` pattern but are named `config.py`, not `credentials.py`.
 - Avoid comments and docstrings that merely restate what the code already says.
 - Add a comment only when it explains a non-obvious reason, constraint, or tradeoff.
 - Do not add module docstrings that only summarize the module name or contents.
