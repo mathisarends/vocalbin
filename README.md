@@ -2,8 +2,8 @@
 
 ![vocalbin — typed, async voice APIs](static/banner.png)
 
-`vocalbin` is a small, typed, asynchronous wrapper around OpenAI and Cartesia
-speech APIs. It validates known model capabilities up front, forwards future
+`vocalbin` is a small, typed, asynchronous wrapper around OpenAI, Cartesia, and
+Piper speech APIs. It validates known model capabilities up front, forwards future
 model IDs as strings, normalizes responses without discarding useful data, and
 stays independent of application-specific settings or domain code.
 
@@ -13,6 +13,7 @@ stays independent of application-specific settings or domain code.
 - [Speech to text](#speech-to-text)
 - [Text to speech](#text-to-speech)
 - [Cartesia text to speech](#cartesia-text-to-speech)
+- [Piper text to speech](#piper-text-to-speech)
 - [Realtime transcription](#realtime-transcription)
 - [Realtime translation](#realtime-translation)
 - [Supported models, voices and formats](#supported-models-voices-and-formats)
@@ -34,6 +35,7 @@ stack:
 uv add "vocalbin[realtime]"  # custom audio input
 uv add "vocalbin[audio]"     # WebSockets plus microphone input
 uv add "vocalbin[cartesia]"  # Cartesia TTS plus WebSocket streaming
+uv add "vocalbin[piper]"     # Piper local/offline TTS
 ```
 
 Set `OPENAI_API_KEY` in the environment, or pass an API key directly when creating
@@ -153,6 +155,44 @@ async def stream_text(voice_id: str, text_chunks: AsyncIterator[str]) -> bytes:
 WebSocket streaming requires `output_format=CartesiaRawOutputFormat()` (the
 default), which returns raw 16-bit PCM audio.
 
+## Piper text to speech
+
+[Piper](https://github.com/OHF-Voice/piper1-gpl) is a local, offline
+text-to-speech engine, grouped under `vocalbin.piper`. Install it with
+`uv add "vocalbin[piper]"`, download a voice model, and point
+`PIPER_MODEL_PATH` (and optionally `PIPER_CONFIG_PATH`) at it:
+
+```python
+from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechRequest
+
+
+async def synthesize() -> bytes:
+    async with PiperTextToSpeech() as text_to_speech:
+        response = await text_to_speech.synthesize(
+            PiperTextToSpeechRequest(text="Hallo aus vocalbin mit Piper!")
+        )
+    return response.audio
+```
+
+`response.audio` is raw 16-bit PCM at the voice model's sample rate
+(`response.sample_rate`). `PiperTextToSpeech` also implements
+`StreamingTextToSpeech`; `stream()` yields the same raw PCM audio in chunks as
+Piper synthesizes it, off the event loop:
+
+```python
+async def stream() -> bytes:
+    audio = bytearray()
+    async with PiperTextToSpeech() as text_to_speech:
+        async for chunk in text_to_speech.stream(
+            PiperTextToSpeechRequest(text="Dieser Text wird gestreamt.")
+        ):
+            audio.extend(chunk)
+    return bytes(audio)
+```
+
+Pass an existing `PiperVoice` via `voice=` to reuse an already-loaded model
+across requests instead of loading it from `model_path`/credentials each time.
+
 ## Realtime transcription
 
 Realtime transcription uses `gpt-realtime-whisper` and streams partial and final
@@ -253,6 +293,11 @@ only the legacy voices and do not support `instructions`.
 encoding), `wav`, and `mp3`. WebSocket streaming via `stream()`/`stream_text()`
 requires the `raw` container.
 
+**Piper text to speech** — any locally installed Piper voice model (`.onnx` +
+`.onnx.json`); output is always raw 16-bit PCM at the voice's native sample
+rate. `speaker_id` selects a speaker for multi-speaker models; `length_scale`,
+`noise_scale`, and `noise_w_scale` tune speaking rate and expressiveness.
+
 **Realtime** — `gpt-realtime-whisper` for live transcription and
 `gpt-realtime-translate` for live speech-to-speech translation. Translation
 targets are English, Spanish, Portuguese, French, Japanese, Russian, Chinese,
@@ -280,6 +325,14 @@ script. Set `CARTESIA_API_KEY` and `CARTESIA_VOICE_ID`, then run:
 
 ```bash
 uv run --extra cartesia python examples/cartesia/text_to_speech.py
+```
+
+Piper's request-response and streaming calls are demonstrated the same way.
+Set `PIPER_MODEL_PATH` (and optionally `PIPER_CONFIG_PATH`) to a downloaded
+voice model, then run:
+
+```bash
+uv run --extra piper python examples/piper/text_to_speech.py
 ```
 
 Generated audio and transcripts are written to `examples/output/` (git-ignored).
