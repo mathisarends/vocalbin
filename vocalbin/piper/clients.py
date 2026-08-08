@@ -5,7 +5,7 @@ import threading
 from collections.abc import AsyncGenerator, Iterator
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from vocalbin.piper.config import PiperConfig
 from vocalbin.piper.models import PiperTextToSpeechRequest, PiperTextToSpeechResponse
@@ -13,6 +13,8 @@ from vocalbin.ports import StreamingTextToSpeech, TextToSpeech
 
 if TYPE_CHECKING:
     from piper import PiperVoice
+    from piper.config import SynthesisConfig
+    from piper.voice import AudioChunk
 
 
 class PiperTextToSpeech(
@@ -44,24 +46,26 @@ class PiperTextToSpeech(
     async def synthesize(
         self, request: PiperTextToSpeechRequest
     ) -> PiperTextToSpeechResponse:
-        chunks = await asyncio.to_thread(
-            lambda: list(self._synthesize_stream_raw(request))
+        audio = await asyncio.to_thread(
+            lambda: b"".join(
+                chunk.audio_int16_bytes for chunk in self._synthesize(request)
+            )
         )
         return PiperTextToSpeechResponse(
-            audio=b"".join(chunks),
+            audio=audio,
             sample_rate=self.voice.config.sample_rate,
             content_type="audio/pcm",
         )
 
     async def stream(self, request: PiperTextToSpeechRequest) -> AsyncGenerator[bytes]:
-        async for chunk in _stream_sync_generator(self._synthesize_stream_raw(request)):
+        chunks = (chunk.audio_int16_bytes for chunk in self._synthesize(request))
+        async for chunk in _stream_sync_generator(chunks):
             yield chunk
 
-    def _synthesize_stream_raw(
-        self, request: PiperTextToSpeechRequest
-    ) -> Iterator[bytes]:
-        return self.voice.synthesize_stream_raw(
-            request.text, **request.to_piper_params()
+    def _synthesize(self, request: PiperTextToSpeechRequest) -> Iterator[AudioChunk]:
+        return self.voice.synthesize(
+            request.text,
+            syn_config=_build_syn_config(request.to_piper_params()),
         )
 
     async def aclose(self) -> None:
@@ -88,6 +92,14 @@ def _create_voice(model_path: Path, config_path: Path | None) -> PiperVoice:
         str(model_path),
         config_path=str(config_path) if config_path is not None else None,
     )
+
+
+def _build_syn_config(params: dict[str, Any]) -> SynthesisConfig:
+    try:
+        from piper.config import SynthesisConfig
+    except ImportError as exc:
+        raise ImportError("Piper support requires `vocalbin[piper]`.") from exc
+    return SynthesisConfig(**params)
 
 
 async def _stream_sync_generator(generator: Iterator[bytes]) -> AsyncGenerator[bytes]:
