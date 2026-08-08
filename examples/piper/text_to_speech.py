@@ -5,10 +5,14 @@ variable pointing at a downloaded Piper voice:
 
     uv run --extra piper python examples/piper/text_to_speech.py
 
-Generated audio is written to examples/output/ as raw 16-bit PCM.
+Generated audio is written to examples/output/ as raw 16-bit PCM. Pass a
+custom text as the first argument:
+
+    uv run --extra piper python examples/piper/text_to_speech.py "Ein anderer Text"
 """
 
 import asyncio
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,14 +24,13 @@ load_dotenv()
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 
-async def synthesize() -> None:
+async def synthesize(text: str) -> None:
     async with PiperTextToSpeech() as tts:
-        response = await tts.synthesize(
-            PiperTextToSpeechRequest(text="Hallo aus vocalbin mit Piper!")
-        )
+        response = await tts.synthesize(PiperTextToSpeechRequest(text=text))
 
-    _save(response.audio, "piper_synthesize.pcm")
+    path = _save(response.audio, "piper_synthesize.pcm")
     print(f"synthesize: {len(response.audio)} bytes at {response.sample_rate} Hz")
+    print(f"-> {path}")
 
 
 async def stream() -> None:
@@ -40,17 +43,20 @@ async def stream() -> None:
         async for chunk in tts.stream(request):
             audio.extend(chunk)
 
-    _save(audio, "piper_stream.pcm")
-    print(f"stream: {len(audio)} bytes")
+    path = _save(audio, "piper_stream.pcm")
+    print(f"stream: {len(audio)} bytes -> {path}")
 
 
-def _save(audio: bytes | bytearray, name: str) -> None:
+def _save(audio: bytes | bytearray, name: str) -> Path:
     OUTPUT_DIR.mkdir(exist_ok=True)
-    (OUTPUT_DIR / name).write_bytes(audio)
+    path = OUTPUT_DIR / name
+    path.write_bytes(audio)
+    return path.resolve()
 
 
 async def main() -> None:
-    await synthesize()
+    text = sys.argv[1] if len(sys.argv) > 1 else "Hallo aus vocalbin mit Piper!"
+    await synthesize(text)
     await stream()
 
 
