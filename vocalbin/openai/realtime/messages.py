@@ -25,6 +25,7 @@ from vocalbin.openai.realtime.models import (
     RealtimeTranslationEvent,
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
+    SemanticVadConfig,
 )
 
 
@@ -66,14 +67,17 @@ class RealtimeNoiseReductionConfig(RealtimeClientMessage):
 
 class RealtimeTranscriptionSettings(RealtimeClientMessage):
     model: RealtimeTranscriptionModel | str
-    delay: RealtimeTranscriptionDelay
+    delay: RealtimeTranscriptionDelay | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     language: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class RealtimeTranscriptionAudioInput(RealtimeClientMessage):
     format: RealtimePcmFormat
     transcription: RealtimeTranscriptionSettings
-    turn_detection: None = None
+    turn_detection: SemanticVadConfig | None = None
     noise_reduction: RealtimeNoiseReductionConfig | None
 
 
@@ -134,9 +138,15 @@ class RealtimeTranscriptionSessionUpdate(RealtimeSessionUpdate):
                         format=RealtimePcmFormat(),
                         transcription=RealtimeTranscriptionSettings(
                             model=config.model,
-                            delay=config.delay,
+                            delay=(
+                                config.delay
+                                if config.model
+                                == RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+                                else None
+                            ),
                             language=config.language,
                         ),
+                        turn_detection=config.turn_detection,
                         noise_reduction=RealtimeNoiseReductionConfig.from_setting(
                             config.noise_reduction
                         ),

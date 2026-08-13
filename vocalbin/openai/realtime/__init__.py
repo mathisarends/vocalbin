@@ -28,6 +28,7 @@ from .models import (
     RealtimeTranslationLanguage,
     RealtimeTranslationModel,
     RealtimeTranslationTranscriptDelta,
+    SemanticVadConfig,
 )
 from .ports import (
     AudioInput,
@@ -69,4 +70,5 @@ __all__ = [
     "RealtimeTranslationLanguage",
     "RealtimeTranslationModel",
     "RealtimeTranslationTranscriptDelta",
+    "SemanticVadConfig",
 ]

@@ -19,12 +19,12 @@ async def main() -> None:
     config = RealtimeTranscriptionConfig(
         model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
         language="de",
-        turn_detection=SemanticVadConfig(eagerness="low"),
+        turn_detection=SemanticVadConfig(eagerness="medium"),
     )
     partial_transcript = ""
 
     with RealtimeTerminal(
-        title="Live transcription · German",
+        title="Live transcription · Semantic VAD",
         fields=["transcript"],
     ) as terminal:
         async with OpenAIRealtimeTranscriber(config) as transcriber:
@@ -35,7 +35,7 @@ async def main() -> None:
                     case RealtimeSpeechStarted():
                         terminal.update(status="Listening")
                     case RealtimeSpeechStopped():
-                        terminal.update(status="Finishing transcript")
+                        terminal.update(status="Semantic turn detected")
                     case RealtimeTranscriptDelta(delta=delta):
                         partial_transcript += delta
                         terminal.update(
@@ -44,8 +44,8 @@ async def main() -> None:
                         )
                     case RealtimeTranscriptCompleted(transcript=transcript):
                         terminal.commit("transcript", transcript)
-                        terminal.update(status="Completed")
-                        return
+                        partial_transcript = ""
+                        terminal.update(status="Ready")
                     case RealtimeError(error=error):
                         terminal.error(str(error))
                         return

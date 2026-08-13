@@ -1,10 +1,11 @@
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class RealtimeTranscriptionModel(StrEnum):
+    GPT_4O_TRANSCRIBE = "gpt-4o-transcribe"
     GPT_REALTIME_WHISPER = "gpt-realtime-whisper"
 
 
@@ -46,6 +47,13 @@ class RealtimeTranslationLanguage(StrEnum):
     VIETNAMESE = "vi"
 
 
+class SemanticVadConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["semantic_vad"] = "semantic_vad"
+    eagerness: Literal["low", "medium", "high"] = "medium"
+
+
 class RealtimeTranscriptionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -55,7 +63,20 @@ class RealtimeTranscriptionConfig(BaseModel):
     language: str | None = None
     delay: RealtimeTranscriptionDelay = RealtimeTranscriptionDelay.MEDIUM
     noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
+    turn_detection: SemanticVadConfig | None = None
     include_logprobs: bool = False
+
+    @model_validator(mode="after")
+    def validate_turn_detection_support(self) -> "RealtimeTranscriptionConfig":
+        if (
+            self.model == RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+            and self.turn_detection is not None
+        ):
+            raise ValueError(
+                "gpt-realtime-whisper does not support turn detection; "
+                "use gpt-4o-transcribe or set turn_detection=None"
+            )
+        return self
 
     @field_validator("language")
     @classmethod

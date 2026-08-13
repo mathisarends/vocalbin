@@ -204,12 +204,18 @@ from vocalbin.openai.realtime import (
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
     RealtimeTranscriptionConfig,
+    RealtimeTranscriptionModel,
+    SemanticVadConfig,
 )
 
 
 async def transcribe_live() -> None:
     async with OpenAIRealtimeTranscriber(
-        RealtimeTranscriptionConfig(language="de")
+        RealtimeTranscriptionConfig(
+            model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
+            language="de",
+            turn_detection=SemanticVadConfig(eagerness="medium"),
+        )
     ) as transcriber:
         async for event in transcriber.stream():
             match event:
@@ -222,7 +228,10 @@ async def transcribe_live() -> None:
 The default `MicrophoneInput` sends raw 24 kHz mono PCM16 chunks. Pass an
 `AudioInput` implementation or wrap an async byte source with `AudioStreamInput`
 from `vocalbin.openai.realtime` when audio already comes from a media pipeline.
-`flush()` manually commits the current transcription buffer.
+With semantic VAD enabled, OpenAI automatically detects completed turns and
+commits their transcription buffers. Leave `turn_detection` as `None` and call
+`flush()` to commit a buffer manually. `gpt-realtime-whisper` does not support
+turn detection; use `gpt-4o-transcribe` for Semantic VAD.
 
 ## Realtime translation
 
@@ -317,6 +326,7 @@ uv run python examples/openai/speech_to_text.py   # every STT model and response
 uv run python examples/openai/round_trip.py       # synthesize -> transcribe, self-checking
 uv run python examples/openai/shared_client.py    # one AsyncOpenAI client for both services
 uv run python examples/openai/realtime/transcription.py
+uv run python examples/openai/realtime/semantic_vad.py
 uv run python examples/openai/realtime/translation.py
 ```
 

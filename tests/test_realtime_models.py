@@ -11,6 +11,7 @@ from vocalbin.openai.realtime import (
     RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
     RealtimeTranslationModel,
+    SemanticVadConfig,
 )
 
 
@@ -21,6 +22,7 @@ def test_realtime_transcription_config_defaults_and_normalizes_language() -> Non
     assert config.language == "de"
     assert config.delay == RealtimeTranscriptionDelay.MEDIUM
     assert config.noise_reduction == RealtimeNoiseReduction.FAR_FIELD
+    assert config.turn_detection is None
     assert config.include_logprobs is False
     assert RealtimeTranscriptionConfig(language=None).language is None
     assert {session_type.value for session_type in RealtimeSessionType} == {
@@ -35,6 +37,28 @@ def test_realtime_transcription_config_rejects_invalid_fields() -> None:
 
     with pytest.raises(ValidationError, match="Extra inputs"):
         RealtimeTranscriptionConfig.model_validate({"unknown": True})
+
+
+def test_semantic_vad_config_defaults_and_validates_eagerness() -> None:
+    config = SemanticVadConfig()
+
+    assert config.type == "semantic_vad"
+    assert config.eagerness == "medium"
+
+    with pytest.raises(ValidationError):
+        SemanticVadConfig(eagerness="auto")
+
+
+def test_realtime_whisper_rejects_turn_detection() -> None:
+    with pytest.raises(ValidationError, match="does not support turn detection"):
+        RealtimeTranscriptionConfig(turn_detection=SemanticVadConfig())
+
+    config = RealtimeTranscriptionConfig(
+        model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
+        turn_detection=SemanticVadConfig(),
+    )
+
+    assert config.model == RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE
 
 
 def test_realtime_configs_forward_unknown_model_ids() -> None:

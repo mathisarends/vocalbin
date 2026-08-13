@@ -33,6 +33,7 @@ from vocalbin.openai.realtime import (
     RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
+    SemanticVadConfig,
 )
 from vocalbin.openai.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
 from vocalbin.openai.realtime.messages import RealtimeTranscriptionAudioCommit
@@ -271,8 +272,10 @@ async def test_realtime_transcriber_streams_and_maps_events(
     install_connection(monkeypatch, connection)
     service = OpenAIRealtimeTranscriber(
         RealtimeTranscriptionConfig(
+            model="gpt-4o-transcribe",
             language="de",
             noise_reduction=None,
+            turn_detection=SemanticVadConfig(eagerness="high"),
             include_logprobs=True,
         ),
         audio_input=AudioStreamInput(chunks(b"", b"pcm")),
@@ -300,11 +303,13 @@ async def test_realtime_transcriber_streams_and_maps_events(
                     "input": {
                         "format": {"type": "audio/pcm", "rate": 24000},
                         "transcription": {
-                            "model": "gpt-realtime-whisper",
-                            "delay": "medium",
+                            "model": "gpt-4o-transcribe",
                             "language": "de",
                         },
-                        "turn_detection": None,
+                        "turn_detection": {
+                            "type": "semantic_vad",
+                            "eagerness": "high",
+                        },
                         "noise_reduction": None,
                     }
                 },
