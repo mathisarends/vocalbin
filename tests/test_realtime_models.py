@@ -1,16 +1,14 @@
+from typing import get_args
+
 import pytest
 from pydantic import ValidationError
 
 from vocalbin.openai.realtime import (
     RealtimeErrorDetails,
-    RealtimeNoiseReduction,
     RealtimeSessionType,
     RealtimeTranscriptionConfig,
-    RealtimeTranscriptionDelay,
-    RealtimeTranscriptionModel,
     RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
-    RealtimeTranslationModel,
     SemanticVadConfig,
 )
 
@@ -18,14 +16,14 @@ from vocalbin.openai.realtime import (
 def test_realtime_transcription_config_defaults_and_normalizes_language() -> None:
     config = RealtimeTranscriptionConfig(language=" de ")
 
-    assert config.model == RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+    assert config.model == "gpt-realtime-whisper"
     assert config.language == "de"
-    assert config.delay == RealtimeTranscriptionDelay.MEDIUM
-    assert config.noise_reduction == RealtimeNoiseReduction.FAR_FIELD
+    assert config.delay == "medium"
+    assert config.noise_reduction == "far_field"
     assert config.turn_detection is None
     assert config.include_logprobs is False
     assert RealtimeTranscriptionConfig(language=None).language is None
-    assert {session_type.value for session_type in RealtimeSessionType} == {
+    assert set(get_args(RealtimeSessionType.__value__)) == {
         "transcription",
         "translation",
     }
@@ -54,37 +52,36 @@ def test_realtime_whisper_rejects_turn_detection() -> None:
         RealtimeTranscriptionConfig(turn_detection=SemanticVadConfig())
 
     config = RealtimeTranscriptionConfig(
-        model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
+        model="gpt-4o-transcribe",
         turn_detection=SemanticVadConfig(),
     )
 
-    assert config.model == RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE
+    assert config.model == "gpt-4o-transcribe"
 
 
-def test_realtime_configs_forward_unknown_model_ids() -> None:
-    transcription = RealtimeTranscriptionConfig(model="transcription-future")
-    translation = RealtimeTranslationConfig(
-        model="translation-future",
-        target_language=RealtimeTranslationLanguage.GERMAN,
-    )
+def test_realtime_configs_reject_unknown_model_ids() -> None:
+    with pytest.raises(ValidationError):
+        RealtimeTranscriptionConfig(model="transcription-future")
 
-    assert transcription.model == "transcription-future"
-    assert translation.model == "translation-future"
+    with pytest.raises(ValidationError):
+        RealtimeTranslationConfig(
+            model="translation-future",
+            target_language="de",
+        )
 
 
 def test_realtime_translation_config_supports_documented_languages() -> None:
     config = RealtimeTranslationConfig(
-        target_language=RealtimeTranslationLanguage.GERMAN,
+        target_language="de",
         noise_reduction=None,
         include_source_transcript=False,
     )
 
-    assert config.model == RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
+    assert config.model == "gpt-realtime-translate"
     assert config.target_language == "de"
-    assert isinstance(config.target_language, RealtimeTranslationLanguage)
     assert config.noise_reduction is None
     assert config.include_source_transcript is False
-    assert {language.value for language in RealtimeTranslationLanguage} == {
+    assert set(get_args(RealtimeTranslationLanguage.__value__)) == {
         "zh",
         "en",
         "fr",

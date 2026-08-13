@@ -55,7 +55,7 @@ class RealtimeSessionSpec[
 
 
 TRANSCRIPTION_SPEC = RealtimeSessionSpec[RealtimeTranscriptionEvent](
-    session_type=RealtimeSessionType.TRANSCRIPTION,
+    session_type="transcription",
     audio_append=RealtimeTranscriptionAudioAppend,
     input_finished=RealtimeTranscriptionAudioCommit,
     final_event=RealtimeTranscriptCompleted,
@@ -75,7 +75,7 @@ TRANSCRIPTION_SPEC = RealtimeSessionSpec[RealtimeTranscriptionEvent](
 )
 
 TRANSLATION_SPEC = RealtimeSessionSpec[RealtimeTranslationEvent](
-    session_type=RealtimeSessionType.TRANSLATION,
+    session_type="translation",
     audio_append=RealtimeTranslationAudioAppend,
     input_finished=RealtimeTranslationSessionClose,
     final_event=RealtimeTranslationClosed,

@@ -70,7 +70,7 @@ class OpenAIRealtimeProvider(RealtimeProvider):
         session_type: RealtimeSessionType,
         model: str,
     ) -> str:
-        if session_type == RealtimeSessionType.TRANSLATION:
+        if session_type == "translation":
             query = urlencode({"model": model})
             return f"{self._base_url}/translations?{query}"
         query = urlencode({"intent": "transcription"})

@@ -3,15 +3,13 @@ from pathlib import Path
 
 from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.openai.realtime import (
-    OpenAIRealtimeTranslator,
     RealtimeError,
     RealtimeSessionConnected,
     RealtimeSourceTranscriptDelta,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationClosed,
-    RealtimeTranslationConfig,
-    RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
+    RealtimeTranslatorBuilder,
 )
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
@@ -19,9 +17,7 @@ OUTPUT_PATH = OUTPUT_DIR / "realtime-translation.pcm"
 
 
 async def main() -> None:
-    config = RealtimeTranslationConfig(
-        target_language=RealtimeTranslationLanguage.ENGLISH
-    )
+    translator = RealtimeTranslatorBuilder().target_language("en").build()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     source_text = ""
     target_text = ""
@@ -33,7 +29,7 @@ async def main() -> None:
             fields=["source", "translation"],
         ) as terminal,
     ):
-        async with OpenAIRealtimeTranslator(config) as translator:
+        async with translator:
             async for event in translator.stream():
                 match event:
                     case RealtimeSessionConnected():

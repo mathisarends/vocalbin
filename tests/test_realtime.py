@@ -15,29 +15,24 @@ from vocalbin.openai.realtime import (
     MicrophoneInput,
     OpenAIRealtimeProvider,
     OpenAIRealtimeTranscriber,
-    OpenAIRealtimeTranscriberBuilder,
     OpenAIRealtimeTranslator,
-    OpenAIRealtimeTranslatorBuilder,
     RealtimeError,
     RealtimeLogprob,
-    RealtimeNoiseReduction,
     RealtimeProvider,
     RealtimeSessionConnected,
     RealtimeSessionType,
     RealtimeSourceTranscriptDelta,
     RealtimeSpeechStarted,
     RealtimeSpeechStopped,
+    RealtimeTranscriberBuilder,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
     RealtimeTranscriptionConfig,
-    RealtimeTranscriptionDelay,
-    RealtimeTranscriptionModel,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationClosed,
     RealtimeTranslationConfig,
-    RealtimeTranslationLanguage,
-    RealtimeTranslationModel,
     RealtimeTranslationTranscriptDelta,
+    RealtimeTranslatorBuilder,
     SemanticVadConfig,
 )
 from vocalbin.openai.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
@@ -114,16 +109,13 @@ def install_connection(
 def test_realtime_transcription_builder_configures_service() -> None:
     provider = DummyProvider()
     audio_input = AudioStreamInput(chunks())
-    initial = RealtimeTranscriptionConfig(
-        model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
-        turn_detection=SemanticVadConfig(),
-    )
-    builder = OpenAIRealtimeTranscriberBuilder(initial)
+    builder = RealtimeTranscriberBuilder()
 
-    assert isinstance(builder, OpenAIRealtimeTranscriberBuilder)
+    assert isinstance(builder, RealtimeTranscriberBuilder)
 
     service = (
-        builder.language(" de ")
+        builder.model("gpt-4o-transcribe")
+        .language(" de ")
         .noise_reduction(None)
         .semantic_vad("high")
         .include_logprobs()
@@ -138,10 +130,10 @@ def test_realtime_transcription_builder_configures_service() -> None:
     assert service.config.include_logprobs is True
     assert service._audio_input is audio_input
 
-    default_builder = OpenAIRealtimeTranscriberBuilder()
+    default_builder = RealtimeTranscriberBuilder()
     default_service = (
-        default_builder.model(RealtimeTranscriptionModel.GPT_REALTIME_WHISPER)
-        .delay(RealtimeTranscriptionDelay.HIGH)
+        default_builder.model("gpt-realtime-whisper")
+        .delay("high")
         .turn_detection(None)
         .include_logprobs(False)
         .api_key("key")
@@ -149,7 +141,7 @@ def test_realtime_transcription_builder_configures_service() -> None:
         .build()
     )
 
-    assert default_service.config.delay == RealtimeTranscriptionDelay.HIGH
+    assert default_service.config.delay == "high"
     assert default_service.config.turn_detection is None
     assert default_service._connection._provider.build_headers() == {
         "Authorization": "Bearer key",
@@ -160,16 +152,13 @@ def test_realtime_transcription_builder_configures_service() -> None:
 def test_realtime_translation_builder_configures_service() -> None:
     provider = DummyProvider()
     audio_input = AudioStreamInput(chunks())
-    initial = RealtimeTranslationConfig(
-        target_language=RealtimeTranslationLanguage.ENGLISH
-    )
-    builder = OpenAIRealtimeTranslatorBuilder(initial)
+    builder = RealtimeTranslatorBuilder()
 
-    assert isinstance(builder, OpenAIRealtimeTranslatorBuilder)
+    assert isinstance(builder, RealtimeTranslatorBuilder)
 
     service = (
-        builder.model(RealtimeTranslationModel.GPT_REALTIME_TRANSLATE)
-        .target_language(RealtimeTranslationLanguage.GERMAN)
+        builder.model("gpt-realtime-translate")
+        .target_language("de")
         .noise_reduction(None)
         .include_source_transcript(False)
         .audio_input(audio_input)
@@ -177,14 +166,14 @@ def test_realtime_translation_builder_configures_service() -> None:
         .build()
     )
 
-    assert service.config.target_language == RealtimeTranslationLanguage.GERMAN
+    assert service.config.target_language == "de"
     assert service.config.noise_reduction is None
     assert service.config.include_source_transcript is False
     assert service._audio_input is audio_input
 
     default_service = (
-        OpenAIRealtimeTranslatorBuilder()
-        .target_language(RealtimeTranslationLanguage.FRENCH)
+        RealtimeTranslatorBuilder()
+        .target_language("fr")
         .include_source_transcript()
         .api_key("key")
         .safety_identifier("user-2")
@@ -197,6 +186,9 @@ def test_realtime_translation_builder_configures_service() -> None:
         "OpenAI-Safety-Identifier": "user-2",
     }
 
+    with pytest.raises(ValueError, match="target_language must be configured"):
+        RealtimeTranslatorBuilder().build()
+
 
 def test_openai_realtime_provider_builds_urls_and_headers(
     monkeypatch: pytest.MonkeyPatch,
@@ -207,12 +199,12 @@ def test_openai_realtime_provider_builds_urls_and_headers(
         base_url="wss://example.test/v1/realtime/",
     )
 
-    assert provider.build_url(RealtimeSessionType.TRANSCRIPTION, "ignored") == (
+    assert provider.build_url("transcription", "ignored") == (
         "wss://example.test/v1/realtime?intent=transcription"
     )
-    assert provider.build_url(
-        RealtimeSessionType.TRANSLATION, "gpt-realtime-translate"
-    ) == ("wss://example.test/v1/realtime/translations?model=gpt-realtime-translate")
+    assert provider.build_url("translation", "gpt-realtime-translate") == (
+        "wss://example.test/v1/realtime/translations?model=gpt-realtime-translate"
+    )
     assert provider.build_headers() == {
         "Authorization": "Bearer key",
         "OpenAI-Safety-Identifier": "hashed-user",
@@ -274,7 +266,7 @@ async def test_realtime_websocket_connects_sends_reads_and_reconnects(
     install_connection(monkeypatch, first, second)
     websocket = realtime_module._RealtimeWebSocket(
         provider,
-        RealtimeSessionType.TRANSCRIPTION,
+        "transcription",
         "gpt-realtime-whisper",
     )
 
@@ -307,7 +299,7 @@ async def test_realtime_websocket_rejects_non_object_events(
     install_connection(monkeypatch, connection)
     websocket = realtime_module._RealtimeWebSocket(
         DummyProvider(),
-        RealtimeSessionType.TRANSLATION,
+        "translation",
         "gpt-realtime-translate",
     )
     await websocket.connect()
@@ -455,7 +447,7 @@ async def test_realtime_translator_streams_audio_and_transcripts(
     install_connection(monkeypatch, connection)
     service = OpenAIRealtimeTranslator(
         RealtimeTranslationConfig(
-            target_language=RealtimeTranslationLanguage.GERMAN,
+            target_language="de",
             noise_reduction=None,
             include_source_transcript=False,
         ),
@@ -572,7 +564,7 @@ async def test_sender_errors_are_raised_by_event_stream(
     connection = FakeConnection(wait_until_closed=True)
     install_connection(monkeypatch, connection)
     service = OpenAIRealtimeTranslator(
-        RealtimeTranslationConfig(target_language=RealtimeTranslationLanguage.FRENCH),
+        RealtimeTranslationConfig(target_language="fr"),
         audio_input=AudioStreamInput(broken_source()),
         provider=DummyProvider(),
     )
@@ -630,8 +622,8 @@ async def test_context_manager_and_default_realtime_components(
     transcriber = OpenAIRealtimeTranscriber(api_key="key")
     translator = OpenAIRealtimeTranslator(
         RealtimeTranslationConfig(
-            target_language=RealtimeTranslationLanguage.SPANISH,
-            noise_reduction=RealtimeNoiseReduction.NEAR_FIELD,
+            target_language="es",
+            noise_reduction="near_field",
         ),
         api_key="key",
     )
@@ -663,9 +655,7 @@ def test_provider_and_credentials_are_mutually_exclusive() -> None:
 
     with pytest.raises(ValueError, match="either 'provider'"):
         OpenAIRealtimeTranslator(
-            RealtimeTranslationConfig(
-                target_language=RealtimeTranslationLanguage.ENGLISH
-            ),
+            RealtimeTranslationConfig(target_language="en"),
             provider=DummyProvider(),
             safety_identifier="user",
         )

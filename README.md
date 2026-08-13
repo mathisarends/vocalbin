@@ -1,4 +1,4 @@
-# 🎙️ vocalbin
+﻿# 🎙️ vocalbin
 
 ![vocalbin — typed, async voice APIs](static/banner.png)
 
@@ -200,15 +200,15 @@ transcripts. Its public API is grouped under `vocalbin.openai.realtime`:
 
 ```python
 from vocalbin.openai.realtime import (
-    OpenAIRealtimeTranscriberBuilder,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
+    RealtimeTranscriberBuilder,
 )
 
 
 async def transcribe_live() -> None:
     transcriber = (
-        OpenAIRealtimeTranscriberBuilder()
+        RealtimeTranscriberBuilder()
         .model("gpt-4o-transcribe")
         .language("de")
         .semantic_vad(eagerness="medium")
@@ -223,7 +223,7 @@ async def transcribe_live() -> None:
                     print(f"\n{transcript}")
 ```
 
-`OpenAIRealtimeTranscriberBuilder` and `OpenAIRealtimeTranslatorBuilder` are
+`RealtimeTranscriberBuilder` and `RealtimeTranslatorBuilder` are
 standalone objects. Their `build()` methods return the corresponding realtime
 service, and both builders can be initialized from an existing config.
 
@@ -244,21 +244,18 @@ same session:
 
 ```python
 from vocalbin.openai.realtime import (
-    OpenAIRealtimeTranslator,
     RealtimeTranslationAudioDelta,
-    RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
     RealtimeTranslationTranscriptDelta,
+    RealtimeTranslatorBuilder,
 )
 
 
 async def translate_live() -> None:
-    config = RealtimeTranslationConfig(
-        target_language=RealtimeTranslationLanguage.ENGLISH
-    )
+    translator = RealtimeTranslatorBuilder().target_language("en").build()
     translated_audio = bytearray()
 
-    async with OpenAIRealtimeTranslator(config) as translator:
+    async with translator:
         async for event in translator.stream():
             match event:
                 case RealtimeTranslationTranscriptDelta(delta=delta):

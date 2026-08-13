@@ -1,5 +1,4 @@
-from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -13,46 +12,26 @@ type RealtimeTranscriptionModel = Literal[
 ]
 type RealtimeTranslationModel = Literal["gpt-realtime-translate"]
 
+type RealtimeSessionType = Literal["transcription", "translation"]
 
-class RealtimeSessionType(StrEnum):
-    TRANSCRIPTION = "transcription"
-    TRANSLATION = "translation"
+type RealtimeTranscriptionDelay = Literal["minimal", "low", "medium", "high", "xhigh"]
 
+type RealtimeNoiseReduction = Literal["near_field", "far_field"]
 
-class RealtimeTranscriptionDelay(StrEnum):
-    MINIMAL = "minimal"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    XHIGH = "xhigh"
+type RealtimeTranslationLanguage = Literal[
+    "zh", "en", "fr", "de", "hi", "id", "it", "ja", "ko", "pt", "ru", "es", "vi"
+]
 
+type RealtimeVadEagerness = Literal["low", "medium", "high"]
 
-class RealtimeNoiseReduction(StrEnum):
-    NEAR_FIELD = "near_field"
-    FAR_FIELD = "far_field"
-
-
-class RealtimeTranslationLanguage(StrEnum):
-    CHINESE = "zh"
-    ENGLISH = "en"
-    FRENCH = "fr"
-    GERMAN = "de"
-    HINDI = "hi"
-    INDONESIAN = "id"
-    ITALIAN = "it"
-    JAPANESE = "ja"
-    KOREAN = "ko"
-    PORTUGUESE = "pt"
-    RUSSIAN = "ru"
-    SPANISH = "es"
-    VIETNAMESE = "vi"
+type RealtimeAudioFormat = Literal["pcm16"]
 
 
 class SemanticVadConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     type: Literal["semantic_vad"] = "semantic_vad"
-    eagerness: Literal["low", "medium", "high"] = "medium"
+    eagerness: RealtimeVadEagerness = "medium"
 
 
 class RealtimeTranscriptionConfig(BaseModel):
@@ -60,13 +39,13 @@ class RealtimeTranscriptionConfig(BaseModel):
 
     model: RealtimeTranscriptionModel = "gpt-realtime-whisper"
     language: str | None = None
-    delay: RealtimeTranscriptionDelay = RealtimeTranscriptionDelay.MEDIUM
-    noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
+    delay: RealtimeTranscriptionDelay = "medium"
+    noise_reduction: RealtimeNoiseReduction | None = "far_field"
     turn_detection: SemanticVadConfig | None = None
     include_logprobs: bool = False
 
     @model_validator(mode="after")
-    def validate_turn_detection_support(self) -> "RealtimeTranscriptionConfig":
+    def validate_turn_detection_support(self) -> Self:
         if self.model == "gpt-realtime-whisper" and self.turn_detection is not None:
             raise ValueError(
                 "gpt-realtime-whisper does not support turn detection; "
@@ -90,7 +69,7 @@ class RealtimeTranslationConfig(BaseModel):
 
     model: RealtimeTranslationModel = "gpt-realtime-translate"
     target_language: RealtimeTranslationLanguage
-    noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
+    noise_reduction: RealtimeNoiseReduction | None = "far_field"
     include_source_transcript: bool = True
 
 
@@ -170,7 +149,7 @@ class RealtimeTranslationAudioDelta(RealtimeEvent):
     elapsed_ms: int | None = None
     sample_rate: int = 24000
     channels: int = 1
-    format: Literal["pcm16"] = "pcm16"
+    format: RealtimeAudioFormat = "pcm16"
     event_id: str | None = None
 
 
