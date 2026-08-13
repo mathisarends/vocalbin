@@ -34,11 +34,6 @@ class RealtimeTerminal:
         self._title = title
         self._fields = {label: _Field(label) for label in fields}
         self._stream = stream
-        if hasattr(stream, "reconfigure"):
-            try:
-                stream.reconfigure(encoding="utf-8", errors="replace")
-            except ValueError:
-                pass
         self._interactive = stream.isatty()
         self._color = self._interactive and "NO_COLOR" not in os.environ
         self._status = "Connecting…"
