@@ -2,24 +2,23 @@ import asyncio
 
 from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.openai.realtime import (
-    OpenAIRealtimeTranscriber,
+    OpenAIRealtimeTranscriberBuilder,
     RealtimeError,
     RealtimeSessionConnected,
     RealtimeSpeechStarted,
     RealtimeSpeechStopped,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
-    RealtimeTranscriptionConfig,
-    RealtimeTranscriptionModel,
-    SemanticVadConfig,
 )
 
 
 async def main() -> None:
-    config = RealtimeTranscriptionConfig(
-        model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
-        language="de",
-        turn_detection=SemanticVadConfig(eagerness="medium"),
+    transcriber = (
+        OpenAIRealtimeTranscriberBuilder()
+        .model("gpt-4o-transcribe")
+        .language("de")
+        .semantic_vad(eagerness="medium")
+        .build()
     )
     partial_transcript = ""
 
@@ -27,7 +26,7 @@ async def main() -> None:
         title="Live transcription · Semantic VAD",
         fields=["transcript"],
     ) as terminal:
-        async with OpenAIRealtimeTranscriber(config) as transcriber:
+        async with transcriber:
             async for event in transcriber.stream():
                 match event:
                     case RealtimeSessionConnected():

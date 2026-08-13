@@ -3,14 +3,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-
-class RealtimeTranscriptionModel(StrEnum):
-    GPT_4O_TRANSCRIBE = "gpt-4o-transcribe"
-    GPT_REALTIME_WHISPER = "gpt-realtime-whisper"
-
-
-class RealtimeTranslationModel(StrEnum):
-    GPT_REALTIME_TRANSLATE = "gpt-realtime-translate"
+type RealtimeTranscriptionModel = Literal[
+    "whisper-1",
+    "gpt-4o-mini-transcribe",
+    "gpt-4o-mini-transcribe-2025-12-15",
+    "gpt-4o-transcribe",
+    "gpt-4o-transcribe-diarize",
+    "gpt-realtime-whisper",
+]
+type RealtimeTranslationModel = Literal["gpt-realtime-translate"]
 
 
 class RealtimeSessionType(StrEnum):
@@ -57,9 +58,7 @@ class SemanticVadConfig(BaseModel):
 class RealtimeTranscriptionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model: RealtimeTranscriptionModel | str = (
-        RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
-    )
+    model: RealtimeTranscriptionModel = "gpt-realtime-whisper"
     language: str | None = None
     delay: RealtimeTranscriptionDelay = RealtimeTranscriptionDelay.MEDIUM
     noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
@@ -68,10 +67,7 @@ class RealtimeTranscriptionConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_turn_detection_support(self) -> "RealtimeTranscriptionConfig":
-        if (
-            self.model == RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
-            and self.turn_detection is not None
-        ):
+        if self.model == "gpt-realtime-whisper" and self.turn_detection is not None:
             raise ValueError(
                 "gpt-realtime-whisper does not support turn detection; "
                 "use gpt-4o-transcribe or set turn_detection=None"
@@ -92,9 +88,7 @@ class RealtimeTranscriptionConfig(BaseModel):
 class RealtimeTranslationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model: RealtimeTranslationModel | str = (
-        RealtimeTranslationModel.GPT_REALTIME_TRANSLATE
-    )
+    model: RealtimeTranslationModel = "gpt-realtime-translate"
     target_language: RealtimeTranslationLanguage
     noise_reduction: RealtimeNoiseReduction | None = RealtimeNoiseReduction.FAR_FIELD
     include_source_transcript: bool = True

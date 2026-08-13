@@ -200,23 +200,21 @@ transcripts. Its public API is grouped under `vocalbin.openai.realtime`:
 
 ```python
 from vocalbin.openai.realtime import (
-    OpenAIRealtimeTranscriber,
+    OpenAIRealtimeTranscriberBuilder,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
-    RealtimeTranscriptionConfig,
-    RealtimeTranscriptionModel,
-    SemanticVadConfig,
 )
 
 
 async def transcribe_live() -> None:
-    async with OpenAIRealtimeTranscriber(
-        RealtimeTranscriptionConfig(
-            model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
-            language="de",
-            turn_detection=SemanticVadConfig(eagerness="medium"),
-        )
-    ) as transcriber:
+    transcriber = (
+        OpenAIRealtimeTranscriberBuilder()
+        .model("gpt-4o-transcribe")
+        .language("de")
+        .semantic_vad(eagerness="medium")
+        .build()
+    )
+    async with transcriber:
         async for event in transcriber.stream():
             match event:
                 case RealtimeTranscriptDelta(delta=delta):
@@ -224,6 +222,10 @@ async def transcribe_live() -> None:
                 case RealtimeTranscriptCompleted(transcript=transcript):
                     print(f"\n{transcript}")
 ```
+
+`OpenAIRealtimeTranscriberBuilder` and `OpenAIRealtimeTranslatorBuilder` are
+standalone objects. Their `build()` methods return the corresponding realtime
+service, and both builders can be initialized from an existing config.
 
 The default `MicrophoneInput` sends raw 24 kHz mono PCM16 chunks. Pass an
 `AudioInput` implementation or wrap an async byte source with `AudioStreamInput`

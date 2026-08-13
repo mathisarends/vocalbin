@@ -1,4 +1,8 @@
 from .audio import AudioStreamInput, MicrophoneInput
+from .builders import (
+    OpenAIRealtimeTranscriberBuilder,
+    OpenAIRealtimeTranslatorBuilder,
+)
 from .clients import (
     OpenAIRealtimeProvider,
     OpenAIRealtimeTranscriber,
@@ -43,7 +47,9 @@ __all__ = [
     "MicrophoneInput",
     "OpenAIRealtimeProvider",
     "OpenAIRealtimeTranscriber",
+    "OpenAIRealtimeTranscriberBuilder",
     "OpenAIRealtimeTranslator",
+    "OpenAIRealtimeTranslatorBuilder",
     "RealtimeError",
     "RealtimeErrorDetails",
     "RealtimeEvent",

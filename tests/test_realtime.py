@@ -15,7 +15,9 @@ from vocalbin.openai.realtime import (
     MicrophoneInput,
     OpenAIRealtimeProvider,
     OpenAIRealtimeTranscriber,
+    OpenAIRealtimeTranscriberBuilder,
     OpenAIRealtimeTranslator,
+    OpenAIRealtimeTranslatorBuilder,
     RealtimeError,
     RealtimeLogprob,
     RealtimeNoiseReduction,
@@ -28,10 +30,13 @@ from vocalbin.openai.realtime import (
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
     RealtimeTranscriptionConfig,
+    RealtimeTranscriptionDelay,
+    RealtimeTranscriptionModel,
     RealtimeTranslationAudioDelta,
     RealtimeTranslationClosed,
     RealtimeTranslationConfig,
     RealtimeTranslationLanguage,
+    RealtimeTranslationModel,
     RealtimeTranslationTranscriptDelta,
     SemanticVadConfig,
 )
@@ -104,6 +109,93 @@ def install_connection(
         return remaining.pop(0)
 
     monkeypatch.setattr(realtime_module, "_connect_websocket", connect)
+
+
+def test_realtime_transcription_builder_configures_service() -> None:
+    provider = DummyProvider()
+    audio_input = AudioStreamInput(chunks())
+    initial = RealtimeTranscriptionConfig(
+        model=RealtimeTranscriptionModel.GPT_4O_TRANSCRIBE,
+        turn_detection=SemanticVadConfig(),
+    )
+    builder = OpenAIRealtimeTranscriberBuilder(initial)
+
+    assert isinstance(builder, OpenAIRealtimeTranscriberBuilder)
+
+    service = (
+        builder.language(" de ")
+        .noise_reduction(None)
+        .semantic_vad("high")
+        .include_logprobs()
+        .audio_input(audio_input)
+        .provider(provider)
+        .build()
+    )
+
+    assert service.config.language == "de"
+    assert service.config.noise_reduction is None
+    assert service.config.turn_detection == SemanticVadConfig(eagerness="high")
+    assert service.config.include_logprobs is True
+    assert service._audio_input is audio_input
+
+    default_builder = OpenAIRealtimeTranscriberBuilder()
+    default_service = (
+        default_builder.model(RealtimeTranscriptionModel.GPT_REALTIME_WHISPER)
+        .delay(RealtimeTranscriptionDelay.HIGH)
+        .turn_detection(None)
+        .include_logprobs(False)
+        .api_key("key")
+        .safety_identifier("user-1")
+        .build()
+    )
+
+    assert default_service.config.delay == RealtimeTranscriptionDelay.HIGH
+    assert default_service.config.turn_detection is None
+    assert default_service._connection._provider.build_headers() == {
+        "Authorization": "Bearer key",
+        "OpenAI-Safety-Identifier": "user-1",
+    }
+
+
+def test_realtime_translation_builder_configures_service() -> None:
+    provider = DummyProvider()
+    audio_input = AudioStreamInput(chunks())
+    initial = RealtimeTranslationConfig(
+        target_language=RealtimeTranslationLanguage.ENGLISH
+    )
+    builder = OpenAIRealtimeTranslatorBuilder(initial)
+
+    assert isinstance(builder, OpenAIRealtimeTranslatorBuilder)
+
+    service = (
+        builder.model(RealtimeTranslationModel.GPT_REALTIME_TRANSLATE)
+        .target_language(RealtimeTranslationLanguage.GERMAN)
+        .noise_reduction(None)
+        .include_source_transcript(False)
+        .audio_input(audio_input)
+        .provider(provider)
+        .build()
+    )
+
+    assert service.config.target_language == RealtimeTranslationLanguage.GERMAN
+    assert service.config.noise_reduction is None
+    assert service.config.include_source_transcript is False
+    assert service._audio_input is audio_input
+
+    default_service = (
+        OpenAIRealtimeTranslatorBuilder()
+        .target_language(RealtimeTranslationLanguage.FRENCH)
+        .include_source_transcript()
+        .api_key("key")
+        .safety_identifier("user-2")
+        .build()
+    )
+
+    assert default_service.config.include_source_transcript is True
+    assert default_service._connection._provider.build_headers() == {
+        "Authorization": "Bearer key",
+        "OpenAI-Safety-Identifier": "user-2",
+    }
 
 
 def test_openai_realtime_provider_builds_urls_and_headers(

@@ -66,7 +66,7 @@ class RealtimeNoiseReductionConfig(RealtimeClientMessage):
 
 
 class RealtimeTranscriptionSettings(RealtimeClientMessage):
-    model: RealtimeTranscriptionModel | str
+    model: RealtimeTranscriptionModel
     delay: RealtimeTranscriptionDelay | None = Field(
         default=None,
         exclude_if=lambda value: value is None,
@@ -97,9 +97,7 @@ class RealtimeTranscriptionSession(RealtimeClientMessage):
 
 
 class RealtimeTranslationTranscriptionSettings(RealtimeClientMessage):
-    model: RealtimeTranscriptionModel | str = (
-        RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
-    )
+    model: RealtimeTranscriptionModel = "gpt-realtime-whisper"
 
 
 class RealtimeTranslationInputAudio(RealtimeClientMessage):
@@ -140,8 +138,7 @@ class RealtimeTranscriptionSessionUpdate(RealtimeSessionUpdate):
                             model=config.model,
                             delay=(
                                 config.delay
-                                if config.model
-                                == RealtimeTranscriptionModel.GPT_REALTIME_WHISPER
+                                if config.model == "gpt-realtime-whisper"
                                 else None
                             ),
                             language=config.language,
