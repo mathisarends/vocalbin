@@ -1,7 +1,7 @@
 from .audio import AudioStreamInput, MicrophoneInput
 from .builders import (
-    OpenAIRealtimeTranscriberBuilder,
-    OpenAIRealtimeTranslatorBuilder,
+    RealtimeTranscriberBuilder,
+    RealtimeTranslatorBuilder,
 )
 from .clients import (
     OpenAIRealtimeProvider,
@@ -47,9 +47,7 @@ __all__ = [
     "MicrophoneInput",
     "OpenAIRealtimeProvider",
     "OpenAIRealtimeTranscriber",
-    "OpenAIRealtimeTranscriberBuilder",
     "OpenAIRealtimeTranslator",
-    "OpenAIRealtimeTranslatorBuilder",
     "RealtimeError",
     "RealtimeErrorDetails",
     "RealtimeEvent",
@@ -61,6 +59,7 @@ __all__ = [
     "RealtimeSourceTranscriptDelta",
     "RealtimeSpeechStarted",
     "RealtimeSpeechStopped",
+    "RealtimeTranscriberBuilder",
     "RealtimeTranscriptCompleted",
     "RealtimeTranscriptDelta",
     "RealtimeTranscription",
@@ -76,5 +75,6 @@ __all__ = [
     "RealtimeTranslationLanguage",
     "RealtimeTranslationModel",
     "RealtimeTranslationTranscriptDelta",
+    "RealtimeTranslatorBuilder",
     "SemanticVadConfig",
 ]

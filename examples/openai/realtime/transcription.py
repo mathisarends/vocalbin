@@ -2,11 +2,11 @@ import asyncio
 
 from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.openai.realtime import (
-    OpenAIRealtimeTranscriberBuilder,
     RealtimeError,
     RealtimeSessionConnected,
     RealtimeSpeechStarted,
     RealtimeSpeechStopped,
+    RealtimeTranscriberBuilder,
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
 )
@@ -20,7 +20,7 @@ async def main() -> None:
         fields=["transcript"],
     ) as terminal:
         transcriber = (
-            OpenAIRealtimeTranscriberBuilder()
+            RealtimeTranscriberBuilder()
             .model("gpt-4o-transcribe")
             .language("de")
             .semantic_vad(eagerness="low")
