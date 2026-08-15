@@ -10,7 +10,10 @@ from vocalbin.ports import SpeechToText
 type TranscriptionResult = TranscriptionCreateResponse | str
 
 
-class OpenAISpeechToText(_OpenAIClientOwner, SpeechToText):
+class OpenAISpeechToText(
+    _OpenAIClientOwner,
+    SpeechToText[SpeechToTextRequest, SpeechToTextResponse],
+):
     def __init__(
         self,
         api_key: str | None = None,

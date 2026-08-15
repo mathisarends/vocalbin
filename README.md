@@ -13,6 +13,7 @@ stays independent of application-specific settings or domain code.
 - [Speech to text](#speech-to-text)
 - [Text to speech](#text-to-speech)
 - [Cartesia text to speech](#cartesia-text-to-speech)
+- [Cartesia realtime speech to text](#cartesia-realtime-speech-to-text)
 - [Piper text to speech](#piper-text-to-speech)
 - [Realtime transcription](#realtime-transcription)
 - [Realtime translation](#realtime-translation)
@@ -34,7 +35,7 @@ stack:
 ```bash
 uv add "vocalbin[realtime]"  # custom audio input
 uv add "vocalbin[audio]"     # WebSockets plus microphone input
-uv add "vocalbin[cartesia]"  # Cartesia TTS plus WebSocket streaming
+uv add "vocalbin[cartesia]"  # Cartesia TTS and realtime STT
 uv add "vocalbin[piper]"     # Piper local/offline TTS
 ```
 
@@ -153,6 +154,39 @@ async def stream_incremental(
 
 WebSocket streaming requires `output_format=CartesiaRawOutputFormat()` (the
 default), which returns raw 16-bit PCM audio.
+
+## Cartesia realtime speech to text
+
+`CartesiaSpeechToText` implements `StreamingSpeechToText` with Cartesia's Ink 2
+model and built-in turn detection. It accepts an async stream of raw, mono audio
+chunks and emits typed turn lifecycle events:
+
+```python
+from collections.abc import AsyncIterator
+
+from vocalbin.cartesia import (
+    CartesiaSpeechToText,
+    CartesiaSpeechToTextTurnEnd,
+    CartesiaSpeechToTextTurnUpdate,
+)
+
+
+async def transcribe(audio: AsyncIterator[bytes]) -> None:
+    async with CartesiaSpeechToText() as speech_to_text:
+        async for event in speech_to_text.stream(audio):
+            match event:
+                case CartesiaSpeechToTextTurnUpdate(transcript=transcript):
+                    print(transcript)
+                case CartesiaSpeechToTextTurnEnd(transcript=transcript):
+                    print(f"final: {transcript}")
+```
+
+The default input is mono `pcm_s16le` at 16 kHz. Other raw PCM encodings,
+sample rates, keyterms, and turn-detection thresholds can be set with
+`CartesiaSpeechToTextConfig`. Audio should arrive at realtime speed in small
+chunks (Cartesia recommends about 100 ms). Ink 2 currently supports English
+only. Cartesia does not expose Ink 2 through its batch STT endpoint, so this
+adapter intentionally has no `transcribe()` method.
 
 ## Piper text to speech
 
@@ -296,6 +330,10 @@ only the legacy voices and do not support `instructions`.
 encoding), `wav`, and `mp3`. WebSocket streaming via `stream()` or
 `stream_incremental()` requires the `raw` container.
 
+**Cartesia speech to text** — `ink-2` over realtime WebSockets with native turn
+detection. Input encodings are `pcm_s16le`, `pcm_s32le`, `pcm_f16le`,
+`pcm_f32le`, `pcm_mulaw`, and `pcm_alaw`; the model currently supports English.
+
 **Piper text to speech** — any locally installed Piper voice model (`.onnx` +
 `.onnx.json`); output is always raw 16-bit PCM at the voice's native sample
 rate. `speaker_id` selects a speaker for multi-speaker models; `length_scale`,
@@ -325,10 +363,12 @@ uv run python examples/openai/realtime/translation.py
 ```
 
 Cartesia's request-response and WebSocket streaming calls are demonstrated in one
-script. Set `CARTESIA_API_KEY` and `CARTESIA_VOICE_ID`, then run:
+TTS script. The STT script generates English test audio with Sonic 3.5 and streams
+it into Ink 2. Set `CARTESIA_API_KEY` and `CARTESIA_VOICE_ID`, then run:
 
 ```bash
 uv run --extra cartesia python examples/cartesia/text_to_speech.py
+uv run --extra cartesia python examples/cartesia/speech_to_text.py
 ```
 
 Piper's request-response and streaming calls are demonstrated the same way.

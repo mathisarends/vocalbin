@@ -1,17 +1,20 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
-
-from vocalbin.openai.stt.models import (
-    SpeechToTextRequest,
-    SpeechToTextResponse,
-)
+from collections.abc import AsyncIterable, AsyncIterator
 
 
-class SpeechToText(ABC):
+class SpeechToText[RequestT, ResponseT](ABC):
     @abstractmethod
-    async def transcribe(
-        self, request: SpeechToTextRequest
-    ) -> SpeechToTextResponse: ...
+    async def transcribe(self, request: RequestT) -> ResponseT: ...
+
+
+class StreamingSpeechToText[ConfigT, EventT](ABC):
+    @abstractmethod
+    def stream(
+        self,
+        audio: AsyncIterable[bytes],
+        *,
+        config: ConfigT | None = None,
+    ) -> AsyncIterator[EventT]: ...
 
 
 class TextToSpeech[ConfigT, ResponseT](ABC):
