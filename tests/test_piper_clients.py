@@ -44,13 +44,13 @@ def stub_syn_config(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(piper_clients, "_build_syn_config", lambda params: params)
 
 
-async def test_synthesize_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_generate_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"one", b"two"])
     service = PiperTextToSpeech(voice=cast(Any, voice))
     request = PiperTextToSpeechRequest(text="Hallo", speaker_id=1)
 
-    response = await service.synthesize(request)
+    response = await service.generate(request)
 
     assert response.audio == b"onetwo"
     assert response.sample_rate == 22050
@@ -93,7 +93,7 @@ async def test_context_manager_returns_self_and_closes_cleanly(
     voice = FakeVoice([b"audio"])
 
     async with PiperTextToSpeech(voice=cast(Any, voice)) as service:
-        response = await service.synthesize(PiperTextToSpeechRequest(text="Hallo"))
+        response = await service.generate(PiperTextToSpeechRequest(text="Hallo"))
 
     assert response.audio == b"audio"
 

@@ -37,7 +37,7 @@ LEGACY_VOICES = [
 async def basic() -> None:
     """Defaults: gpt-4o-mini-tts, voice 'marin', mp3."""
     async with OpenAITextToSpeech() as tts:
-        response = await tts.synthesize(TextToSpeechRequest(text="Hallo aus vocalbin!"))
+        response = await tts.generate(TextToSpeechRequest(text="Hallo aus vocalbin!"))
     _save(response.audio, "basic.mp3")
     print(f"basic: {len(response.audio)} bytes, {response.content_type}")
 
@@ -45,7 +45,7 @@ async def basic() -> None:
 async def with_instructions_and_speed() -> None:
     """gpt-4o-mini-tts supports free-form voice instructions and a speed factor."""
     async with OpenAITextToSpeech() as tts:
-        response = await tts.synthesize(
+        response = await tts.generate(
             TextToSpeechRequest(
                 text="Diese Stimme klingt ruhig, freundlich und ein wenig langsamer.",
                 model=TextToSpeechModel.GPT_4O_MINI_TTS,
@@ -62,7 +62,7 @@ async def every_format() -> None:
     """gpt-4o-mini-tts can emit every supported container/codec."""
     async with OpenAITextToSpeech() as tts:
         for fmt in TextToSpeechFormat:
-            response = await tts.synthesize(
+            response = await tts.generate(
                 TextToSpeechRequest(
                     text=f"Dies ist das Format {fmt.value}.",
                     response_format=fmt,
@@ -76,7 +76,7 @@ async def every_voice() -> None:
     """gpt-4o-mini-tts accepts every voice in the enum."""
     async with OpenAITextToSpeech() as tts:
         for voice in TextToSpeechVoice:
-            response = await tts.synthesize(
+            response = await tts.generate(
                 TextToSpeechRequest(
                     text=f"Das ist die Stimme {voice.value}.",
                     voice=voice,
@@ -90,7 +90,7 @@ async def legacy_models() -> None:
     """tts-1 and tts-1-hd: legacy voices only, no instructions, speed allowed."""
     async with OpenAITextToSpeech() as tts:
         for model in (TextToSpeechModel.TTS_1, TextToSpeechModel.TTS_1_HD):
-            response = await tts.synthesize(
+            response = await tts.generate(
                 TextToSpeechRequest(
                     text="Dies ist ein Legacy-Text-to-Speech-Modell.",
                     model=model,

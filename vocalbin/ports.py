@@ -16,7 +16,7 @@ class SpeechToText(ABC):
 
 class TextToSpeech[RequestT, ResponseT](ABC):
     @abstractmethod
-    async def synthesize(self, request: RequestT) -> ResponseT: ...
+    async def generate(self, request: RequestT) -> ResponseT: ...
 
 
 class StreamingTextToSpeech[RequestT, EventT](ABC):

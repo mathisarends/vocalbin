@@ -24,12 +24,12 @@ load_dotenv()
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 
-async def synthesize(text: str) -> None:
+async def generate(text: str) -> None:
     async with PiperTextToSpeech() as tts:
-        response = await tts.synthesize(PiperTextToSpeechRequest(text=text))
+        response = await tts.generate(PiperTextToSpeechRequest(text=text))
 
-    path = _save(response.audio, "piper_synthesize.pcm")
-    print(f"synthesize: {len(response.audio)} bytes at {response.sample_rate} Hz")
+    path = _save(response.audio, "piper_generate.pcm")
+    print(f"generate: {len(response.audio)} bytes at {response.sample_rate} Hz")
     print(f"-> {path}")
 
 
@@ -56,7 +56,7 @@ def _save(audio: bytes | bytearray, name: str) -> Path:
 
 async def main() -> None:
     text = sys.argv[1] if len(sys.argv) > 1 else "Hallo aus vocalbin mit Piper!"
-    await synthesize(text)
+    await generate(text)
     await stream()
 
 

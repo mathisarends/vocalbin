@@ -62,7 +62,7 @@ class CartesiaTextToSpeech(
         self._connection_manager: AsyncTTSResourceConnectionManager | None = None
         self._connection_lock = asyncio.Lock()
 
-    async def synthesize(
+    async def generate(
         self, request: CartesiaTextToSpeechRequest
     ) -> CartesiaTextToSpeechResponse:
         params = request.to_cartesia_params()

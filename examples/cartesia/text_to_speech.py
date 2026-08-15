@@ -28,9 +28,9 @@ load_dotenv()
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 
-async def synthesize(voice_id: str) -> None:
+async def generate(voice_id: str) -> None:
     async with CartesiaTextToSpeech() as tts:
-        response = await tts.synthesize(
+        response = await tts.generate(
             CartesiaTextToSpeechRequest(
                 text="Hallo aus vocalbin mit Cartesia!",
                 voice_id=voice_id,
@@ -39,8 +39,8 @@ async def synthesize(voice_id: str) -> None:
             )
         )
 
-    _save(response.audio, "cartesia_synthesize.wav")
-    print(f"synthesize: {len(response.audio)} bytes, {response.content_type}")
+    _save(response.audio, "cartesia_generate.wav")
+    print(f"generate: {len(response.audio)} bytes, {response.content_type}")
 
 
 async def stream(voice_id: str) -> None:
@@ -90,7 +90,7 @@ def _save(audio: bytes | bytearray, name: str) -> None:
 
 async def main() -> None:
     voice_id = os.environ["CARTESIA_VOICE_ID"]
-    await synthesize(voice_id)
+    await generate(voice_id)
     await stream(voice_id)
     await stream_text(voice_id)
 

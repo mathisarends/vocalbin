@@ -89,9 +89,9 @@ from vocalbin import (
 )
 
 
-async def synthesize() -> bytes:
+async def generate() -> bytes:
     async with OpenAITextToSpeech() as text_to_speech:
-        response = await text_to_speech.synthesize(
+        response = await text_to_speech.generate(
             TextToSpeechRequest(
                 text="Hallo aus vocalbin!",
                 voice=TextToSpeechVoice.MARIN,
@@ -118,9 +118,9 @@ from vocalbin.cartesia import (
 )
 
 
-async def synthesize(voice_id: str) -> bytes:
+async def generate(voice_id: str) -> bytes:
     async with CartesiaTextToSpeech() as text_to_speech:
-        response = await text_to_speech.synthesize(
+        response = await text_to_speech.generate(
             CartesiaTextToSpeechRequest(
                 text="Hallo aus vocalbin mit Cartesia!",
                 voice_id=voice_id,
@@ -166,9 +166,9 @@ text-to-speech engine, grouped under `vocalbin.piper`. Install it with
 from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechRequest
 
 
-async def synthesize() -> bytes:
+async def generate() -> bytes:
     async with PiperTextToSpeech() as text_to_speech:
-        response = await text_to_speech.synthesize(
+        response = await text_to_speech.generate(
             PiperTextToSpeechRequest(text="Hallo aus vocalbin mit Piper!")
         )
     return response.audio
@@ -322,7 +322,7 @@ With a valid `OPENAI_API_KEY` set:
 ```bash
 uv run python examples/openai/text_to_speech.py   # every TTS model, voice and format
 uv run python examples/openai/speech_to_text.py   # every STT model and response format
-uv run python examples/openai/round_trip.py       # synthesize -> transcribe, self-checking
+uv run python examples/openai/round_trip.py       # generate -> transcribe, self-checking
 uv run python examples/openai/shared_client.py    # one AsyncOpenAI client for both services
 uv run python examples/openai/realtime/transcription.py
 uv run python examples/openai/realtime/semantic_vad.py

@@ -24,7 +24,7 @@ TEXT = f"Dies ist ein Round-Trip-Test von {PHRASE}."
 
 async def main() -> None:
     async with OpenAITextToSpeech() as tts:
-        spoken = await tts.synthesize(
+        spoken = await tts.generate(
             TextToSpeechRequest(text=TEXT, response_format=TextToSpeechFormat.WAV)
         )
 

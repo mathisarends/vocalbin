@@ -129,7 +129,7 @@ async def _ensure_sample() -> None:
         return
     OUTPUT_DIR.mkdir(exist_ok=True)
     async with OpenAITextToSpeech() as tts:
-        response = await tts.synthesize(
+        response = await tts.generate(
             TextToSpeechRequest(
                 text=SAMPLE_TEXT,
                 response_format=TextToSpeechFormat.WAV,

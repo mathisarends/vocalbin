@@ -26,7 +26,7 @@ async def main() -> None:
     tts = OpenAITextToSpeech(client=client)
     stt = OpenAISpeechToText(client=client)
 
-    spoken = await tts.synthesize(
+    spoken = await tts.generate(
         TextToSpeechRequest(
             text="Ein Client, zwei Dienste.",
             response_format=TextToSpeechFormat.WAV,

@@ -129,7 +129,7 @@ async def text_stream(*chunks: str) -> AsyncIterator[str]:
         (CartesiaMp3OutputFormat(), "audio/mpeg"),
     ],
 )
-async def test_cartesia_synthesize_returns_normalized_response(
+async def test_cartesia_generate_returns_normalized_response(
     output_format: CartesiaRawOutputFormat
     | CartesiaWavOutputFormat
     | CartesiaMp3OutputFormat,
@@ -146,7 +146,7 @@ async def test_cartesia_synthesize_returns_normalized_response(
         pronunciation_dict_id="dictionary-id",
     )
 
-    response = await service.synthesize(request)
+    response = await service.generate(request)
 
     assert response.audio == b"generated"
     assert response.content_type == content_type

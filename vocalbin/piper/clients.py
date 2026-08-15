@@ -43,12 +43,12 @@ class PiperTextToSpeech(
             voice = _create_voice(resolved_model_path, resolved_config_path)
         self.voice = voice
 
-    async def synthesize(
+    async def generate(
         self, request: PiperTextToSpeechRequest
     ) -> PiperTextToSpeechResponse:
         audio = await asyncio.to_thread(
             lambda: b"".join(
-                chunk.audio_int16_bytes for chunk in self._synthesize(request)
+                chunk.audio_int16_bytes for chunk in self._generate(request)
             )
         )
         return PiperTextToSpeechResponse(
@@ -58,11 +58,11 @@ class PiperTextToSpeech(
         )
 
     async def stream(self, request: PiperTextToSpeechRequest) -> AsyncGenerator[bytes]:
-        chunks = (chunk.audio_int16_bytes for chunk in self._synthesize(request))
+        chunks = (chunk.audio_int16_bytes for chunk in self._generate(request))
         async for chunk in _stream_sync_generator(chunks):
             yield chunk
 
-    def _synthesize(self, request: PiperTextToSpeechRequest) -> Iterator[AudioChunk]:
+    def _generate(self, request: PiperTextToSpeechRequest) -> Iterator[AudioChunk]:
         return self.voice.synthesize(
             request.text,
             syn_config=_build_syn_config(request.to_piper_params()),

@@ -68,7 +68,7 @@ class OpenAITextToSpeech(
     ) -> None:
         super().__init__(api_key, client)
 
-    async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
+    async def generate(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
         result = await self.client.audio.speech.create(
             input=request.text,
             model=request.model,

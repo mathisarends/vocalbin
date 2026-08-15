@@ -83,11 +83,11 @@ async def test_transcribe_reads_audio_from_path(tmp_path: Path) -> None:
     assert audio_file.closed
 
 
-async def test_synthesize_returns_audio_and_content_type() -> None:
+async def test_generate_returns_audio_and_content_type() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
-    response = await service.synthesize(
+    response = await service.generate(
         TextToSpeechRequest(
             text="Hallo",
             response_format=TextToSpeechFormat.WAV,
@@ -104,11 +104,11 @@ async def test_synthesize_returns_audio_and_content_type() -> None:
     assert call["instructions"] is omit
 
 
-async def test_synthesize_passes_instructions_and_omits_default_speed() -> None:
+async def test_generate_passes_instructions_and_omits_default_speed() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
-    await service.synthesize(TextToSpeechRequest(text="Hallo", instructions="Calm"))
+    await service.generate(TextToSpeechRequest(text="Hallo", instructions="Calm"))
 
     call = fake_client.speech.calls[0]
     assert call["instructions"] == "Calm"
@@ -126,14 +126,14 @@ async def test_synthesize_passes_instructions_and_omits_default_speed() -> None:
         (TextToSpeechFormat.PCM, "audio/pcm"),
     ],
 )
-async def test_synthesize_maps_every_format_to_content_type(
+async def test_generate_maps_every_format_to_content_type(
     response_format: TextToSpeechFormat,
     content_type: str,
 ) -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"audio"))
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
-    response = await service.synthesize(
+    response = await service.generate(
         TextToSpeechRequest(text="Hallo", response_format=response_format)
     )
 
