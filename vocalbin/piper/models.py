@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PiperTextToSpeechConfig(BaseModel):
@@ -12,18 +12,7 @@ class PiperTextToSpeechConfig(BaseModel):
     noise_w_scale: float | None = Field(default=None, ge=0)
 
     def to_piper_params(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, exclude={"text"})
-
-
-class PiperTextToSpeechRequest(PiperTextToSpeechConfig):
-    text: str = Field(min_length=1)
-
-    @field_validator("text")
-    @classmethod
-    def text_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("text must not be blank")
-        return value
+        return self.model_dump(exclude_none=True)
 
 
 class PiperTextToSpeechResponse(BaseModel):

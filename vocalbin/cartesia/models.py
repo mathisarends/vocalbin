@@ -123,17 +123,6 @@ class CartesiaTextToSpeechConfig(BaseModel):
         return params
 
 
-class CartesiaTextToSpeechRequest(CartesiaTextToSpeechConfig):
-    text: str = Field(min_length=1)
-
-    @field_validator("text")
-    @classmethod
-    def text_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("text must not be blank")
-        return value
-
-
 class CartesiaTextToSpeechResponse(BaseModel):
     audio: bytes
     model: CartesiaTextToSpeechModel | str

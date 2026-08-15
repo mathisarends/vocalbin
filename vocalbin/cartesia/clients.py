@@ -9,10 +9,9 @@ from typing import TYPE_CHECKING, Any, Self
 from vocalbin.cartesia.credentials import CartesiaCredentials
 from vocalbin.cartesia.models import (
     CartesiaTextToSpeechConfig,
-    CartesiaTextToSpeechRequest,
     CartesiaTextToSpeechResponse,
 )
-from vocalbin.ports import StreamingTextToSpeech, TextToSpeech
+from vocalbin.ports import StreamingTextToSpeech, TextToSpeech, resolve_config
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -37,14 +36,15 @@ class CartesiaTextToSpeechError(RuntimeError):
 
 
 class CartesiaTextToSpeech(
-    TextToSpeech[CartesiaTextToSpeechRequest, CartesiaTextToSpeechResponse],
-    StreamingTextToSpeech[CartesiaTextToSpeechRequest, bytes],
+    TextToSpeech[CartesiaTextToSpeechConfig, CartesiaTextToSpeechResponse],
+    StreamingTextToSpeech[CartesiaTextToSpeechConfig, bytes],
 ):
     def __init__(
         self,
         api_key: str | None = None,
         *,
         client: AsyncCartesia | None = None,
+        default_config: CartesiaTextToSpeechConfig | None = None,
     ) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -57,33 +57,38 @@ class CartesiaTextToSpeech(
             )
             client = _create_client(resolved_api_key)
         self.client = client
+        self.default_config = default_config
         self._owns_client = owns_client
         self._connection: AsyncTTSResourceConnection | None = None
         self._connection_manager: AsyncTTSResourceConnectionManager | None = None
         self._connection_lock = asyncio.Lock()
 
     async def generate(
-        self, request: CartesiaTextToSpeechRequest
+        self, text: str, *, config: CartesiaTextToSpeechConfig | None = None
     ) -> CartesiaTextToSpeechResponse:
-        params = request.to_cartesia_params()
-        params["transcript"] = request.text
+        text = _require_non_blank_text(text)
+        resolved_config = resolve_config(config, self.default_config)
+        params = resolved_config.to_cartesia_params()
+        params["transcript"] = text
         result = await self.client.tts.generate(**params)
 
         return CartesiaTextToSpeechResponse(
             audio=await result.read(),
-            model=request.model,
-            voice_id=request.voice_id,
-            output_format=request.output_format,
-            content_type=_content_type(request.output_format.container),
+            model=resolved_config.model,
+            voice_id=resolved_config.voice_id,
+            output_format=resolved_config.output_format,
+            content_type=_content_type(resolved_config.output_format.container),
         )
 
     async def stream(
-        self, request: CartesiaTextToSpeechRequest
+        self, text: str, *, config: CartesiaTextToSpeechConfig | None = None
     ) -> AsyncGenerator[bytes]:
-        async def text_chunks() -> AsyncIterator[str]:
-            yield request.text
+        resolved_config = resolve_config(config, self.default_config)
 
-        stream = self.stream_text(text_chunks(), request)
+        async def text_chunks() -> AsyncIterator[str]:
+            yield text
+
+        stream = self.stream_text(text_chunks(), resolved_config)
         try:
             async for audio in stream:
                 yield audio
@@ -219,3 +224,9 @@ def _content_type(container: str) -> str:
         "wav": "audio/wav",
         "mp3": "audio/mpeg",
     }[container]
+
+
+def _require_non_blank_text(text: str) -> str:
+    if not text.strip():
+        raise ValueError("text must not be blank")
+    return text

@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 
-from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechRequest
+from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechConfig
 from vocalbin.piper import clients as piper_clients
 
 
@@ -48,14 +48,41 @@ async def test_generate_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) ->
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"one", b"two"])
     service = PiperTextToSpeech(voice=cast(Any, voice))
-    request = PiperTextToSpeechRequest(text="Hallo", speaker_id=1)
+    config = PiperTextToSpeechConfig(speaker_id=1)
 
-    response = await service.generate(request)
+    response = await service.generate("Hallo", config=config)
 
     assert response.audio == b"onetwo"
     assert response.sample_rate == 22050
     assert response.content_type == "audio/pcm"
     assert voice.calls == [{"text": "Hallo", "syn_config": {"speaker_id": 1}}]
+
+
+async def test_generate_uses_default_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_syn_config(monkeypatch)
+    voice = FakeVoice([b"one", b"two"])
+    service = PiperTextToSpeech(
+        voice=cast(Any, voice), default_config=PiperTextToSpeechConfig(speaker_id=2)
+    )
+
+    response = await service.generate("Hallo")
+
+    assert response.audio == b"onetwo"
+    assert voice.calls == [{"text": "Hallo", "syn_config": {"speaker_id": 2}}]
+
+
+async def test_generate_requires_config() -> None:
+    service = PiperTextToSpeech(voice=cast(Any, FakeVoice()))
+
+    with pytest.raises(ValueError, match="Provide 'config'"):
+        await service.generate("Hallo")
+
+
+async def test_generate_rejects_blank_text() -> None:
+    service = PiperTextToSpeech(voice=cast(Any, FakeVoice()))
+
+    with pytest.raises(ValueError, match="text must not be blank"):
+        await service.generate("   ", config=PiperTextToSpeechConfig())
 
 
 async def test_stream_yields_chunks_from_background_thread(
@@ -64,9 +91,9 @@ async def test_stream_yields_chunks_from_background_thread(
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"a", b"b", b"c"])
     service = PiperTextToSpeech(voice=cast(Any, voice))
-    request = PiperTextToSpeechRequest(text="Hallo")
+    config = PiperTextToSpeechConfig()
 
-    assert await collect(service.stream(request)) == [b"a", b"b", b"c"]
+    assert await collect(service.stream("Hallo", config=config)) == [b"a", b"b", b"c"]
 
 
 async def test_stream_propagates_generator_errors(
@@ -75,10 +102,10 @@ async def test_stream_propagates_generator_errors(
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"a"], error=RuntimeError("synthesis failed"))
     service = PiperTextToSpeech(voice=cast(Any, voice))
-    request = PiperTextToSpeechRequest(text="Hallo")
+    config = PiperTextToSpeechConfig()
 
     with pytest.raises(RuntimeError, match="synthesis failed"):
-        await collect(service.stream(request))
+        await collect(service.stream("Hallo", config=config))
 
 
 def test_model_path_and_voice_are_mutually_exclusive() -> None:
@@ -93,7 +120,7 @@ async def test_context_manager_returns_self_and_closes_cleanly(
     voice = FakeVoice([b"audio"])
 
     async with PiperTextToSpeech(voice=cast(Any, voice)) as service:
-        response = await service.generate(PiperTextToSpeechRequest(text="Hallo"))
+        response = await service.generate("Hallo", config=PiperTextToSpeechConfig())
 
     assert response.audio == b"audio"
 

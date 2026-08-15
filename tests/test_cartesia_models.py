@@ -7,15 +7,14 @@ from vocalbin.cartesia import (
     CartesiaMp3OutputFormat,
     CartesiaRawOutputFormat,
     CartesiaTextToSpeechConfig,
-    CartesiaTextToSpeechRequest,
     CartesiaWavOutputFormat,
 )
 
 
-def test_cartesia_request_defaults_and_serialization() -> None:
-    request = CartesiaTextToSpeechRequest(text="Hallo", voice_id="voice-id")
+def test_cartesia_config_defaults_and_serialization() -> None:
+    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
 
-    assert request.to_cartesia_params() == {
+    assert config.to_cartesia_params() == {
         "model_id": "sonic-3.5",
         "voice": {"mode": "id", "id": "voice-id"},
         "output_format": {
@@ -26,15 +25,14 @@ def test_cartesia_request_defaults_and_serialization() -> None:
     }
 
 
-def test_cartesia_request_forwards_unknown_model_ids() -> None:
-    request = CartesiaTextToSpeechRequest(
-        text="Hallo",
+def test_cartesia_config_forwards_unknown_model_ids() -> None:
+    config = CartesiaTextToSpeechConfig(
         voice_id="voice-id",
         model="sonic-future",
     )
 
-    assert request.model == "sonic-future"
-    assert request.to_cartesia_params()["model_id"] == "sonic-future"
+    assert config.model == "sonic-future"
+    assert config.to_cartesia_params()["model_id"] == "sonic-future"
 
 
 def test_cartesia_config_serializes_optional_parameters() -> None:
@@ -76,28 +74,9 @@ def test_cartesia_output_formats_have_typed_defaults() -> None:
     assert CartesiaMp3OutputFormat().bit_rate == 128000
 
 
-@pytest.mark.parametrize(
-    ("model", "match"),
-    [
-        (
-            CartesiaTextToSpeechRequest,
-            "text must not be blank",
-        ),
-        (
-            CartesiaGenerationConfig,
-            "emotion must not be blank",
-        ),
-    ],
-)
-def test_cartesia_text_fields_reject_blank_values(
-    model: type[CartesiaTextToSpeechRequest] | type[CartesiaGenerationConfig],
-    match: str,
-) -> None:
-    with pytest.raises(ValidationError, match=match):
-        if model is CartesiaTextToSpeechRequest:
-            model(text="  ", voice_id="voice-id")
-        else:
-            model(emotion="  ")
+def test_cartesia_generation_config_rejects_blank_emotion() -> None:
+    with pytest.raises(ValidationError, match="emotion must not be blank"):
+        CartesiaGenerationConfig(emotion="  ")
 
 
 @pytest.mark.parametrize("field", ["voice_id", "pronunciation_dict_id"])
@@ -142,9 +121,8 @@ def test_cartesia_config_rejects_invalid_values(values: dict[str, object]) -> No
 
 
 def test_cartesia_output_format_is_discriminated_and_validated() -> None:
-    request = CartesiaTextToSpeechRequest.model_validate(
+    config = CartesiaTextToSpeechConfig.model_validate(
         {
-            "text": "Hallo",
             "voice_id": "voice-id",
             "output_format": {
                 "container": "mp3",
@@ -154,6 +132,6 @@ def test_cartesia_output_format_is_discriminated_and_validated() -> None:
         }
     )
 
-    assert isinstance(request.output_format, CartesiaMp3OutputFormat)
+    assert isinstance(config.output_format, CartesiaMp3OutputFormat)
     with pytest.raises(ValidationError):
         CartesiaRawOutputFormat(sample_rate=12345)

@@ -7,8 +7,8 @@ from vocalbin import (
     SpeechToTextFormat,
     SpeechToTextModel,
     SpeechToTextRequest,
+    TextToSpeechConfig,
     TextToSpeechModel,
-    TextToSpeechRequest,
     TextToSpeechVoice,
     TimestampGranularity,
 )
@@ -182,22 +182,14 @@ def test_request_field_constraints_and_unknown_fields() -> None:
         SpeechToTextRequest.model_validate({"audio": b"audio", "unknown": True})
 
     with pytest.raises(ValidationError):
-        TextToSpeechRequest(text="x", speed=0.24)
+        TextToSpeechConfig(speed=0.24)
     with pytest.raises(ValidationError):
-        TextToSpeechRequest(text="x" * 4097)
-    with pytest.raises(ValidationError):
-        TextToSpeechRequest.model_validate({"text": "x", "unknown": True})
-
-
-def test_tts_text_must_not_be_blank() -> None:
-    with pytest.raises(ValidationError, match="text must not be blank"):
-        TextToSpeechRequest(text="  ")
+        TextToSpeechConfig.model_validate({"unknown": True})
 
 
 def test_requests_forward_unknown_model_and_voice_ids() -> None:
     speech_to_text = SpeechToTextRequest(audio=b"audio", model="stt-future")
-    text_to_speech = TextToSpeechRequest(
-        text="Hello",
+    text_to_speech = TextToSpeechConfig(
         model="tts-future",
         voice="voice-future",
     )
@@ -210,23 +202,20 @@ def test_requests_forward_unknown_model_and_voice_ids() -> None:
 
 def test_legacy_tts_rejects_new_voice_and_instructions() -> None:
     with pytest.raises(ValidationError, match="does not support voice"):
-        TextToSpeechRequest(
-            text="Hello",
+        TextToSpeechConfig(
             model=TextToSpeechModel.TTS_1,
             voice=TextToSpeechVoice.MARIN,
         )
 
     with pytest.raises(ValidationError, match="does not support instructions"):
-        TextToSpeechRequest(
-            text="Hello",
+        TextToSpeechConfig(
             model=TextToSpeechModel.TTS_1_HD,
             voice=TextToSpeechVoice.ALLOY,
             instructions="Whisper",
         )
 
-    request = TextToSpeechRequest(
-        text="Hello",
+    config = TextToSpeechConfig(
         model=TextToSpeechModel.TTS_1,
         voice=TextToSpeechVoice.ALLOY,
     )
-    assert request.model == TextToSpeechModel.TTS_1
+    assert config.model == TextToSpeechModel.TTS_1

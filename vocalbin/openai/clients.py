@@ -8,10 +8,12 @@ from vocalbin.openai.credentials import OpenAICredentials
 from vocalbin.openai.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
-    TextToSpeechRequest,
+    TextToSpeechConfig,
     TextToSpeechResponse,
 )
-from vocalbin.ports import SpeechToText, TextToSpeech
+from vocalbin.ports import SpeechToText, TextToSpeech, resolve_config
+
+_MAX_TEXT_LENGTH = 4096
 
 _CONTENT_TYPES = {
     "mp3": "audio/mpeg",
@@ -58,34 +60,40 @@ class _OpenAIClientOwner:
 
 class OpenAITextToSpeech(
     _OpenAIClientOwner,
-    TextToSpeech[TextToSpeechRequest, TextToSpeechResponse],
+    TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
 ):
     def __init__(
         self,
         api_key: str | None = None,
         *,
         client: AsyncOpenAI | None = None,
+        default_config: TextToSpeechConfig | None = None,
     ) -> None:
         super().__init__(api_key, client)
+        self.default_config = default_config
 
-    async def generate(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
+    async def generate(
+        self, text: str, *, config: TextToSpeechConfig | None = None
+    ) -> TextToSpeechResponse:
+        text = _require_valid_text(text)
+        resolved_config = resolve_config(config, self.default_config)
         result = await self.client.audio.speech.create(
-            input=request.text,
-            model=request.model,
-            voice=request.voice,
-            instructions=request.instructions
-            if request.instructions is not None
+            input=text,
+            model=resolved_config.model,
+            voice=resolved_config.voice,
+            instructions=resolved_config.instructions
+            if resolved_config.instructions is not None
             else omit,
-            response_format=cast(Any, request.response_format),
-            speed=request.speed if request.speed is not None else omit,
+            response_format=cast(Any, resolved_config.response_format),
+            speed=resolved_config.speed if resolved_config.speed is not None else omit,
         )
 
         return TextToSpeechResponse(
             audio=result.content,
-            model=request.model,
-            voice=request.voice,
-            response_format=request.response_format,
-            content_type=_CONTENT_TYPES[request.response_format],
+            model=resolved_config.model,
+            voice=resolved_config.voice,
+            response_format=resolved_config.response_format,
+            content_type=_CONTENT_TYPES[resolved_config.response_format],
         )
 
 
@@ -136,3 +144,11 @@ def _serialize_result(result: TranscriptionResult) -> dict[str, Any] | str:
     if isinstance(result, str):
         return result
     return result.model_dump(mode="python")
+
+
+def _require_valid_text(text: str) -> str:
+    if not text.strip():
+        raise ValueError("text must not be blank")
+    if len(text) > _MAX_TEXT_LENGTH:
+        raise ValueError(f"text must not exceed {_MAX_TEXT_LENGTH} characters")
+    return text

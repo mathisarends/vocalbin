@@ -8,8 +8,8 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 from vocalbin.piper.config import PiperConfig
-from vocalbin.piper.models import PiperTextToSpeechRequest, PiperTextToSpeechResponse
-from vocalbin.ports import StreamingTextToSpeech, TextToSpeech
+from vocalbin.piper.models import PiperTextToSpeechConfig, PiperTextToSpeechResponse
+from vocalbin.ports import StreamingTextToSpeech, TextToSpeech, resolve_config
 
 if TYPE_CHECKING:
     from piper import PiperVoice
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 
 class PiperTextToSpeech(
-    TextToSpeech[PiperTextToSpeechRequest, PiperTextToSpeechResponse],
-    StreamingTextToSpeech[PiperTextToSpeechRequest, bytes],
+    TextToSpeech[PiperTextToSpeechConfig, PiperTextToSpeechResponse],
+    StreamingTextToSpeech[PiperTextToSpeechConfig, bytes],
 ):
     def __init__(
         self,
@@ -27,6 +27,7 @@ class PiperTextToSpeech(
         config_path: str | Path | None = None,
         *,
         voice: PiperVoice | None = None,
+        default_config: PiperTextToSpeechConfig | None = None,
     ) -> None:
         if model_path is not None and voice is not None:
             raise ValueError("Pass either 'model_path' or 'voice', not both.")
@@ -42,13 +43,17 @@ class PiperTextToSpeech(
                 resolved_config_path = config.config_path
             voice = _create_voice(resolved_model_path, resolved_config_path)
         self.voice = voice
+        self.default_config = default_config
 
     async def generate(
-        self, request: PiperTextToSpeechRequest
+        self, text: str, *, config: PiperTextToSpeechConfig | None = None
     ) -> PiperTextToSpeechResponse:
+        text = _require_non_blank_text(text)
+        resolved_config = resolve_config(config, self.default_config)
         audio = await asyncio.to_thread(
             lambda: b"".join(
-                chunk.audio_int16_bytes for chunk in self._generate(request)
+                chunk.audio_int16_bytes
+                for chunk in self._synthesize(text, resolved_config)
             )
         )
         return PiperTextToSpeechResponse(
@@ -57,15 +62,23 @@ class PiperTextToSpeech(
             content_type="audio/pcm",
         )
 
-    async def stream(self, request: PiperTextToSpeechRequest) -> AsyncGenerator[bytes]:
-        chunks = (chunk.audio_int16_bytes for chunk in self._generate(request))
+    async def stream(
+        self, text: str, *, config: PiperTextToSpeechConfig | None = None
+    ) -> AsyncGenerator[bytes]:
+        text = _require_non_blank_text(text)
+        resolved_config = resolve_config(config, self.default_config)
+        chunks = (
+            chunk.audio_int16_bytes for chunk in self._synthesize(text, resolved_config)
+        )
         async for chunk in _stream_sync_generator(chunks):
             yield chunk
 
-    def _generate(self, request: PiperTextToSpeechRequest) -> Iterator[AudioChunk]:
+    def _synthesize(
+        self, text: str, config: PiperTextToSpeechConfig
+    ) -> Iterator[AudioChunk]:
         return self.voice.synthesize(
-            request.text,
-            syn_config=_build_syn_config(request.to_piper_params()),
+            text,
+            syn_config=_build_syn_config(config.to_piper_params()),
         )
 
     async def aclose(self) -> None:
@@ -92,6 +105,12 @@ def _create_voice(model_path: Path, config_path: Path | None) -> PiperVoice:
         str(model_path),
         config_path=str(config_path) if config_path is not None else None,
     )
+
+
+def _require_non_blank_text(text: str) -> str:
+    if not text.strip():
+        raise ValueError("text must not be blank")
+    return text
 
 
 def _build_syn_config(params: dict[str, Any]) -> SynthesisConfig:

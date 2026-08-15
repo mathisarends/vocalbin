@@ -11,8 +11,8 @@ from vocalbin import (
     OpenAITextToSpeech,
     SpeechToTextFormat,
     SpeechToTextRequest,
+    TextToSpeechConfig,
     TextToSpeechFormat,
-    TextToSpeechRequest,
 )
 
 
@@ -88,11 +88,11 @@ async def test_generate_returns_audio_and_content_type() -> None:
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.generate(
-        TextToSpeechRequest(
-            text="Hallo",
+        "Hallo",
+        config=TextToSpeechConfig(
             response_format=TextToSpeechFormat.WAV,
             speed=1.25,
-        )
+        ),
     )
 
     assert response.audio == b"generated-audio"
@@ -108,11 +108,44 @@ async def test_generate_passes_instructions_and_omits_default_speed() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
-    await service.generate(TextToSpeechRequest(text="Hallo", instructions="Calm"))
+    await service.generate("Hallo", config=TextToSpeechConfig(instructions="Calm"))
 
     call = fake_client.speech.calls[0]
     assert call["instructions"] == "Calm"
     assert call["speed"] is omit
+
+
+async def test_generate_uses_default_config() -> None:
+    fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
+    service = OpenAITextToSpeech(
+        client=cast(AsyncOpenAI, fake_client),
+        default_config=TextToSpeechConfig(response_format=TextToSpeechFormat.WAV),
+    )
+
+    response = await service.generate("Hallo")
+
+    assert response.content_type == "audio/wav"
+
+
+async def test_generate_requires_config() -> None:
+    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
+
+    with pytest.raises(ValueError, match="Provide 'config'"):
+        await service.generate("Hallo")
+
+
+async def test_generate_rejects_blank_text() -> None:
+    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
+
+    with pytest.raises(ValueError, match="text must not be blank"):
+        await service.generate("   ", config=TextToSpeechConfig())
+
+
+async def test_generate_rejects_text_over_max_length() -> None:
+    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
+
+    with pytest.raises(ValueError, match="must not exceed 4096 characters"):
+        await service.generate("x" * 4097, config=TextToSpeechConfig())
 
 
 @pytest.mark.parametrize(
@@ -134,7 +167,7 @@ async def test_generate_maps_every_format_to_content_type(
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.generate(
-        TextToSpeechRequest(text="Hallo", response_format=response_format)
+        "Hallo", config=TextToSpeechConfig(response_format=response_format)
     )
 
     assert response.content_type == content_type

@@ -10,7 +10,6 @@ from .models import (
     CartesiaSampleRate,
     CartesiaTextToSpeechConfig,
     CartesiaTextToSpeechModel,
-    CartesiaTextToSpeechRequest,
     CartesiaTextToSpeechResponse,
     CartesiaWavOutputFormat,
 )
@@ -28,7 +27,6 @@ __all__ = [
     "CartesiaTextToSpeechConfig",
     "CartesiaTextToSpeechError",
     "CartesiaTextToSpeechModel",
-    "CartesiaTextToSpeechRequest",
     "CartesiaTextToSpeechResponse",
     "CartesiaWavOutputFormat",
 ]

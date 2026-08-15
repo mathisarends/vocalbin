@@ -14,11 +14,26 @@ class SpeechToText(ABC):
     ) -> SpeechToTextResponse: ...
 
 
-class TextToSpeech[RequestT, ResponseT](ABC):
+class TextToSpeech[ConfigT, ResponseT](ABC):
     @abstractmethod
-    async def generate(self, request: RequestT) -> ResponseT: ...
+    async def generate(
+        self, text: str, *, config: ConfigT | None = None
+    ) -> ResponseT: ...
 
 
-class StreamingTextToSpeech[RequestT, EventT](ABC):
+class StreamingTextToSpeech[ConfigT, EventT](ABC):
     @abstractmethod
-    def stream(self, request: RequestT) -> AsyncIterator[EventT]: ...
+    def stream(
+        self, text: str, *, config: ConfigT | None = None
+    ) -> AsyncIterator[EventT]: ...
+
+
+def resolve_config[ConfigT](
+    config: ConfigT | None, default_config: ConfigT | None
+) -> ConfigT:
+    resolved = config if config is not None else default_config
+    if resolved is None:
+        raise ValueError(
+            "Provide 'config' either at construction time (default_config) or per call."
+        )
+    return resolved

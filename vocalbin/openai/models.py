@@ -195,22 +195,14 @@ class SpeechToTextResponse(BaseModel):
     raw: dict[str, Any] | str
 
 
-class TextToSpeechRequest(BaseModel):
+class TextToSpeechConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    text: str = Field(min_length=1, max_length=4096)
     model: TextToSpeechModel | str = TextToSpeechModel.GPT_4O_MINI_TTS
     voice: TextToSpeechVoice | str = TextToSpeechVoice.MARIN
     response_format: TextToSpeechFormat = TextToSpeechFormat.MP3
     instructions: str | None = None
     speed: float | None = Field(default=None, ge=0.25, le=4.0)
-
-    @field_validator("text")
-    @classmethod
-    def text_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("text must not be blank")
-        return value
 
     @model_validator(mode="after")
     def validate_model_capabilities(self) -> Self:
