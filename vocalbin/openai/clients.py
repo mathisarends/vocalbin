@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import Any, Self, cast
+from typing import Any, Self, cast, overload
 
 from openai import AsyncOpenAI, omit
 from openai.types.audio import TranscriptionCreateResponse
@@ -9,9 +9,12 @@ from vocalbin.openai.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechConfig,
+    TextToSpeechFormat,
+    TextToSpeechModel,
     TextToSpeechResponse,
+    TextToSpeechVoice,
 )
-from vocalbin.ports import SpeechToText, TextToSpeech, resolve_config
+from vocalbin.ports import SpeechToText, TextToSpeech
 
 _MAX_TEXT_LENGTH = 4096
 
@@ -72,11 +75,44 @@ class OpenAITextToSpeech(
         super().__init__(api_key, client)
         self.default_config = default_config
 
+    @overload
+    async def generate(
+        self,
+        text: str,
+        *,
+        model: TextToSpeechModel | str = TextToSpeechModel.GPT_4O_MINI_TTS,
+        voice: TextToSpeechVoice | str = TextToSpeechVoice.MARIN,
+        response_format: TextToSpeechFormat = TextToSpeechFormat.MP3,
+        instructions: str | None = None,
+        speed: float | None = None,
+    ) -> TextToSpeechResponse: ...
+
+    @overload
     async def generate(
         self, text: str, *, config: TextToSpeechConfig | None = None
+    ) -> TextToSpeechResponse: ...
+
+    async def generate(
+        self,
+        text: str,
+        *,
+        model: TextToSpeechModel | str | None = None,
+        voice: TextToSpeechVoice | str | None = None,
+        response_format: TextToSpeechFormat | None = None,
+        instructions: str | None = None,
+        speed: float | None = None,
+        config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_valid_text(text)
-        resolved_config = resolve_config(config, self.default_config)
+        resolved_config = _resolve_tts_config(
+            config=config,
+            default_config=self.default_config,
+            model=model,
+            voice=voice,
+            response_format=response_format,
+            instructions=instructions,
+            speed=speed,
+        )
         result = await self.client.audio.speech.create(
             input=text,
             model=resolved_config.model,
@@ -152,3 +188,35 @@ def _require_valid_text(text: str) -> str:
     if len(text) > _MAX_TEXT_LENGTH:
         raise ValueError(f"text must not exceed {_MAX_TEXT_LENGTH} characters")
     return text
+
+
+def _resolve_tts_config(
+    *,
+    config: TextToSpeechConfig | None,
+    default_config: TextToSpeechConfig | None,
+    model: TextToSpeechModel | str | None,
+    voice: TextToSpeechVoice | str | None,
+    response_format: TextToSpeechFormat | None,
+    instructions: str | None,
+    speed: float | None,
+) -> TextToSpeechConfig:
+    flat_values = (model, voice, response_format, instructions, speed)
+    has_flat_values = any(value is not None for value in flat_values)
+    if config is not None:
+        if has_flat_values:
+            raise ValueError("Pass either 'config' or flat parameters, not both.")
+        return config
+    if not has_flat_values and default_config is not None:
+        return default_config
+
+    values: dict[str, Any] = {
+        "instructions": instructions,
+        "speed": speed,
+    }
+    if model is not None:
+        values["model"] = model
+    if voice is not None:
+        values["voice"] = voice
+    if response_format is not None:
+        values["response_format"] = response_format
+    return TextToSpeechConfig(**values)

@@ -18,7 +18,6 @@ from vocalbin import (
     SpeechToTextModel,
     SpeechToTextRequest,
     TextToSpeechFormat,
-    TextToSpeechRequest,
     TimestampGranularity,
 )
 
@@ -130,10 +129,8 @@ async def _ensure_sample() -> None:
     OUTPUT_DIR.mkdir(exist_ok=True)
     async with OpenAITextToSpeech() as tts:
         response = await tts.generate(
-            TextToSpeechRequest(
-                text=SAMPLE_TEXT,
-                response_format=TextToSpeechFormat.WAV,
-            )
+            SAMPLE_TEXT,
+            response_format=TextToSpeechFormat.WAV,
         )
     SAMPLE.write_bytes(response.audio)
     print(f"generated sample: {SAMPLE}")

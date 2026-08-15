@@ -15,7 +15,6 @@ from vocalbin import (
     OpenAITextToSpeech,
     SpeechToTextRequest,
     TextToSpeechFormat,
-    TextToSpeechRequest,
 )
 
 PHRASE = "vocalbin"
@@ -24,9 +23,7 @@ TEXT = f"Dies ist ein Round-Trip-Test von {PHRASE}."
 
 async def main() -> None:
     async with OpenAITextToSpeech() as tts:
-        spoken = await tts.generate(
-            TextToSpeechRequest(text=TEXT, response_format=TextToSpeechFormat.WAV)
-        )
+        spoken = await tts.generate(TEXT, response_format=TextToSpeechFormat.WAV)
 
     async with OpenAISpeechToText() as stt:
         heard = await stt.transcribe(

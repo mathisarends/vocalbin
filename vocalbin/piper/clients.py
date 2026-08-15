@@ -5,11 +5,11 @@ import threading
 from collections.abc import AsyncGenerator, Iterator
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from vocalbin.piper.config import PiperConfig
 from vocalbin.piper.models import PiperTextToSpeechConfig, PiperTextToSpeechResponse
-from vocalbin.ports import StreamingTextToSpeech, TextToSpeech, resolve_config
+from vocalbin.ports import StreamingTextToSpeech, TextToSpeech
 
 if TYPE_CHECKING:
     from piper import PiperVoice
@@ -45,11 +45,41 @@ class PiperTextToSpeech(
         self.voice = voice
         self.default_config = default_config
 
+    @overload
+    async def generate(
+        self,
+        text: str,
+        *,
+        speaker_id: int | None = None,
+        length_scale: float | None = None,
+        noise_scale: float | None = None,
+        noise_w_scale: float | None = None,
+    ) -> PiperTextToSpeechResponse: ...
+
+    @overload
     async def generate(
         self, text: str, *, config: PiperTextToSpeechConfig | None = None
+    ) -> PiperTextToSpeechResponse: ...
+
+    async def generate(
+        self,
+        text: str,
+        *,
+        speaker_id: int | None = None,
+        length_scale: float | None = None,
+        noise_scale: float | None = None,
+        noise_w_scale: float | None = None,
+        config: PiperTextToSpeechConfig | None = None,
     ) -> PiperTextToSpeechResponse:
         text = _require_non_blank_text(text)
-        resolved_config = resolve_config(config, self.default_config)
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
+            speaker_id=speaker_id,
+            length_scale=length_scale,
+            noise_scale=noise_scale,
+            noise_w_scale=noise_w_scale,
+        )
         audio = await asyncio.to_thread(
             lambda: b"".join(
                 chunk.audio_int16_bytes
@@ -62,11 +92,41 @@ class PiperTextToSpeech(
             content_type="audio/pcm",
         )
 
-    async def stream(
+    @overload
+    def stream(
+        self,
+        text: str,
+        *,
+        speaker_id: int | None = None,
+        length_scale: float | None = None,
+        noise_scale: float | None = None,
+        noise_w_scale: float | None = None,
+    ) -> AsyncGenerator[bytes]: ...
+
+    @overload
+    def stream(
         self, text: str, *, config: PiperTextToSpeechConfig | None = None
+    ) -> AsyncGenerator[bytes]: ...
+
+    async def stream(
+        self,
+        text: str,
+        *,
+        speaker_id: int | None = None,
+        length_scale: float | None = None,
+        noise_scale: float | None = None,
+        noise_w_scale: float | None = None,
+        config: PiperTextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         text = _require_non_blank_text(text)
-        resolved_config = resolve_config(config, self.default_config)
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
+            speaker_id=speaker_id,
+            length_scale=length_scale,
+            noise_scale=noise_scale,
+            noise_w_scale=noise_w_scale,
+        )
         chunks = (
             chunk.audio_int16_bytes for chunk in self._synthesize(text, resolved_config)
         )
@@ -146,3 +206,28 @@ async def _stream_sync_generator(generator: Iterator[bytes]) -> AsyncGenerator[b
             yield item
     finally:
         thread.join()
+
+
+def _resolve_call_config(
+    *,
+    config: PiperTextToSpeechConfig | None,
+    default_config: PiperTextToSpeechConfig | None,
+    speaker_id: int | None,
+    length_scale: float | None,
+    noise_scale: float | None,
+    noise_w_scale: float | None,
+) -> PiperTextToSpeechConfig:
+    flat_values = (speaker_id, length_scale, noise_scale, noise_w_scale)
+    has_flat_values = any(value is not None for value in flat_values)
+    if config is not None:
+        if has_flat_values:
+            raise ValueError("Pass either 'config' or flat parameters, not both.")
+        return config
+    if not has_flat_values and default_config is not None:
+        return default_config
+    return PiperTextToSpeechConfig(
+        speaker_id=speaker_id,
+        length_scale=length_scale,
+        noise_scale=noise_scale,
+        noise_w_scale=noise_w_scale,
+    )

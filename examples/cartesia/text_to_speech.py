@@ -15,13 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from vocalbin.cartesia import (
-    CartesiaGenerationConfig,
-    CartesiaTextToSpeech,
-    CartesiaTextToSpeechConfig,
-    CartesiaTextToSpeechRequest,
-    CartesiaWavOutputFormat,
-)
+from vocalbin.cartesia import CartesiaTextToSpeech, CartesiaWavOutputFormat
 
 load_dotenv()
 
@@ -31,12 +25,10 @@ OUTPUT_DIR = Path(__file__).parent.parent / "output"
 async def generate(voice_id: str) -> None:
     async with CartesiaTextToSpeech() as tts:
         response = await tts.generate(
-            CartesiaTextToSpeechRequest(
-                text="Hallo aus vocalbin mit Cartesia!",
-                voice_id=voice_id,
-                language="de",
-                output_format=CartesiaWavOutputFormat(),
-            )
+            "Hallo aus vocalbin mit Cartesia!",
+            voice_id=voice_id,
+            language="de",
+            output_format=CartesiaWavOutputFormat(),
         )
 
     _save(response.audio, "cartesia_generate.wav")
@@ -44,22 +36,20 @@ async def generate(voice_id: str) -> None:
 
 
 async def stream(voice_id: str) -> None:
-    request = CartesiaTextToSpeechRequest(
-        text="Dieser vollständige Text wird als Audiostream übertragen.",
-        voice_id=voice_id,
-        language="de",
-    )
-
     audio = bytearray()
     async with CartesiaTextToSpeech() as tts:
-        async for chunk in tts.stream(request):
+        async for chunk in tts.stream(
+            "Dieser vollständige Text wird als Audiostream übertragen.",
+            voice_id=voice_id,
+            language="de",
+        ):
             audio.extend(chunk)
 
     _save(audio, "cartesia_stream.pcm")
     print(f"stream: {len(audio)} bytes")
 
 
-async def stream_text(voice_id: str) -> None:
+async def stream_incremental(voice_id: str) -> None:
     async def text_chunks() -> AsyncIterator[str]:
         for chunk in (
             "Dieser Text wird ",
@@ -68,19 +58,18 @@ async def stream_text(voice_id: str) -> None:
         ):
             yield chunk
 
-    config = CartesiaTextToSpeechConfig(
-        voice_id=voice_id,
-        language="de",
-        generation_config=CartesiaGenerationConfig(speed=0.9),
-    )
-
     audio = bytearray()
     async with CartesiaTextToSpeech() as tts:
-        async for chunk in tts.stream_text(text_chunks(), config):
+        async for chunk in tts.stream_incremental(
+            text_chunks(),
+            voice_id=voice_id,
+            language="de",
+            speed=0.9,
+        ):
             audio.extend(chunk)
 
-    _save(audio, "cartesia_stream_text.pcm")
-    print(f"stream_text: {len(audio)} bytes")
+    _save(audio, "cartesia_stream_incremental.pcm")
+    print(f"stream_incremental: {len(audio)} bytes")
 
 
 def _save(audio: bytes | bytearray, name: str) -> None:
@@ -92,7 +81,7 @@ async def main() -> None:
     voice_id = os.environ["CARTESIA_VOICE_ID"]
     await generate(voice_id)
     await stream(voice_id)
-    await stream_text(voice_id)
+    await stream_incremental(voice_id)
 
 
 if __name__ == "__main__":

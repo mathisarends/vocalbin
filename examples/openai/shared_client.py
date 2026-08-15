@@ -16,7 +16,6 @@ from vocalbin import (
     OpenAITextToSpeech,
     SpeechToTextRequest,
     TextToSpeechFormat,
-    TextToSpeechRequest,
 )
 
 
@@ -27,10 +26,8 @@ async def main() -> None:
     stt = OpenAISpeechToText(client=client)
 
     spoken = await tts.generate(
-        TextToSpeechRequest(
-            text="Ein Client, zwei Dienste.",
-            response_format=TextToSpeechFormat.WAV,
-        )
+        "Ein Client, zwei Dienste.",
+        response_format=TextToSpeechFormat.WAV,
     )
     heard = await stt.transcribe(
         SpeechToTextRequest(audio=spoken.audio, filename="shared.wav", language="de")

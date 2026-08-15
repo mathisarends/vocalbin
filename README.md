@@ -84,7 +84,6 @@ payload on `response.raw` (a `dict` for JSON-like formats, a `str` for `text`,
 from vocalbin import (
     OpenAITextToSpeech,
     TextToSpeechFormat,
-    TextToSpeechRequest,
     TextToSpeechVoice,
 )
 
@@ -92,12 +91,10 @@ from vocalbin import (
 async def generate() -> bytes:
     async with OpenAITextToSpeech() as text_to_speech:
         response = await text_to_speech.generate(
-            TextToSpeechRequest(
-                text="Hallo aus vocalbin!",
-                voice=TextToSpeechVoice.MARIN,
-                response_format=TextToSpeechFormat.MP3,
-                instructions="Sprich ruhig und freundlich.",
-            )
+            "Hallo aus vocalbin!",
+            voice=TextToSpeechVoice.MARIN,
+            response_format=TextToSpeechFormat.MP3,
+            instructions="Sprich ruhig und freundlich.",
         )
     return response.audio
 ```
@@ -113,7 +110,6 @@ Cartesia is an alternative text-to-speech provider, grouped under
 ```python
 from vocalbin.cartesia import (
     CartesiaTextToSpeech,
-    CartesiaTextToSpeechRequest,
     CartesiaWavOutputFormat,
 )
 
@@ -121,33 +117,36 @@ from vocalbin.cartesia import (
 async def generate(voice_id: str) -> bytes:
     async with CartesiaTextToSpeech() as text_to_speech:
         response = await text_to_speech.generate(
-            CartesiaTextToSpeechRequest(
-                text="Hallo aus vocalbin mit Cartesia!",
-                voice_id=voice_id,
-                language="de",
-                output_format=CartesiaWavOutputFormat(),
-            )
+            "Hallo aus vocalbin mit Cartesia!",
+            voice_id=voice_id,
+            language="de",
+            output_format=CartesiaWavOutputFormat(),
         )
     return response.audio
 ```
 
 `CartesiaTextToSpeech` also implements `StreamingTextToSpeech`. `stream()` returns
-one full request as an audio chunk stream; `stream_text()` takes an async iterable
-of text chunks and streams matching audio back over the same WebSocket connection,
-so text can be sent incrementally as it becomes available:
+one full request as an audio chunk stream; `stream_incremental()` takes an async
+iterable of text chunks and streams matching audio back over the same WebSocket
+connection, so text can be sent incrementally as it becomes available:
 
 ```python
 from collections.abc import AsyncIterator
 
-from vocalbin.cartesia import CartesiaTextToSpeechConfig
+from vocalbin.cartesia import CartesiaTextToSpeech
 
 
-async def stream_text(voice_id: str, text_chunks: AsyncIterator[str]) -> bytes:
-    config = CartesiaTextToSpeechConfig(voice_id=voice_id, language="de")
+async def stream_incremental(
+    voice_id: str, text_chunks: AsyncIterator[str]
+) -> bytes:
     audio = bytearray()
 
     async with CartesiaTextToSpeech() as text_to_speech:
-        async for chunk in text_to_speech.stream_text(text_chunks, config):
+        async for chunk in text_to_speech.stream_incremental(
+            text_chunks,
+            voice_id=voice_id,
+            language="de",
+        ):
             audio.extend(chunk)
     return bytes(audio)
 ```
@@ -163,14 +162,12 @@ text-to-speech engine, grouped under `vocalbin.piper`. Install it with
 `PIPER_MODEL_PATH` (and optionally `PIPER_CONFIG_PATH`) at it:
 
 ```python
-from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechRequest
+from vocalbin.piper import PiperTextToSpeech
 
 
 async def generate() -> bytes:
     async with PiperTextToSpeech() as text_to_speech:
-        response = await text_to_speech.generate(
-            PiperTextToSpeechRequest(text="Hallo aus vocalbin mit Piper!")
-        )
+        response = await text_to_speech.generate("Hallo aus vocalbin mit Piper!")
     return response.audio
 ```
 
@@ -183,9 +180,7 @@ Piper synthesizes it, off the event loop:
 async def stream() -> bytes:
     audio = bytearray()
     async with PiperTextToSpeech() as text_to_speech:
-        async for chunk in text_to_speech.stream(
-            PiperTextToSpeechRequest(text="Dieser Text wird gestreamt.")
-        ):
+        async for chunk in text_to_speech.stream("Dieser Text wird gestreamt."):
             audio.extend(chunk)
     return bytes(audio)
 ```
@@ -298,8 +293,8 @@ only the legacy voices and do not support `instructions`.
 
 **Cartesia text to speech** — `sonic-3.5`, `sonic-3`, dated model snapshots, and
 `sonic-latest`; output containers `raw` (16-bit PCM, WAV, µ-law or A-law
-encoding), `wav`, and `mp3`. WebSocket streaming via `stream()`/`stream_text()`
-requires the `raw` container.
+encoding), `wav`, and `mp3`. WebSocket streaming via `stream()` or
+`stream_incremental()` requires the `raw` container.
 
 **Piper text to speech** — any locally installed Piper voice model (`.onnx` +
 `.onnx.json`); output is always raw 16-bit PCM at the voice's native sample

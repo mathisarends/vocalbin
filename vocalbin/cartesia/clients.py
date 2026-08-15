@@ -4,11 +4,14 @@ import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable, AsyncIterator
 from contextlib import suppress
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from vocalbin.cartesia.credentials import CartesiaCredentials
 from vocalbin.cartesia.models import (
+    CartesiaGenerationConfig,
+    CartesiaOutputFormat,
     CartesiaTextToSpeechConfig,
+    CartesiaTextToSpeechModel,
     CartesiaTextToSpeechResponse,
 )
 from vocalbin.ports import StreamingTextToSpeech, TextToSpeech, resolve_config
@@ -63,11 +66,53 @@ class CartesiaTextToSpeech(
         self._connection_manager: AsyncTTSResourceConnectionManager | None = None
         self._connection_lock = asyncio.Lock()
 
+    @overload
+    async def generate(
+        self,
+        text: str,
+        *,
+        voice_id: str,
+        model: CartesiaTextToSpeechModel | str = CartesiaTextToSpeechModel.SONIC_3_5,
+        output_format: CartesiaOutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+    ) -> CartesiaTextToSpeechResponse: ...
+
+    @overload
     async def generate(
         self, text: str, *, config: CartesiaTextToSpeechConfig | None = None
+    ) -> CartesiaTextToSpeechResponse: ...
+
+    async def generate(
+        self,
+        text: str,
+        *,
+        voice_id: str | None = None,
+        model: CartesiaTextToSpeechModel | str | None = None,
+        output_format: CartesiaOutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+        config: CartesiaTextToSpeechConfig | None = None,
     ) -> CartesiaTextToSpeechResponse:
         text = _require_non_blank_text(text)
-        resolved_config = resolve_config(config, self.default_config)
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
+            voice_id=voice_id,
+            model=model,
+            output_format=output_format,
+            language=language,
+            emotion=emotion,
+            speed=speed,
+            volume=volume,
+            pronunciation_dict_id=pronunciation_dict_id,
+        )
         params = resolved_config.to_cartesia_params()
         params["transcript"] = text
         result = await self.client.tts.generate(**params)
@@ -80,34 +125,132 @@ class CartesiaTextToSpeech(
             content_type=_content_type(resolved_config.output_format.container),
         )
 
-    async def stream(
+    @overload
+    def stream(
+        self,
+        text: str,
+        *,
+        voice_id: str,
+        model: CartesiaTextToSpeechModel | str = CartesiaTextToSpeechModel.SONIC_3_5,
+        output_format: CartesiaOutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+        max_buffer_delay_ms: int | None = None,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[bytes]: ...
+
+    @overload
+    def stream(
         self, text: str, *, config: CartesiaTextToSpeechConfig | None = None
+    ) -> AsyncGenerator[bytes]: ...
+
+    async def stream(
+        self,
+        text: str,
+        *,
+        voice_id: str | None = None,
+        model: CartesiaTextToSpeechModel | str | None = None,
+        output_format: CartesiaOutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+        max_buffer_delay_ms: int | None = None,
+        timeout: float | None = None,
+        config: CartesiaTextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
-        resolved_config = resolve_config(config, self.default_config)
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
+            voice_id=voice_id,
+            model=model,
+            output_format=output_format,
+            language=language,
+            emotion=emotion,
+            speed=speed,
+            volume=volume,
+            pronunciation_dict_id=pronunciation_dict_id,
+            max_buffer_delay_ms=max_buffer_delay_ms,
+            timeout=timeout,
+        )
 
         async def text_chunks() -> AsyncIterator[str]:
             yield text
 
-        stream = self.stream_text(text_chunks(), resolved_config)
+        stream = self.stream_incremental(text_chunks(), config=resolved_config)
         try:
             async for audio in stream:
                 yield audio
         finally:
             await stream.aclose()
 
-    async def stream_text(
+    @overload
+    def stream_incremental(
         self,
         text: AsyncIterable[str],
-        config: CartesiaTextToSpeechConfig,
+        *,
+        voice_id: str,
+        model: CartesiaTextToSpeechModel | str = CartesiaTextToSpeechModel.SONIC_3_5,
+        output_format: CartesiaOutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+        max_buffer_delay_ms: int | None = None,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[bytes]: ...
+
+    @overload
+    def stream_incremental(
+        self,
+        text: AsyncIterable[str],
+        *,
+        config: CartesiaTextToSpeechConfig | None = None,
+    ) -> AsyncGenerator[bytes]: ...
+
+    async def stream_incremental(
+        self,
+        text: AsyncIterable[str],
+        *,
+        voice_id: str | None = None,
+        model: CartesiaTextToSpeechModel | str | None = None,
+        output_format: CartesiaOutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+        max_buffer_delay_ms: int | None = None,
+        timeout: float | None = None,
+        config: CartesiaTextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
-        if config.output_format.container != "raw":
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
+            voice_id=voice_id,
+            model=model,
+            output_format=output_format,
+            language=language,
+            emotion=emotion,
+            speed=speed,
+            volume=volume,
+            pronunciation_dict_id=pronunciation_dict_id,
+            max_buffer_delay_ms=max_buffer_delay_ms,
+            timeout=timeout,
+        )
+        if resolved_config.output_format.container != "raw":
             raise ValueError("Cartesia WebSocket streaming requires raw output.")
 
         connection = await self._get_connection()
-        params = config.to_cartesia_params()
+        params = resolved_config.to_cartesia_params()
         context = connection.context(
-            timeout=config.timeout,
-            max_buffer_delay_ms=config.max_buffer_delay_ms,
+            timeout=resolved_config.timeout,
+            max_buffer_delay_ms=resolved_config.max_buffer_delay_ms,
             **params,
         )
         sender = asyncio.create_task(self._send_text(context, text))
@@ -230,3 +373,63 @@ def _require_non_blank_text(text: str) -> str:
     if not text.strip():
         raise ValueError("text must not be blank")
     return text
+
+
+def _resolve_call_config(
+    *,
+    config: CartesiaTextToSpeechConfig | None,
+    default_config: CartesiaTextToSpeechConfig | None,
+    voice_id: str | None,
+    model: CartesiaTextToSpeechModel | str | None,
+    output_format: CartesiaOutputFormat | None,
+    language: str | None,
+    emotion: str | None,
+    speed: float | None,
+    volume: float | None,
+    pronunciation_dict_id: str | None,
+    max_buffer_delay_ms: int | None = None,
+    timeout: float | None = None,
+) -> CartesiaTextToSpeechConfig:
+    flat_values = (
+        voice_id,
+        model,
+        output_format,
+        language,
+        emotion,
+        speed,
+        volume,
+        pronunciation_dict_id,
+        max_buffer_delay_ms,
+        timeout,
+    )
+    has_flat_values = any(value is not None for value in flat_values)
+    if config is not None:
+        if has_flat_values:
+            raise ValueError("Pass either 'config' or flat parameters, not both.")
+        return config
+    if not has_flat_values:
+        return resolve_config(None, default_config)
+    if voice_id is None:
+        raise ValueError("'voice_id' is required when using flat parameters.")
+
+    generation_config = None
+    if any(value is not None for value in (emotion, speed, volume)):
+        generation_config = CartesiaGenerationConfig(
+            emotion=emotion,
+            speed=speed,
+            volume=volume,
+        )
+
+    values: dict[str, Any] = {
+        "voice_id": voice_id,
+        "language": language,
+        "generation_config": generation_config,
+        "pronunciation_dict_id": pronunciation_dict_id,
+        "max_buffer_delay_ms": max_buffer_delay_ms,
+        "timeout": timeout,
+    }
+    if model is not None:
+        values["model"] = model
+    if output_format is not None:
+        values["output_format"] = output_format
+    return CartesiaTextToSpeechConfig(**values)

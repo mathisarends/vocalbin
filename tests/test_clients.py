@@ -13,6 +13,8 @@ from vocalbin import (
     SpeechToTextRequest,
     TextToSpeechConfig,
     TextToSpeechFormat,
+    TextToSpeechModel,
+    TextToSpeechVoice,
 )
 
 
@@ -89,10 +91,10 @@ async def test_generate_returns_audio_and_content_type() -> None:
 
     response = await service.generate(
         "Hallo",
-        config=TextToSpeechConfig(
-            response_format=TextToSpeechFormat.WAV,
-            speed=1.25,
-        ),
+        model=TextToSpeechModel.GPT_4O_MINI_TTS,
+        voice=TextToSpeechVoice.CEDAR,
+        response_format=TextToSpeechFormat.WAV,
+        speed=1.25,
     )
 
     assert response.audio == b"generated-audio"
@@ -127,11 +129,26 @@ async def test_generate_uses_default_config() -> None:
     assert response.content_type == "audio/wav"
 
 
-async def test_generate_requires_config() -> None:
+async def test_generate_uses_builtin_defaults() -> None:
+    fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
+    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
+
+    response = await service.generate("Hallo")
+
+    assert response.model == TextToSpeechModel.GPT_4O_MINI_TTS
+    assert response.voice == TextToSpeechVoice.MARIN
+    assert response.response_format == TextToSpeechFormat.MP3
+
+
+async def test_generate_rejects_config_with_flat_parameters() -> None:
     service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
 
-    with pytest.raises(ValueError, match="Provide 'config'"):
-        await service.generate("Hallo")
+    with pytest.raises(ValueError, match="either 'config' or flat parameters"):
+        await cast(Any, service).generate(
+            "Hallo",
+            voice=TextToSpeechVoice.CEDAR,
+            config=TextToSpeechConfig(),
+        )
 
 
 async def test_generate_rejects_blank_text() -> None:

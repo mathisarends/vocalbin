@@ -48,14 +48,29 @@ async def test_generate_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) ->
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"one", b"two"])
     service = PiperTextToSpeech(voice=cast(Any, voice))
-    config = PiperTextToSpeechConfig(speaker_id=1)
 
-    response = await service.generate("Hallo", config=config)
+    response = await service.generate(
+        "Hallo",
+        speaker_id=1,
+        length_scale=1.1,
+        noise_scale=0.5,
+        noise_w_scale=0.6,
+    )
 
     assert response.audio == b"onetwo"
     assert response.sample_rate == 22050
     assert response.content_type == "audio/pcm"
-    assert voice.calls == [{"text": "Hallo", "syn_config": {"speaker_id": 1}}]
+    assert voice.calls == [
+        {
+            "text": "Hallo",
+            "syn_config": {
+                "speaker_id": 1,
+                "length_scale": 1.1,
+                "noise_scale": 0.5,
+                "noise_w_scale": 0.6,
+            },
+        }
+    ]
 
 
 async def test_generate_uses_default_config(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,11 +86,25 @@ async def test_generate_uses_default_config(monkeypatch: pytest.MonkeyPatch) -> 
     assert voice.calls == [{"text": "Hallo", "syn_config": {"speaker_id": 2}}]
 
 
-async def test_generate_requires_config() -> None:
+async def test_generate_uses_builtin_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_syn_config(monkeypatch)
+    voice = FakeVoice()
+    service = PiperTextToSpeech(voice=cast(Any, voice))
+
+    await service.generate("Hallo")
+
+    assert voice.calls == [{"text": "Hallo", "syn_config": {}}]
+
+
+async def test_generate_rejects_config_with_flat_parameters() -> None:
     service = PiperTextToSpeech(voice=cast(Any, FakeVoice()))
 
-    with pytest.raises(ValueError, match="Provide 'config'"):
-        await service.generate("Hallo")
+    with pytest.raises(ValueError, match="either 'config' or flat parameters"):
+        await cast(Any, service).generate(
+            "Hallo",
+            speaker_id=1,
+            config=PiperTextToSpeechConfig(),
+        )
 
 
 async def test_generate_rejects_blank_text() -> None:
@@ -91,9 +120,9 @@ async def test_stream_yields_chunks_from_background_thread(
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"a", b"b", b"c"])
     service = PiperTextToSpeech(voice=cast(Any, voice))
-    config = PiperTextToSpeechConfig()
 
-    assert await collect(service.stream("Hallo", config=config)) == [b"a", b"b", b"c"]
+    assert await collect(service.stream("Hallo", speaker_id=2)) == [b"a", b"b", b"c"]
+    assert voice.calls == [{"text": "Hallo", "syn_config": {"speaker_id": 2}}]
 
 
 async def test_stream_propagates_generator_errors(
