@@ -14,7 +14,7 @@ from vocalbin.cartesia import (
     CartesiaTextToSpeechError,
     CartesiaWavOutputFormat,
 )
-from vocalbin.cartesia import clients as cartesia_clients
+from vocalbin.cartesia.tts import clients as cartesia_clients
 
 
 class FakeBinaryResponse:

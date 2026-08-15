@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from vocalbin.piper.config import PiperConfig
-from vocalbin.piper.models import PiperTextToSpeechConfig, PiperTextToSpeechResponse
+from vocalbin.piper.tts.models import PiperTextToSpeechConfig, PiperTextToSpeechResponse
 from vocalbin.ports import StreamingTextToSpeech, TextToSpeech
 
 if TYPE_CHECKING:

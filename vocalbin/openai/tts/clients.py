@@ -1,20 +1,16 @@
-from types import TracebackType
-from typing import Any, Self, cast, overload
+from typing import Any, cast, overload
 
 from openai import AsyncOpenAI, omit
-from openai.types.audio import TranscriptionCreateResponse
 
-from vocalbin.openai.credentials import OpenAICredentials
-from vocalbin.openai.models import (
-    SpeechToTextRequest,
-    SpeechToTextResponse,
+from vocalbin.openai._shared import _OpenAIClientOwner
+from vocalbin.openai.tts.models import (
     TextToSpeechConfig,
     TextToSpeechFormat,
     TextToSpeechModel,
     TextToSpeechResponse,
     TextToSpeechVoice,
 )
-from vocalbin.ports import SpeechToText, TextToSpeech
+from vocalbin.ports import TextToSpeech
 
 _MAX_TEXT_LENGTH = 4096
 
@@ -26,39 +22,6 @@ _CONTENT_TYPES = {
     "wav": "audio/wav",
     "pcm": "audio/pcm",
 }
-
-type TranscriptionResult = TranscriptionCreateResponse | str
-
-
-class _OpenAIClientOwner:
-    def __init__(self, api_key: str | None, client: AsyncOpenAI | None) -> None:
-        if api_key is not None and client is not None:
-            raise ValueError("Pass either 'api_key' or 'client', not both.")
-        if client is not None:
-            self.client = client
-        else:
-            resolved_api_key = (
-                api_key
-                if api_key is not None
-                else OpenAICredentials().api_key.get_secret_value()
-            )
-            self.client = AsyncOpenAI(api_key=resolved_api_key)
-        self._owns_client = client is None
-
-    async def aclose(self) -> None:
-        if self._owns_client:
-            await self.client.close()
-
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.aclose()
 
 
 class OpenAITextToSpeech(
@@ -131,55 +94,6 @@ class OpenAITextToSpeech(
             response_format=resolved_config.response_format,
             content_type=_CONTENT_TYPES[resolved_config.response_format],
         )
-
-
-class OpenAISpeechToText(_OpenAIClientOwner, SpeechToText):
-    def __init__(
-        self,
-        api_key: str | None = None,
-        *,
-        client: AsyncOpenAI | None = None,
-    ) -> None:
-        super().__init__(api_key, client)
-
-    async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
-        params = request.to_openai_params()
-
-        if request.audio is not None:
-            file = (request.filename, request.audio)
-            result = cast(
-                TranscriptionResult,
-                await self.client.audio.transcriptions.create(file=file, **params),
-            )
-        else:
-            audio_path = request.audio_path
-            assert audio_path is not None
-            with audio_path.open("rb") as audio_file:
-                result = cast(
-                    TranscriptionResult,
-                    await self.client.audio.transcriptions.create(
-                        file=audio_file, **params
-                    ),
-                )
-
-        return SpeechToTextResponse(
-            text=_extract_text(result),
-            model=request.model,
-            response_format=request.response_format,
-            raw=_serialize_result(result),
-        )
-
-
-def _extract_text(result: TranscriptionResult) -> str:
-    if isinstance(result, str):
-        return result
-    return result.text
-
-
-def _serialize_result(result: TranscriptionResult) -> dict[str, Any] | str:
-    if isinstance(result, str):
-        return result
-    return result.model_dump(mode="python")
 
 
 def _require_valid_text(text: str) -> str:

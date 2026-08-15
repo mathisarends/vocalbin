@@ -6,7 +6,7 @@ from typing import Any, cast
 import pytest
 
 from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechConfig
-from vocalbin.piper import clients as piper_clients
+from vocalbin.piper.tts import clients as piper_clients
 
 
 class FakeVoiceConfig:

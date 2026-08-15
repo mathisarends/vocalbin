@@ -7,7 +7,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from vocalbin.cartesia.credentials import CartesiaCredentials
-from vocalbin.cartesia.models import (
+from vocalbin.cartesia.tts.models import (
     CartesiaGenerationConfig,
     CartesiaOutputFormat,
     CartesiaTextToSpeechConfig,

@@ -1,5 +1,5 @@
-from .credentials import CartesiaCredentials
-from .tts import (
+from .clients import CartesiaTextToSpeech, CartesiaTextToSpeechError
+from .models import (
     CartesiaAudioEncoding,
     CartesiaBitRate,
     CartesiaGenerationConfig,
@@ -7,9 +7,7 @@ from .tts import (
     CartesiaOutputFormat,
     CartesiaRawOutputFormat,
     CartesiaSampleRate,
-    CartesiaTextToSpeech,
     CartesiaTextToSpeechConfig,
-    CartesiaTextToSpeechError,
     CartesiaTextToSpeechModel,
     CartesiaTextToSpeechResponse,
     CartesiaWavOutputFormat,
@@ -18,7 +16,6 @@ from .tts import (
 __all__ = [
     "CartesiaAudioEncoding",
     "CartesiaBitRate",
-    "CartesiaCredentials",
     "CartesiaGenerationConfig",
     "CartesiaMp3OutputFormat",
     "CartesiaOutputFormat",
