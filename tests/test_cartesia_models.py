@@ -14,9 +14,9 @@ from vocalbin.cartesia import (
 def test_cartesia_config_defaults_and_serialization() -> None:
     config = TextToSpeechConfig(voice_id="voice-id")
 
-    assert config.to_cartesia_params() == {
+    assert config.model_dump(exclude_none=True, mode="json", by_alias=True) == {
         "model_id": "sonic-3.5",
-        "voice": {"mode": "id", "id": "voice-id"},
+        "voice_id": "voice-id",
         "output_format": {
             "container": "raw",
             "encoding": "pcm_s16le",
@@ -32,7 +32,7 @@ def test_cartesia_config_forwards_unknown_model_ids() -> None:
     )
 
     assert config.model == "sonic-future"
-    assert config.to_cartesia_params()["model_id"] == "sonic-future"
+    assert config.model_dump(mode="json", by_alias=True)["model_id"] == "sonic-future"
 
 
 def test_cartesia_config_serializes_optional_parameters() -> None:
@@ -48,9 +48,9 @@ def test_cartesia_config_serializes_optional_parameters() -> None:
     )
 
     assert config.language == "de"
-    assert config.to_cartesia_params() == {
+    assert config.model_dump(exclude_none=True, mode="json", by_alias=True) == {
+        "voice_id": "voice-id",
         "model_id": "sonic-3.5",
-        "voice": {"mode": "id", "id": "voice-id"},
         "output_format": {
             "container": "wav",
             "encoding": "pcm_f32le",
@@ -100,7 +100,7 @@ def test_cartesia_optional_values_accept_none() -> None:
     generation = GenerationConfig(emotion=None)
 
     assert config.language is None
-    assert generation.to_cartesia_params() == {}
+    assert generation.model_dump(exclude_none=True, mode="json") == {}
 
 
 @pytest.mark.parametrize(

@@ -147,13 +147,6 @@ class SpeechToTextRequest(BaseModel):
 
         return self
 
-    def to_openai_params(self) -> dict[str, Any]:
-        return self.model_dump(
-            exclude={"audio_path", "audio", "filename"},
-            exclude_none=True,
-            mode="json",
-        )
-
 
 class SpeechToTextResponse(BaseModel):
     model_config = ConfigDict(extra="allow")

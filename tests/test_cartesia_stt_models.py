@@ -14,7 +14,7 @@ def test_cartesia_stt_config_defaults_and_serialization() -> None:
 
     assert config.model == SpeechToTextModel.INK_2
     assert config.encoding == SpeechToTextEncoding.PCM_S16LE
-    assert config.to_cartesia_params() == {
+    assert config.model_dump(exclude_none=True, mode="json", by_alias=True) == {
         "model": "ink-2",
         "encoding": "pcm_s16le",
         "sample_rate": 16000,
@@ -34,7 +34,7 @@ def test_cartesia_stt_config_serializes_every_option() -> None:
         turn_end_timeout_ms=8000,
     )
 
-    assert config.to_cartesia_params() == {
+    assert config.model_dump(exclude_none=True, mode="json", by_alias=True) == {
         "model": "ink-future",
         "encoding": "pcm_f32le",
         "sample_rate": 48000,

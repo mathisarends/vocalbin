@@ -175,7 +175,17 @@ async def test_cartesia_generate_accepts_legacy_config() -> None:
 
     assert response.voice_id == "voice-id"
     assert fake_client.tts.generate_calls == [
-        {**config.to_cartesia_params(), "transcript": "Hallo"}
+        {
+            "model_id": "sonic-3.5",
+            "voice": {"mode": "id", "id": "voice-id"},
+            "output_format": {
+                "container": "raw",
+                "encoding": "pcm_s16le",
+                "sample_rate": 24000,
+            },
+            "language": "de",
+            "transcript": "Hallo",
+        }
     ]
 
 

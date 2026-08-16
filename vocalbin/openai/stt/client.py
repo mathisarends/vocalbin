@@ -23,7 +23,11 @@ class SpeechToText(
         super().__init__(api_key, client)
 
     async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
-        params = request.to_openai_params()
+        params = request.model_dump(
+            exclude={"audio_path", "audio", "filename"},
+            exclude_none=True,
+            mode="json",
+        )
 
         if request.audio is not None:
             file = (request.filename, request.audio)

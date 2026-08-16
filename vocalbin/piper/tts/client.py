@@ -138,7 +138,7 @@ class TextToSpeech(
     ) -> Iterator[AudioChunk]:
         return self.voice.synthesize(
             text,
-            syn_config=_build_syn_config(config.to_piper_params()),
+            syn_config=_build_syn_config(config.model_dump(exclude_none=True)),
         )
 
     async def aclose(self) -> None:

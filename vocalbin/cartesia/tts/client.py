@@ -114,7 +114,13 @@ class TextToSpeech(
             volume=volume,
             pronunciation_dict_id=pronunciation_dict_id,
         )
-        params = resolved_config.to_cartesia_params()
+        params = resolved_config.model_dump(
+            exclude={"voice_id", "max_buffer_delay_ms", "timeout"},
+            exclude_none=True,
+            mode="json",
+            by_alias=True,
+        )
+        params["voice"] = {"mode": "id", "id": resolved_config.voice_id}
         params["transcript"] = text
         result = await self.client.tts.generate(**params)
 
@@ -248,7 +254,13 @@ class TextToSpeech(
             raise ValueError("Cartesia WebSocket streaming requires raw output.")
 
         connection = await self._get_connection()
-        params = resolved_config.to_cartesia_params()
+        params = resolved_config.model_dump(
+            exclude={"voice_id", "max_buffer_delay_ms", "timeout"},
+            exclude_none=True,
+            mode="json",
+            by_alias=True,
+        )
+        params["voice"] = {"mode": "id", "id": resolved_config.voice_id}
         context = connection.context(
             timeout=resolved_config.timeout,
             max_buffer_delay_ms=resolved_config.max_buffer_delay_ms,

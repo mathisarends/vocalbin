@@ -166,7 +166,11 @@ def test_diarization_accepts_supported_defaults() -> None:
 def test_openai_params_exclude_local_audio_fields() -> None:
     request = SpeechToTextRequest(audio=b"audio", filename="sample.wav", language="de")
 
-    assert request.to_openai_params() == {
+    assert request.model_dump(
+        exclude={"audio_path", "audio", "filename"},
+        exclude_none=True,
+        mode="json",
+    ) == {
         "model": "gpt-4o-transcribe",
         "response_format": "json",
         "language": "de",
@@ -195,7 +199,7 @@ def test_requests_forward_unknown_model_and_voice_ids() -> None:
     )
 
     assert speech_to_text.model == "stt-future"
-    assert speech_to_text.to_openai_params()["model"] == "stt-future"
+    assert speech_to_text.model_dump(mode="json")["model"] == "stt-future"
     assert text_to_speech.model == "tts-future"
     assert text_to_speech.voice == "voice-future"
 

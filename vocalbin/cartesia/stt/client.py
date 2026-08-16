@@ -74,7 +74,11 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
     ) -> AsyncGenerator[Event]:
         resolved_config = config or self.default_config
         manager = self.client.stt.auto_finalize.websocket(
-            **resolved_config.to_cartesia_params()
+            **resolved_config.model_dump(
+                exclude_none=True,
+                mode="json",
+                by_alias=True,
+            )
         )
 
         async with manager as connection:

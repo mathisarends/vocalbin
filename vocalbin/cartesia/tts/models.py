@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -68,15 +68,15 @@ class GenerationConfig(BaseModel):
             raise ValueError("emotion must not be blank")
         return value
 
-    def to_cartesia_params(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, mode="json")
-
 
 class TextToSpeechConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     voice_id: str = Field(min_length=1)
-    model: TextToSpeechModel | str = TextToSpeechModel.SONIC_3_5
+    model: TextToSpeechModel | str = Field(
+        default=TextToSpeechModel.SONIC_3_5,
+        serialization_alias="model_id",
+    )
     output_format: OutputFormat = Field(
         default_factory=RawOutputFormat,
         discriminator="container",
@@ -103,24 +103,6 @@ class TextToSpeechConfig(BaseModel):
         if len(normalized) != 2 or not normalized.isalpha() or not normalized.isascii():
             raise ValueError("language must be an ISO-639-1 code like 'de' or 'en'")
         return normalized
-
-    def to_cartesia_params(self) -> dict[str, Any]:
-        params: dict[str, Any] = {
-            "model_id": (
-                self.model.value
-                if isinstance(self.model, TextToSpeechModel)
-                else self.model
-            ),
-            "voice": {"mode": "id", "id": self.voice_id},
-            "output_format": self.output_format.model_dump(mode="json"),
-        }
-        if self.language is not None:
-            params["language"] = self.language
-        if self.generation_config is not None:
-            params["generation_config"] = self.generation_config.to_cartesia_params()
-        if self.pronunciation_dict_id is not None:
-            params["pronunciation_dict_id"] = self.pronunciation_dict_id
-        return params
 
 
 class TextToSpeechResponse(BaseModel):
