@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class PiperConfig(BaseSettings):
+class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="PIPER_", env_file=".env", extra="ignore"
     )

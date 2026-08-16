@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class PiperTextToSpeechConfig(BaseModel):
+class TextToSpeechConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     speaker_id: int | None = Field(default=None, ge=0)
@@ -15,7 +15,7 @@ class PiperTextToSpeechConfig(BaseModel):
         return self.model_dump(exclude_none=True)
 
 
-class PiperTextToSpeechResponse(BaseModel):
+class TextToSpeechResponse(BaseModel):
     audio: bytes
     sample_rate: int
     content_type: str

@@ -1,9 +1,9 @@
-from .config import PiperConfig
-from .tts import PiperTextToSpeech, PiperTextToSpeechConfig, PiperTextToSpeechResponse
+from .config import Config
+from .tts import TextToSpeech, TextToSpeechConfig, TextToSpeechResponse
 
 __all__ = [
-    "PiperConfig",
-    "PiperTextToSpeech",
-    "PiperTextToSpeechConfig",
-    "PiperTextToSpeechResponse",
+    "Config",
+    "TextToSpeech",
+    "TextToSpeechConfig",
+    "TextToSpeechResponse",
 ]

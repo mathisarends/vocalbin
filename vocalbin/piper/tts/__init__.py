@@ -1,8 +1,8 @@
-from .client import PiperTextToSpeech
-from .models import PiperTextToSpeechConfig, PiperTextToSpeechResponse
+from .client import TextToSpeech
+from .models import TextToSpeechConfig, TextToSpeechResponse
 
 __all__ = [
-    "PiperTextToSpeech",
-    "PiperTextToSpeechConfig",
-    "PiperTextToSpeechResponse",
+    "TextToSpeech",
+    "TextToSpeechConfig",
+    "TextToSpeechResponse",
 ]

@@ -17,7 +17,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from vocalbin.piper import PiperTextToSpeech
+from vocalbin.piper import TextToSpeech
 
 load_dotenv()
 
@@ -25,7 +25,7 @@ OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 
 async def generate(text: str) -> None:
-    async with PiperTextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         response = await tts.generate(text)
 
     path = _save(response.audio, "piper_generate.pcm")
@@ -35,7 +35,7 @@ async def generate(text: str) -> None:
 
 async def stream() -> None:
     audio = bytearray()
-    async with PiperTextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         async for chunk in tts.stream(
             "Dieser vollständige Text wird als Audiostream übertragen."
         ):

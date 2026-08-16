@@ -3,20 +3,7 @@ import inspect
 import pytest
 
 import vocalbin
-from vocalbin import (
-    SpeechToText as SpeechToTextPort,
-)
-from vocalbin import (
-    StreamingSpeechToText,
-    StreamingTextToSpeech,
-)
-from vocalbin import (
-    TextToSpeech as TextToSpeechPort,
-)
-from vocalbin.cartesia import SpeechToText as CartesiaSpeechToText
-from vocalbin.cartesia import TextToSpeech as CartesiaTextToSpeech
-from vocalbin.openai import SpeechToText as OpenAISpeechToText
-from vocalbin.openai import TextToSpeech as OpenAITextToSpeech
+from vocalbin import cartesia, openai, piper, ports
 from vocalbin.openai.realtime import (
     AudioInput,
     MicrophoneInput,
@@ -30,24 +17,26 @@ from vocalbin.openai.realtime import (
 
 
 def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
-    assert inspect.isabstract(SpeechToTextPort)
-    assert inspect.isabstract(TextToSpeechPort)
-    assert inspect.isabstract(StreamingSpeechToText)
-    assert inspect.isabstract(StreamingTextToSpeech)
-    assert issubclass(OpenAISpeechToText, SpeechToTextPort)
-    assert issubclass(OpenAITextToSpeech, TextToSpeechPort)
-    assert issubclass(CartesiaTextToSpeech, TextToSpeechPort)
-    assert issubclass(CartesiaTextToSpeech, StreamingTextToSpeech)
-    assert issubclass(CartesiaSpeechToText, StreamingSpeechToText)
+    assert inspect.isabstract(ports.SpeechToText)
+    assert inspect.isabstract(ports.TextToSpeech)
+    assert inspect.isabstract(ports.StreamingSpeechToText)
+    assert inspect.isabstract(ports.StreamingTextToSpeech)
+    assert issubclass(openai.SpeechToText, ports.SpeechToText)
+    assert issubclass(openai.TextToSpeech, ports.TextToSpeech)
+    assert issubclass(cartesia.TextToSpeech, ports.TextToSpeech)
+    assert issubclass(cartesia.TextToSpeech, ports.StreamingTextToSpeech)
+    assert issubclass(cartesia.SpeechToText, ports.StreamingSpeechToText)
+    assert issubclass(piper.TextToSpeech, ports.TextToSpeech)
+    assert issubclass(piper.TextToSpeech, ports.StreamingTextToSpeech)
 
     with pytest.raises(TypeError):
-        SpeechToTextPort()
+        ports.SpeechToText()
     with pytest.raises(TypeError):
-        TextToSpeechPort()
+        ports.TextToSpeech()
     with pytest.raises(TypeError):
-        StreamingSpeechToText()
+        ports.StreamingSpeechToText()
     with pytest.raises(TypeError):
-        StreamingTextToSpeech()
+        ports.StreamingTextToSpeech()
 
 
 def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> None:

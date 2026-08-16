@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 
-from vocalbin.piper import PiperTextToSpeech, PiperTextToSpeechConfig
+from vocalbin.piper import TextToSpeech, TextToSpeechConfig
 from vocalbin.piper.tts import client as piper_clients
 
 
@@ -47,7 +47,7 @@ def stub_syn_config(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_generate_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"one", b"two"])
-    service = PiperTextToSpeech(voice=cast(Any, voice))
+    service = TextToSpeech(voice=cast(Any, voice))
 
     response = await service.generate(
         "Hallo",
@@ -76,8 +76,8 @@ async def test_generate_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) ->
 async def test_generate_uses_default_config(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"one", b"two"])
-    service = PiperTextToSpeech(
-        voice=cast(Any, voice), default_config=PiperTextToSpeechConfig(speaker_id=2)
+    service = TextToSpeech(
+        voice=cast(Any, voice), default_config=TextToSpeechConfig(speaker_id=2)
     )
 
     response = await service.generate("Hallo")
@@ -89,7 +89,7 @@ async def test_generate_uses_default_config(monkeypatch: pytest.MonkeyPatch) -> 
 async def test_generate_uses_builtin_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice()
-    service = PiperTextToSpeech(voice=cast(Any, voice))
+    service = TextToSpeech(voice=cast(Any, voice))
 
     await service.generate("Hallo")
 
@@ -97,21 +97,21 @@ async def test_generate_uses_builtin_defaults(monkeypatch: pytest.MonkeyPatch) -
 
 
 async def test_generate_rejects_config_with_flat_parameters() -> None:
-    service = PiperTextToSpeech(voice=cast(Any, FakeVoice()))
+    service = TextToSpeech(voice=cast(Any, FakeVoice()))
 
     with pytest.raises(ValueError, match="either 'config' or flat parameters"):
         await cast(Any, service).generate(
             "Hallo",
             speaker_id=1,
-            config=PiperTextToSpeechConfig(),
+            config=TextToSpeechConfig(),
         )
 
 
 async def test_generate_rejects_blank_text() -> None:
-    service = PiperTextToSpeech(voice=cast(Any, FakeVoice()))
+    service = TextToSpeech(voice=cast(Any, FakeVoice()))
 
     with pytest.raises(ValueError, match="text must not be blank"):
-        await service.generate("   ", config=PiperTextToSpeechConfig())
+        await service.generate("   ", config=TextToSpeechConfig())
 
 
 async def test_stream_yields_chunks_from_background_thread(
@@ -119,7 +119,7 @@ async def test_stream_yields_chunks_from_background_thread(
 ) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"a", b"b", b"c"])
-    service = PiperTextToSpeech(voice=cast(Any, voice))
+    service = TextToSpeech(voice=cast(Any, voice))
 
     assert await collect(service.stream("Hallo", speaker_id=2)) == [b"a", b"b", b"c"]
     assert voice.calls == [{"text": "Hallo", "syn_config": {"speaker_id": 2}}]
@@ -130,8 +130,8 @@ async def test_stream_propagates_generator_errors(
 ) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"a"], error=RuntimeError("synthesis failed"))
-    service = PiperTextToSpeech(voice=cast(Any, voice))
-    config = PiperTextToSpeechConfig()
+    service = TextToSpeech(voice=cast(Any, voice))
+    config = TextToSpeechConfig()
 
     with pytest.raises(RuntimeError, match="synthesis failed"):
         await collect(service.stream("Hallo", config=config))
@@ -139,7 +139,7 @@ async def test_stream_propagates_generator_errors(
 
 def test_model_path_and_voice_are_mutually_exclusive() -> None:
     with pytest.raises(ValueError, match="either 'model_path' or 'voice'"):
-        PiperTextToSpeech(model_path="voice.onnx", voice=cast(Any, FakeVoice()))
+        TextToSpeech(model_path="voice.onnx", voice=cast(Any, FakeVoice()))
 
 
 async def test_context_manager_returns_self_and_closes_cleanly(
@@ -148,8 +148,8 @@ async def test_context_manager_returns_self_and_closes_cleanly(
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"audio"])
 
-    async with PiperTextToSpeech(voice=cast(Any, voice)) as service:
-        response = await service.generate("Hallo", config=PiperTextToSpeechConfig())
+    async with TextToSpeech(voice=cast(Any, voice)) as service:
+        response = await service.generate("Hallo", config=TextToSpeechConfig())
 
     assert response.audio == b"audio"
 
@@ -240,7 +240,7 @@ async def test_uses_environment_model_path(
 
     monkeypatch.setattr(piper_clients, "_create_voice", create_voice)
 
-    service = PiperTextToSpeech()
+    service = TextToSpeech()
 
     assert service.voice is voice
 
@@ -258,7 +258,7 @@ async def test_explicit_model_path_takes_precedence(
 
     monkeypatch.setattr(piper_clients, "_create_voice", create_voice)
 
-    service = PiperTextToSpeech(
+    service = TextToSpeech(
         model_path="voices/en.onnx", config_path="voices/en.onnx.json"
     )
 

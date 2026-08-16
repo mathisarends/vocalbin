@@ -192,24 +192,24 @@ text-to-speech engine, grouped under `vocalbin.piper`. Install it with
 `PIPER_MODEL_PATH` (and optionally `PIPER_CONFIG_PATH`) at it:
 
 ```python
-from vocalbin.piper import PiperTextToSpeech
+from vocalbin.piper import TextToSpeech
 
 
 async def generate() -> bytes:
-    async with PiperTextToSpeech() as text_to_speech:
+    async with TextToSpeech() as text_to_speech:
         response = await text_to_speech.generate("Hallo aus vocalbin mit Piper!")
     return response.audio
 ```
 
 `response.audio` is raw 16-bit PCM at the voice model's sample rate
-(`response.sample_rate`). `PiperTextToSpeech` also implements
+(`response.sample_rate`). `TextToSpeech` also implements
 `StreamingTextToSpeech`; `stream()` yields the same raw PCM audio in chunks as
 Piper synthesizes it, off the event loop:
 
 ```python
 async def stream() -> bytes:
     audio = bytearray()
-    async with PiperTextToSpeech() as text_to_speech:
+    async with TextToSpeech() as text_to_speech:
         async for chunk in text_to_speech.stream("Dieser Text wird gestreamt."):
             audio.extend(chunk)
     return bytes(audio)
