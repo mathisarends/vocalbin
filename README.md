@@ -369,7 +369,12 @@ it into Ink 2. Set `CARTESIA_API_KEY` and `CARTESIA_VOICE_ID`, then run:
 ```bash
 uv run --extra cartesia python examples/cartesia/text_to_speech.py
 uv run --extra cartesia python examples/cartesia/speech_to_text.py
+uv run --extra cartesia --extra audio python examples/cartesia/round_trip.py
 ```
+
+`round_trip.py` records one English turn from the microphone, sends it through
+Ink 2, simulates a streaming LLM response, and plays the Sonic 3.5 response as it
+arrives. Timestamped logs make the latency of each stage visible.
 
 Piper's request-response and streaming calls are demonstrated the same way.
 Set `PIPER_MODEL_PATH` (and optionally `PIPER_CONFIG_PATH`) to a downloaded
