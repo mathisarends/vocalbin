@@ -9,6 +9,7 @@ import pytest
 from vocalbin.cartesia import (
     SpeechToText,
     SpeechToTextConfig,
+    SpeechToTextEncoding,
     SpeechToTextError,
 )
 from vocalbin.cartesia import (
@@ -141,6 +142,58 @@ async def test_cartesia_stt_stream_uses_call_config() -> None:
     assert await collect(service.stream(audio_stream(b"audio"), config=config)) == []
     assert fake_client.auto_finalize.calls[0]["keyterm"] == ["vocalbin"]
     assert fake_client.auto_finalize.calls[0]["turn_end_timeout_ms"] == 640
+
+
+async def test_cartesia_stt_stream_accepts_flat_parameters() -> None:
+    connection = FakeConnection([])
+    fake_client = FakeClient(connection)
+    service = SpeechToText(client=cast(Any, fake_client))
+
+    assert (
+        await collect(
+            service.stream(
+                audio_stream(b"audio"),
+                sample_rate=48000,
+                keyterms=["vocalbin"],
+            )
+        )
+        == []
+    )
+    assert fake_client.auto_finalize.calls[0]["sample_rate"] == 48000
+    assert fake_client.auto_finalize.calls[0]["keyterm"] == ["vocalbin"]
+
+
+async def test_cartesia_stt_stream_accepts_flat_model_and_encoding() -> None:
+    connection = FakeConnection([])
+    fake_client = FakeClient(connection)
+    service = SpeechToText(client=cast(Any, fake_client))
+
+    assert (
+        await collect(
+            service.stream(
+                audio_stream(b"audio"),
+                model="ink-future",
+                encoding=SpeechToTextEncoding.PCM_F32LE,
+            )
+        )
+        == []
+    )
+    assert fake_client.auto_finalize.calls[0]["model"] == "ink-future"
+    assert fake_client.auto_finalize.calls[0]["encoding"] == "pcm_f32le"
+    assert fake_client.auto_finalize.calls[0]["sample_rate"] == 16000
+
+
+async def test_cartesia_stt_stream_rejects_config_with_flat_parameters() -> None:
+    service = SpeechToText(client=cast(Any, FakeClient(FakeConnection([]))))
+
+    with pytest.raises(ValueError, match="either 'config' or flat parameters"):
+        await collect(
+            service.stream(
+                audio_stream(b"audio"),
+                sample_rate=48000,
+                config=SpeechToTextConfig(),
+            )
+        )
 
 
 async def test_cartesia_stt_stream_waits_for_events_after_sending_audio() -> None:

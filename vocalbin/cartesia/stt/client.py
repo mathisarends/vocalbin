@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable
 from contextlib import suppress
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from vocalbin import ports
 from vocalbin.cartesia.credentials import Credentials
@@ -17,7 +17,11 @@ from vocalbin.cartesia.events import (
     TurnStart,
     TurnUpdate,
 )
-from vocalbin.cartesia.stt.models import SpeechToTextConfig
+from vocalbin.cartesia.stt.models import (
+    SpeechToTextConfig,
+    SpeechToTextEncoding,
+    SpeechToTextModel,
+)
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -66,13 +70,55 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         self.default_config = default_config or SpeechToTextConfig()
         self._owns_client = owns_client
 
-    async def stream(
+    @overload
+    def stream(
+        self,
+        audio: AsyncIterable[bytes],
+        *,
+        model: SpeechToTextModel | str = SpeechToTextModel.INK_2,
+        encoding: SpeechToTextEncoding = SpeechToTextEncoding.PCM_S16LE,
+        sample_rate: int = 16000,
+        keyterms: list[str] | None = None,
+        turn_start_threshold: float | None = None,
+        turn_eager_end_threshold: float | None = None,
+        turn_end_threshold: float | None = None,
+        turn_end_timeout_ms: float | None = None,
+    ) -> AsyncGenerator[Event]: ...
+
+    @overload
+    def stream(
         self,
         audio: AsyncIterable[bytes],
         *,
         config: SpeechToTextConfig | None = None,
+    ) -> AsyncGenerator[Event]: ...
+
+    async def stream(
+        self,
+        audio: AsyncIterable[bytes],
+        *,
+        model: SpeechToTextModel | str | None = None,
+        encoding: SpeechToTextEncoding | None = None,
+        sample_rate: int | None = None,
+        keyterms: list[str] | None = None,
+        turn_start_threshold: float | None = None,
+        turn_eager_end_threshold: float | None = None,
+        turn_end_threshold: float | None = None,
+        turn_end_timeout_ms: float | None = None,
+        config: SpeechToTextConfig | None = None,
     ) -> AsyncGenerator[Event]:
-        resolved_config = config or self.default_config
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
+            model=model,
+            encoding=encoding,
+            sample_rate=sample_rate,
+            keyterms=keyterms,
+            turn_start_threshold=turn_start_threshold,
+            turn_eager_end_threshold=turn_eager_end_threshold,
+            turn_end_threshold=turn_end_threshold,
+            turn_end_timeout_ms=turn_end_timeout_ms,
+        )
         manager = self.client.stt.auto_finalize.websocket(
             **resolved_config.model_dump(
                 exclude_none=True,
@@ -160,6 +206,53 @@ def _create_client(api_key: str) -> AsyncCartesia:
     except ImportError as exc:
         raise ImportError("Cartesia support requires `vocalbin[cartesia]`.") from exc
     return AsyncCartesia(api_key=api_key)
+
+
+def _resolve_call_config(
+    *,
+    config: SpeechToTextConfig | None,
+    default_config: SpeechToTextConfig,
+    model: SpeechToTextModel | str | None,
+    encoding: SpeechToTextEncoding | None,
+    sample_rate: int | None,
+    keyterms: list[str] | None,
+    turn_start_threshold: float | None,
+    turn_eager_end_threshold: float | None,
+    turn_end_threshold: float | None,
+    turn_end_timeout_ms: float | None,
+) -> SpeechToTextConfig:
+    flat_values = (
+        model,
+        encoding,
+        sample_rate,
+        keyterms,
+        turn_start_threshold,
+        turn_eager_end_threshold,
+        turn_end_threshold,
+        turn_end_timeout_ms,
+    )
+    has_flat_values = any(value is not None for value in flat_values)
+    if config is not None:
+        if has_flat_values:
+            raise ValueError("Pass either 'config' or flat parameters, not both.")
+        return config
+    if not has_flat_values:
+        return default_config
+
+    values: dict[str, Any] = {
+        "keyterms": keyterms,
+        "turn_start_threshold": turn_start_threshold,
+        "turn_eager_end_threshold": turn_eager_end_threshold,
+        "turn_end_threshold": turn_end_threshold,
+        "turn_end_timeout_ms": turn_end_timeout_ms,
+    }
+    if model is not None:
+        values["model"] = model
+    if encoding is not None:
+        values["encoding"] = encoding
+    if sample_rate is not None:
+        values["sample_rate"] = sample_rate
+    return SpeechToTextConfig(**values)
 
 
 async def _stop_task(task: asyncio.Future[Any]) -> None:
