@@ -10,30 +10,19 @@ from pydantic import ValidationError
 
 import vocalbin.openai.realtime.clients as realtime_module
 from vocalbin.openai.realtime import (
-    AudioInput,
     AudioStreamInput,
     MicrophoneInput,
     Provider,
-    RealtimeError,
-    RealtimeLogprob,
-    RealtimeProvider,
-    RealtimeSessionConnected,
-    RealtimeSessionType,
-    RealtimeSourceTranscriptDelta,
-    RealtimeSpeechStarted,
-    RealtimeSpeechStopped,
-    RealtimeTranscriberBuilder,
-    RealtimeTranscriptCompleted,
-    RealtimeTranscriptDelta,
-    RealtimeTranscriptionConfig,
-    RealtimeTranslationAudioDelta,
-    RealtimeTranslationClosed,
-    RealtimeTranslationConfig,
-    RealtimeTranslationTranscriptDelta,
-    RealtimeTranslatorBuilder,
     SemanticVadConfig,
+    SessionType,
     Transcriber,
+    TranscriberBuilder,
+    TranscriptionConfig,
+    TranslationConfig,
     Translator,
+    TranslatorBuilder,
+    events,
+    ports,
 )
 from vocalbin.openai.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
 from vocalbin.openai.realtime.messages import RealtimeTranscriptionAudioCommit
@@ -44,13 +33,13 @@ async def chunks(*values: bytes) -> AsyncIterator[bytes]:
         yield value
 
 
-class DummyProvider(RealtimeProvider):
+class DummyProvider(ports.Provider):
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 
     def build_url(
         self,
-        session_type: RealtimeSessionType,
+        session_type: SessionType,
         model: str,
     ) -> str:
         self.calls.append((session_type, model))
@@ -109,9 +98,9 @@ def install_connection(
 def test_realtime_transcription_builder_configures_service() -> None:
     provider = DummyProvider()
     audio_input = AudioStreamInput(chunks())
-    builder = RealtimeTranscriberBuilder()
+    builder = TranscriberBuilder()
 
-    assert isinstance(builder, RealtimeTranscriberBuilder)
+    assert isinstance(builder, TranscriberBuilder)
 
     service = (
         builder.model("gpt-4o-transcribe")
@@ -130,7 +119,7 @@ def test_realtime_transcription_builder_configures_service() -> None:
     assert service.config.include_logprobs is True
     assert service._audio_input is audio_input
 
-    default_builder = RealtimeTranscriberBuilder()
+    default_builder = TranscriberBuilder()
     default_service = (
         default_builder.model("gpt-realtime-whisper")
         .delay("high")
@@ -152,9 +141,9 @@ def test_realtime_transcription_builder_configures_service() -> None:
 def test_realtime_translation_builder_configures_service() -> None:
     provider = DummyProvider()
     audio_input = AudioStreamInput(chunks())
-    builder = RealtimeTranslatorBuilder()
+    builder = TranslatorBuilder()
 
-    assert isinstance(builder, RealtimeTranslatorBuilder)
+    assert isinstance(builder, TranslatorBuilder)
 
     service = (
         builder.model("gpt-realtime-translate")
@@ -172,7 +161,7 @@ def test_realtime_translation_builder_configures_service() -> None:
     assert service._audio_input is audio_input
 
     default_service = (
-        RealtimeTranslatorBuilder()
+        TranslatorBuilder()
         .target_language("fr")
         .include_source_transcript()
         .api_key("key")
@@ -187,7 +176,7 @@ def test_realtime_translation_builder_configures_service() -> None:
     }
 
     with pytest.raises(ValueError, match="target_language must be configured"):
-        RealtimeTranslatorBuilder().build()
+        TranslatorBuilder().build()
 
 
 def test_openai_realtime_provider_builds_urls_and_headers(
@@ -355,7 +344,7 @@ async def test_realtime_transcriber_streams_and_maps_events(
     )
     install_connection(monkeypatch, connection)
     service = Transcriber(
-        RealtimeTranscriptionConfig(
+        TranscriptionConfig(
             model="gpt-4o-transcribe",
             language="de",
             noise_reduction=None,
@@ -366,18 +355,18 @@ async def test_realtime_transcriber_streams_and_maps_events(
         provider=DummyProvider(),
     )
 
-    events = [event async for event in service.stream()]
+    received_events = [event async for event in service.stream()]
 
-    assert isinstance(events[0], RealtimeSessionConnected)
-    assert isinstance(events[1], RealtimeTranscriptDelta)
-    assert events[1].delta == "Hal"
-    assert events[1].logprobs == [RealtimeLogprob(token="Hal", logprob=-0.1)]
-    assert isinstance(events[2], RealtimeSpeechStarted)
-    assert isinstance(events[3], RealtimeSpeechStopped)
-    assert isinstance(events[4], RealtimeError)
-    assert str(events[4].error) == "[server_error] retry"
-    assert isinstance(events[5], RealtimeTranscriptCompleted)
-    assert events[5].transcript == "Hallo"
+    assert isinstance(received_events[0], events.SessionConnected)
+    assert isinstance(received_events[1], events.TranscriptDelta)
+    assert received_events[1].delta == "Hal"
+    assert received_events[1].logprobs == [events.Logprob(token="Hal", logprob=-0.1)]
+    assert isinstance(received_events[2], events.SpeechStarted)
+    assert isinstance(received_events[3], events.SpeechStopped)
+    assert isinstance(received_events[4], events.Error)
+    assert str(received_events[4].error) == "[server_error] retry"
+    assert isinstance(received_events[5], events.TranscriptCompleted)
+    assert received_events[5].transcript == "Hallo"
     assert connection.sent == [
         {
             "type": "session.update",
@@ -446,7 +435,7 @@ async def test_realtime_translator_streams_audio_and_transcripts(
     )
     install_connection(monkeypatch, connection)
     service = Translator(
-        RealtimeTranslationConfig(
+        TranslationConfig(
             target_language="de",
             noise_reduction=None,
             include_source_transcript=False,
@@ -455,24 +444,24 @@ async def test_realtime_translator_streams_audio_and_transcripts(
         provider=DummyProvider(),
     )
 
-    events = [event async for event in service.stream()]
+    received_events = [event async for event in service.stream()]
 
-    assert isinstance(events[0], RealtimeSessionConnected)
-    assert events[1] == RealtimeSourceTranscriptDelta(
+    assert isinstance(received_events[0], events.SessionConnected)
+    assert received_events[1] == events.SourceTranscriptDelta(
         delta="hello", elapsed_ms=200, event_id="evt-1"
     )
-    assert events[2] == RealtimeTranslationTranscriptDelta(
+    assert received_events[2] == events.TranslationTranscriptDelta(
         delta="hallo", elapsed_ms=400, event_id="evt-2"
     )
-    assert events[3] == RealtimeTranslationAudioDelta(
+    assert received_events[3] == events.TranslationAudioDelta(
         audio=b"translated",
         elapsed_ms=400,
         sample_rate=16000,
         channels=2,
         event_id="evt-3",
     )
-    assert isinstance(events[4], RealtimeError)
-    assert events[5] == RealtimeTranslationClosed(event_id="evt-4")
+    assert isinstance(received_events[4], events.Error)
+    assert received_events[5] == events.TranslationClosed(event_id="evt-4")
     assert connection.sent == [
         {
             "type": "session.update",
@@ -494,7 +483,7 @@ async def test_realtime_translator_streams_audio_and_transcripts(
     ]
 
 
-class BlockingAudioInput(AudioInput):
+class BlockingAudioInput(ports.AudioInput):
     def __init__(self) -> None:
         self.started = False
         self.stop_calls = 0
@@ -538,7 +527,7 @@ async def test_transcriber_flush_and_lifecycle_errors(
         provider=DummyProvider(),
     )
     stream = service.stream()
-    assert isinstance(await anext(stream), RealtimeSessionConnected)
+    assert isinstance(await anext(stream), events.SessionConnected)
 
     with pytest.raises(RuntimeError, match="single-use"):
         service.stream()
@@ -564,12 +553,12 @@ async def test_sender_errors_are_raised_by_event_stream(
     connection = FakeConnection(wait_until_closed=True)
     install_connection(monkeypatch, connection)
     service = Translator(
-        RealtimeTranslationConfig(target_language="fr"),
+        TranslationConfig(target_language="fr"),
         audio_input=AudioStreamInput(broken_source()),
         provider=DummyProvider(),
     )
     stream = service.stream()
-    assert isinstance(await anext(stream), RealtimeSessionConnected)
+    assert isinstance(await anext(stream), events.SessionConnected)
 
     with pytest.raises(RuntimeError, match="audio failed"):
         await anext(stream)
@@ -621,7 +610,7 @@ async def test_context_manager_and_default_realtime_components(
     monkeypatch.setenv("OPENAI_API_KEY", "key")
     transcriber = Transcriber(api_key="key")
     translator = Translator(
-        RealtimeTranslationConfig(
+        TranslationConfig(
             target_language="es",
             noise_reduction="near_field",
         ),
@@ -655,7 +644,7 @@ def test_provider_and_credentials_are_mutually_exclusive() -> None:
 
     with pytest.raises(ValueError, match="either 'provider'"):
         Translator(
-            RealtimeTranslationConfig(target_language="en"),
+            TranslationConfig(target_language="en"),
             provider=DummyProvider(),
             safety_identifier="user",
         )
@@ -669,7 +658,7 @@ def test_event_mappers_preserve_defaults_and_ignore_unknown_events() -> None:
         }
     )
 
-    assert audio == RealtimeTranslationAudioDelta(audio=b"audio")
+    assert audio == events.TranslationAudioDelta(audio=b"audio")
     assert TRANSLATION_SPEC.parse_event({"type": "unknown"}) is None
     assert TRANSCRIPTION_SPEC.parse_event({"type": "unknown"}) is None
 

@@ -3,6 +3,12 @@ from typing import Any, cast
 
 from pydantic import TypeAdapter
 
+from vocalbin.openai.realtime.events import (
+    TranscriptCompleted,
+    TranscriptionEvent,
+    TranslationClosed,
+    TranslationEvent,
+)
 from vocalbin.openai.realtime.messages import (
     RealtimeAudioAppend,
     RealtimeInputFinished,
@@ -14,19 +20,11 @@ from vocalbin.openai.realtime.messages import (
     RealtimeTranslationServerEvent,
     RealtimeTranslationSessionClose,
 )
-from vocalbin.openai.realtime.models import (
-    RealtimeSessionType,
-    RealtimeTranscriptCompleted,
-    RealtimeTranscriptionEvent,
-    RealtimeTranslationClosed,
-    RealtimeTranslationEvent,
-)
+from vocalbin.openai.realtime.models import SessionType
 
 
 @dataclass(frozen=True)
-class RealtimeSessionSpec[
-    EventT: (RealtimeTranscriptionEvent, RealtimeTranslationEvent)
-]:
+class RealtimeSessionSpec[EventT: (TranscriptionEvent, TranslationEvent)]:
     """Everything that differs between the realtime session types.
 
     Transcription and translation speak the same websocket protocol but name
@@ -34,7 +32,7 @@ class RealtimeSessionSpec[
     those differences are kept here as data instead of in client subclasses.
     """
 
-    session_type: RealtimeSessionType
+    session_type: SessionType
     audio_append: type[RealtimeAudioAppend]
     input_finished: type[RealtimeInputFinished]
     final_event: type[Any]
@@ -54,11 +52,11 @@ class RealtimeSessionSpec[
         return input_finished or not self.final_event_requires_finished_input
 
 
-TRANSCRIPTION_SPEC = RealtimeSessionSpec[RealtimeTranscriptionEvent](
+TRANSCRIPTION_SPEC = RealtimeSessionSpec[TranscriptionEvent](
     session_type="transcription",
     audio_append=RealtimeTranscriptionAudioAppend,
     input_finished=RealtimeTranscriptionAudioCommit,
-    final_event=RealtimeTranscriptCompleted,
+    final_event=TranscriptCompleted,
     # Transcripts complete per utterance, so only the one that follows the
     # final commit ends the stream.
     final_event_requires_finished_input=True,
@@ -74,11 +72,11 @@ TRANSCRIPTION_SPEC = RealtimeSessionSpec[RealtimeTranscriptionEvent](
     event_adapter=TypeAdapter(RealtimeTranscriptionServerEvent),
 )
 
-TRANSLATION_SPEC = RealtimeSessionSpec[RealtimeTranslationEvent](
+TRANSLATION_SPEC = RealtimeSessionSpec[TranslationEvent](
     session_type="translation",
     audio_append=RealtimeTranslationAudioAppend,
     input_finished=RealtimeTranslationSessionClose,
-    final_event=RealtimeTranslationClosed,
+    final_event=TranslationClosed,
     # The service closes a session once, so the event always ends the stream.
     final_event_requires_finished_input=False,
     event_types=frozenset(

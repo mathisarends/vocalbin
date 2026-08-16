@@ -1,11 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from vocalbin.openai.realtime.models import (
-    RealtimeSessionType,
-    RealtimeTranscriptionEvent,
-    RealtimeTranslationEvent,
-)
+from vocalbin.openai.realtime.events import TranscriptionEvent, TranslationEvent
+from vocalbin.openai.realtime.models import SessionType
 
 
 class AudioInput(ABC):
@@ -23,11 +20,11 @@ class AudioInput(ABC):
     def stream_chunks(self) -> AsyncIterator[bytes]: ...
 
 
-class RealtimeProvider(ABC):
+class Provider(ABC):
     @abstractmethod
     def build_url(
         self,
-        session_type: RealtimeSessionType,
+        session_type: SessionType,
         model: str,
     ) -> str: ...
 
@@ -35,9 +32,9 @@ class RealtimeProvider(ABC):
     def build_headers(self) -> dict[str, str]: ...
 
 
-class RealtimeTranscription(ABC):
+class Transcription(ABC):
     @abstractmethod
-    def stream(self) -> AsyncIterator[RealtimeTranscriptionEvent]: ...
+    def stream(self) -> AsyncIterator[TranscriptionEvent]: ...
 
     @abstractmethod
     async def flush(self) -> None: ...
@@ -46,9 +43,9 @@ class RealtimeTranscription(ABC):
     async def stop(self) -> None: ...
 
 
-class RealtimeTranslation(ABC):
+class Translation(ABC):
     @abstractmethod
-    def stream(self) -> AsyncIterator[RealtimeTranslationEvent]: ...
+    def stream(self) -> AsyncIterator[TranslationEvent]: ...
 
     @abstractmethod
     async def stop(self) -> None: ...

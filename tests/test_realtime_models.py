@@ -4,17 +4,17 @@ import pytest
 from pydantic import ValidationError
 
 from vocalbin.openai.realtime import (
-    RealtimeErrorDetails,
-    RealtimeSessionType,
-    RealtimeTranscriptionConfig,
-    RealtimeTranslationConfig,
-    RealtimeTranslationLanguage,
     SemanticVadConfig,
+    SessionType,
+    TranscriptionConfig,
+    TranslationConfig,
+    TranslationLanguage,
+    events,
 )
 
 
 def test_realtime_transcription_config_defaults_and_normalizes_language() -> None:
-    config = RealtimeTranscriptionConfig(language=" de ")
+    config = TranscriptionConfig(language=" de ")
 
     assert config.model == "gpt-realtime-whisper"
     assert config.language == "de"
@@ -22,8 +22,8 @@ def test_realtime_transcription_config_defaults_and_normalizes_language() -> Non
     assert config.noise_reduction == "far_field"
     assert config.turn_detection is None
     assert config.include_logprobs is False
-    assert RealtimeTranscriptionConfig(language=None).language is None
-    assert set(get_args(RealtimeSessionType.__value__)) == {
+    assert TranscriptionConfig(language=None).language is None
+    assert set(get_args(SessionType.__value__)) == {
         "transcription",
         "translation",
     }
@@ -31,10 +31,10 @@ def test_realtime_transcription_config_defaults_and_normalizes_language() -> Non
 
 def test_realtime_transcription_config_rejects_invalid_fields() -> None:
     with pytest.raises(ValidationError, match="language must not be blank"):
-        RealtimeTranscriptionConfig(language=" ")
+        TranscriptionConfig(language=" ")
 
     with pytest.raises(ValidationError, match="Extra inputs"):
-        RealtimeTranscriptionConfig.model_validate({"unknown": True})
+        TranscriptionConfig.model_validate({"unknown": True})
 
 
 def test_semantic_vad_config_defaults_and_validates_eagerness() -> None:
@@ -49,9 +49,9 @@ def test_semantic_vad_config_defaults_and_validates_eagerness() -> None:
 
 def test_realtime_whisper_rejects_turn_detection() -> None:
     with pytest.raises(ValidationError, match="does not support turn detection"):
-        RealtimeTranscriptionConfig(turn_detection=SemanticVadConfig())
+        TranscriptionConfig(turn_detection=SemanticVadConfig())
 
-    config = RealtimeTranscriptionConfig(
+    config = TranscriptionConfig(
         model="gpt-4o-transcribe",
         turn_detection=SemanticVadConfig(),
     )
@@ -61,17 +61,17 @@ def test_realtime_whisper_rejects_turn_detection() -> None:
 
 def test_realtime_configs_reject_unknown_model_ids() -> None:
     with pytest.raises(ValidationError):
-        RealtimeTranscriptionConfig(model="transcription-future")
+        TranscriptionConfig(model="transcription-future")
 
     with pytest.raises(ValidationError):
-        RealtimeTranslationConfig(
+        TranslationConfig(
             model="translation-future",
             target_language="de",
         )
 
 
 def test_realtime_translation_config_supports_documented_languages() -> None:
-    config = RealtimeTranslationConfig(
+    config = TranslationConfig(
         target_language="de",
         noise_reduction=None,
         include_source_transcript=False,
@@ -81,7 +81,7 @@ def test_realtime_translation_config_supports_documented_languages() -> None:
     assert config.target_language == "de"
     assert config.noise_reduction is None
     assert config.include_source_transcript is False
-    assert set(get_args(RealtimeTranslationLanguage.__value__)) == {
+    assert set(get_args(TranslationLanguage.__value__)) == {
         "zh",
         "en",
         "fr",
@@ -98,10 +98,10 @@ def test_realtime_translation_config_supports_documented_languages() -> None:
     }
 
     with pytest.raises(ValidationError):
-        RealtimeTranslationConfig(target_language="nl")
+        TranslationConfig(target_language="nl")
 
 
 def test_realtime_error_details_have_readable_string() -> None:
-    error = RealtimeErrorDetails(type="server_error", message="Unavailable")
+    error = events.ErrorDetails(type="server_error", message="Unavailable")
 
     assert str(error) == "[server_error] Unavailable"

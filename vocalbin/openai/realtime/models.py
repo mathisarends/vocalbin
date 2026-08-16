@@ -1,8 +1,8 @@
-from typing import Any, Literal, Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-type RealtimeTranscriptionModel = Literal[
+type TranscriptionModel = Literal[
     "whisper-1",
     "gpt-4o-mini-transcribe",
     "gpt-4o-mini-transcribe-2025-12-15",
@@ -10,37 +10,35 @@ type RealtimeTranscriptionModel = Literal[
     "gpt-4o-transcribe-diarize",
     "gpt-realtime-whisper",
 ]
-type RealtimeTranslationModel = Literal["gpt-realtime-translate"]
+type TranslationModel = Literal["gpt-realtime-translate"]
 
-type RealtimeSessionType = Literal["transcription", "translation"]
+type SessionType = Literal["transcription", "translation"]
 
-type RealtimeTranscriptionDelay = Literal["minimal", "low", "medium", "high", "xhigh"]
+type TranscriptionDelay = Literal["minimal", "low", "medium", "high", "xhigh"]
 
-type RealtimeNoiseReduction = Literal["near_field", "far_field"]
+type NoiseReduction = Literal["near_field", "far_field"]
 
-type RealtimeTranslationLanguage = Literal[
+type TranslationLanguage = Literal[
     "zh", "en", "fr", "de", "hi", "id", "it", "ja", "ko", "pt", "ru", "es", "vi"
 ]
 
-type RealtimeVadEagerness = Literal["low", "medium", "high"]
-
-type RealtimeAudioFormat = Literal["pcm16"]
+type VadEagerness = Literal["low", "medium", "high"]
 
 
 class SemanticVadConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     type: Literal["semantic_vad"] = "semantic_vad"
-    eagerness: RealtimeVadEagerness = "medium"
+    eagerness: VadEagerness = "medium"
 
 
-class RealtimeTranscriptionConfig(BaseModel):
+class TranscriptionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model: RealtimeTranscriptionModel = "gpt-realtime-whisper"
+    model: TranscriptionModel = "gpt-realtime-whisper"
     language: str | None = None
-    delay: RealtimeTranscriptionDelay = "medium"
-    noise_reduction: RealtimeNoiseReduction | None = "far_field"
+    delay: TranscriptionDelay = "medium"
+    noise_reduction: NoiseReduction | None = "far_field"
     turn_detection: SemanticVadConfig | None = None
     include_logprobs: bool = False
 
@@ -64,113 +62,10 @@ class RealtimeTranscriptionConfig(BaseModel):
         return normalized
 
 
-class RealtimeTranslationConfig(BaseModel):
+class TranslationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model: RealtimeTranslationModel = "gpt-realtime-translate"
-    target_language: RealtimeTranslationLanguage
-    noise_reduction: RealtimeNoiseReduction | None = "far_field"
+    model: TranslationModel = "gpt-realtime-translate"
+    target_language: TranslationLanguage
+    noise_reduction: NoiseReduction | None = "far_field"
     include_source_transcript: bool = True
-
-
-class RealtimeEvent(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-
-class RealtimeLogprob(BaseModel):
-    # Scored alternatives come straight from the API, which may add fields.
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-    token: str
-    logprob: float
-    bytes: list[int] | None = None
-
-
-class RealtimeErrorDetails(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    type: str
-    message: str
-    code: str | None = None
-    event_id: str | None = None
-    param: str | None = None
-
-    def __str__(self) -> str:
-        return f"[{self.type}] {self.message}"
-
-
-class RealtimeSessionConnected(RealtimeEvent):
-    pass
-
-
-class RealtimeError(RealtimeEvent):
-    error: RealtimeErrorDetails
-
-
-class RealtimeTranscriptDelta(RealtimeEvent):
-    delta: str
-    item_id: str
-    event_id: str | None = None
-    logprobs: list[RealtimeLogprob] | None = None
-
-
-class RealtimeTranscriptCompleted(RealtimeEvent):
-    transcript: str
-    item_id: str
-    event_id: str | None = None
-    logprobs: list[RealtimeLogprob] | None = None
-    usage: dict[str, Any] | None = None
-
-
-class RealtimeSpeechStarted(RealtimeEvent):
-    item_id: str
-    audio_start_ms: int
-
-
-class RealtimeSpeechStopped(RealtimeEvent):
-    item_id: str
-    audio_end_ms: int
-
-
-class RealtimeSourceTranscriptDelta(RealtimeEvent):
-    delta: str
-    elapsed_ms: int | None = None
-    event_id: str | None = None
-
-
-class RealtimeTranslationTranscriptDelta(RealtimeEvent):
-    delta: str
-    elapsed_ms: int | None = None
-    event_id: str | None = None
-
-
-class RealtimeTranslationAudioDelta(RealtimeEvent):
-    audio: bytes
-    elapsed_ms: int | None = None
-    sample_rate: int = 24000
-    channels: int = 1
-    format: RealtimeAudioFormat = "pcm16"
-    event_id: str | None = None
-
-
-class RealtimeTranslationClosed(RealtimeEvent):
-    event_id: str | None = None
-
-
-type RealtimeTranscriptionEvent = (
-    RealtimeSessionConnected
-    | RealtimeTranscriptDelta
-    | RealtimeTranscriptCompleted
-    | RealtimeSpeechStarted
-    | RealtimeSpeechStopped
-    | RealtimeError
-)
-
-type RealtimeTranslationEvent = (
-    RealtimeSessionConnected
-    | RealtimeSourceTranscriptDelta
-    | RealtimeTranslationTranscriptDelta
-    | RealtimeTranslationAudioDelta
-    | RealtimeTranslationClosed
-    | RealtimeError
-)

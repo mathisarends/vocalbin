@@ -5,27 +5,29 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from vocalbin.openai.realtime.events import (
+    Error,
+    ErrorDetails,
+    Logprob,
+    SourceTranscriptDelta,
+    SpeechStarted,
+    SpeechStopped,
+    TranscriptCompleted,
+    TranscriptDelta,
+    TranscriptionEvent,
+    TranslationAudioDelta,
+    TranslationClosed,
+    TranslationEvent,
+    TranslationTranscriptDelta,
+)
 from vocalbin.openai.realtime.models import (
-    RealtimeError,
-    RealtimeErrorDetails,
-    RealtimeLogprob,
-    RealtimeNoiseReduction,
-    RealtimeSourceTranscriptDelta,
-    RealtimeSpeechStarted,
-    RealtimeSpeechStopped,
-    RealtimeTranscriptCompleted,
-    RealtimeTranscriptDelta,
-    RealtimeTranscriptionConfig,
-    RealtimeTranscriptionDelay,
-    RealtimeTranscriptionEvent,
-    RealtimeTranscriptionModel,
-    RealtimeTranslationAudioDelta,
-    RealtimeTranslationClosed,
-    RealtimeTranslationConfig,
-    RealtimeTranslationEvent,
-    RealtimeTranslationLanguage,
-    RealtimeTranslationTranscriptDelta,
+    NoiseReduction,
     SemanticVadConfig,
+    TranscriptionConfig,
+    TranscriptionDelay,
+    TranscriptionModel,
+    TranslationConfig,
+    TranslationLanguage,
 )
 
 
@@ -58,16 +60,16 @@ class RealtimePcmFormat(RealtimeClientMessage):
 
 
 class RealtimeNoiseReductionConfig(RealtimeClientMessage):
-    type: RealtimeNoiseReduction
+    type: NoiseReduction
 
     @classmethod
-    def from_setting(cls, setting: RealtimeNoiseReduction | None) -> Self | None:
+    def from_setting(cls, setting: NoiseReduction | None) -> Self | None:
         return None if setting is None else cls(type=setting)
 
 
 class RealtimeTranscriptionSettings(RealtimeClientMessage):
-    model: RealtimeTranscriptionModel
-    delay: RealtimeTranscriptionDelay | None = Field(
+    model: TranscriptionModel
+    delay: TranscriptionDelay | None = Field(
         default=None,
         exclude_if=lambda value: value is None,
     )
@@ -97,7 +99,7 @@ class RealtimeTranscriptionSession(RealtimeClientMessage):
 
 
 class RealtimeTranslationTranscriptionSettings(RealtimeClientMessage):
-    model: RealtimeTranscriptionModel = "gpt-realtime-whisper"
+    model: TranscriptionModel = "gpt-realtime-whisper"
 
 
 class RealtimeTranslationInputAudio(RealtimeClientMessage):
@@ -106,7 +108,7 @@ class RealtimeTranslationInputAudio(RealtimeClientMessage):
 
 
 class RealtimeTranslationOutputAudio(RealtimeClientMessage):
-    language: RealtimeTranslationLanguage
+    language: TranslationLanguage
 
 
 class RealtimeTranslationAudio(RealtimeClientMessage):
@@ -128,7 +130,7 @@ class RealtimeTranscriptionSessionUpdate(RealtimeSessionUpdate):
     session: RealtimeTranscriptionSession
 
     @classmethod
-    def from_config(cls, config: RealtimeTranscriptionConfig) -> Self:
+    def from_config(cls, config: TranscriptionConfig) -> Self:
         return cls(
             session=RealtimeTranscriptionSession(
                 audio=RealtimeTranscriptionAudio(
@@ -162,7 +164,7 @@ class RealtimeTranslationSessionUpdate(RealtimeSessionUpdate):
     session: RealtimeTranslationSession
 
     @classmethod
-    def from_config(cls, config: RealtimeTranslationConfig) -> Self:
+    def from_config(cls, config: TranslationConfig) -> Self:
         return cls(
             session=RealtimeTranslationSession(
                 audio=RealtimeTranslationAudio(
@@ -224,7 +226,7 @@ class RealtimeServerEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     @abstractmethod
-    def to_event(self) -> RealtimeTranscriptionEvent | RealtimeTranslationEvent: ...
+    def to_event(self) -> TranscriptionEvent | TranslationEvent: ...
 
 
 class RealtimeErrorPayload(BaseModel):
@@ -236,8 +238,8 @@ class RealtimeErrorPayload(BaseModel):
     event_id: str | None = None
     param: str | None = None
 
-    def to_error_details(self) -> RealtimeErrorDetails:
-        return RealtimeErrorDetails(
+    def to_error_details(self) -> ErrorDetails:
+        return ErrorDetails(
             type=self.type,
             message=self.message,
             code=self.code,
@@ -250,8 +252,8 @@ class RealtimeErrorEvent(RealtimeServerEvent):
     type: Literal[RealtimeMessageType.ERROR]
     error: RealtimeErrorPayload
 
-    def to_event(self) -> RealtimeError:
-        return RealtimeError(error=self.error.to_error_details())
+    def to_event(self) -> Error:
+        return Error(error=self.error.to_error_details())
 
 
 class RealtimeTranscriptDeltaEvent(RealtimeServerEvent):
@@ -259,10 +261,10 @@ class RealtimeTranscriptDeltaEvent(RealtimeServerEvent):
     delta: str
     item_id: str
     event_id: str | None = None
-    logprobs: list[RealtimeLogprob] | None = None
+    logprobs: list[Logprob] | None = None
 
-    def to_event(self) -> RealtimeTranscriptDelta:
-        return RealtimeTranscriptDelta(
+    def to_event(self) -> TranscriptDelta:
+        return TranscriptDelta(
             delta=self.delta,
             item_id=self.item_id,
             event_id=self.event_id,
@@ -275,11 +277,11 @@ class RealtimeTranscriptCompletedEvent(RealtimeServerEvent):
     transcript: str
     item_id: str
     event_id: str | None = None
-    logprobs: list[RealtimeLogprob] | None = None
+    logprobs: list[Logprob] | None = None
     usage: dict[str, Any] | None = None
 
-    def to_event(self) -> RealtimeTranscriptCompleted:
-        return RealtimeTranscriptCompleted(
+    def to_event(self) -> TranscriptCompleted:
+        return TranscriptCompleted(
             transcript=self.transcript,
             item_id=self.item_id,
             event_id=self.event_id,
@@ -293,8 +295,8 @@ class RealtimeSpeechStartedEvent(RealtimeServerEvent):
     item_id: str
     audio_start_ms: int
 
-    def to_event(self) -> RealtimeSpeechStarted:
-        return RealtimeSpeechStarted(
+    def to_event(self) -> SpeechStarted:
+        return SpeechStarted(
             item_id=self.item_id,
             audio_start_ms=self.audio_start_ms,
         )
@@ -305,8 +307,8 @@ class RealtimeSpeechStoppedEvent(RealtimeServerEvent):
     item_id: str
     audio_end_ms: int
 
-    def to_event(self) -> RealtimeSpeechStopped:
-        return RealtimeSpeechStopped(
+    def to_event(self) -> SpeechStopped:
+        return SpeechStopped(
             item_id=self.item_id,
             audio_end_ms=self.audio_end_ms,
         )
@@ -318,8 +320,8 @@ class RealtimeSourceTranscriptDeltaEvent(RealtimeServerEvent):
     elapsed_ms: int | None = None
     event_id: str | None = None
 
-    def to_event(self) -> RealtimeSourceTranscriptDelta:
-        return RealtimeSourceTranscriptDelta(
+    def to_event(self) -> SourceTranscriptDelta:
+        return SourceTranscriptDelta(
             delta=self.delta,
             elapsed_ms=self.elapsed_ms,
             event_id=self.event_id,
@@ -332,8 +334,8 @@ class RealtimeTranslationTranscriptDeltaEvent(RealtimeServerEvent):
     elapsed_ms: int | None = None
     event_id: str | None = None
 
-    def to_event(self) -> RealtimeTranslationTranscriptDelta:
-        return RealtimeTranslationTranscriptDelta(
+    def to_event(self) -> TranslationTranscriptDelta:
+        return TranslationTranscriptDelta(
             delta=self.delta,
             elapsed_ms=self.elapsed_ms,
             event_id=self.event_id,
@@ -349,8 +351,8 @@ class RealtimeTranslationAudioDeltaEvent(RealtimeServerEvent):
     format: Literal["pcm16"] = "pcm16"
     event_id: str | None = None
 
-    def to_event(self) -> RealtimeTranslationAudioDelta:
-        return RealtimeTranslationAudioDelta(
+    def to_event(self) -> TranslationAudioDelta:
+        return TranslationAudioDelta(
             audio=base64.b64decode(self.delta, validate=True),
             elapsed_ms=self.elapsed_ms,
             sample_rate=self.sample_rate,
@@ -364,8 +366,8 @@ class RealtimeTranslationClosedEvent(RealtimeServerEvent):
     type: Literal[RealtimeMessageType.TRANSLATION_CLOSED]
     event_id: str | None = None
 
-    def to_event(self) -> RealtimeTranslationClosed:
-        return RealtimeTranslationClosed(event_id=self.event_id)
+    def to_event(self) -> TranslationClosed:
+        return TranslationClosed(event_id=self.event_id)
 
 
 type RealtimeTranscriptionServerEvent = Annotated[

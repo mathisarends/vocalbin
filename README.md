@@ -224,16 +224,12 @@ Realtime transcription uses `gpt-realtime-whisper` and streams partial and final
 transcripts. Its public API is grouped under `vocalbin.openai.realtime`:
 
 ```python
-from vocalbin.openai.realtime import (
-    RealtimeTranscriptCompleted,
-    RealtimeTranscriptDelta,
-    RealtimeTranscriberBuilder,
-)
+from vocalbin.openai.realtime import TranscriberBuilder, events
 
 
 async def transcribe_live() -> None:
     transcriber = (
-        RealtimeTranscriberBuilder()
+        TranscriberBuilder()
         .model("gpt-4o-transcribe")
         .language("de")
         .semantic_vad(eagerness="medium")
@@ -242,18 +238,18 @@ async def transcribe_live() -> None:
     async with transcriber:
         async for event in transcriber.stream():
             match event:
-                case RealtimeTranscriptDelta(delta=delta):
+                case events.TranscriptDelta(delta=delta):
                     print(delta, end="", flush=True)
-                case RealtimeTranscriptCompleted(transcript=transcript):
+                case events.TranscriptCompleted(transcript=transcript):
                     print(f"\n{transcript}")
 ```
 
-`RealtimeTranscriberBuilder` and `RealtimeTranslatorBuilder` are
+`TranscriberBuilder` and `TranslatorBuilder` are
 standalone objects. Their `build()` methods return the corresponding realtime
 service, and both builders can be initialized from an existing config.
 
 The default `MicrophoneInput` sends raw 24 kHz mono PCM16 chunks. Pass an
-`AudioInput` implementation or wrap an async byte source with `AudioStreamInput`
+`ports.AudioInput` implementation or wrap an async byte source with `AudioStreamInput`
 from `vocalbin.openai.realtime` when audio already comes from a media pipeline.
 With semantic VAD enabled, OpenAI automatically detects completed turns and
 commits their transcription buffers. Leave `turn_detection` as `None` and call
@@ -268,24 +264,19 @@ deltas. Optional source-language transcripts use `gpt-realtime-whisper` on the
 same session:
 
 ```python
-from vocalbin.openai.realtime import (
-    RealtimeTranslationAudioDelta,
-    RealtimeTranslationLanguage,
-    RealtimeTranslationTranscriptDelta,
-    RealtimeTranslatorBuilder,
-)
+from vocalbin.openai.realtime import TranslationLanguage, TranslatorBuilder, events
 
 
 async def translate_live() -> None:
-    translator = RealtimeTranslatorBuilder().target_language("en").build()
+    translator = TranslatorBuilder().target_language("en").build()
     translated_audio = bytearray()
 
     async with translator:
         async for event in translator.stream():
             match event:
-                case RealtimeTranslationTranscriptDelta(delta=delta):
+                case events.TranslationTranscriptDelta(delta=delta):
                     print(delta, end="", flush=True)
-                case RealtimeTranslationAudioDelta(audio=audio):
+                case events.TranslationAudioDelta(audio=audio):
                     translated_audio.extend(audio)
 ```
 
@@ -298,14 +289,13 @@ and session enums:
 
 ```python
 from vocalbin.openai.realtime import (
-    AudioInput,
     AudioStreamInput,
     MicrophoneInput,
     Provider,
-    RealtimeError,
-    RealtimeNoiseReduction,
-    RealtimeSessionConnected,
-    RealtimeSessionType,
+    NoiseReduction,
+    SessionType,
+    events,
+    ports,
 )
 ```
 
@@ -406,8 +396,8 @@ await client.close()
 ## Ports
 
 The provider-independent `SpeechToText` and `TextToSpeech` ports are abstract base
-classes (`vocalbin/ports.py`); the realtime ports `AudioInput`, `RealtimeProvider`,
-`RealtimeTranscription` and `RealtimeTranslation` live in `vocalbin/openai/realtime/ports.py`.
+classes (`vocalbin/ports.py`); the realtime ports `ports.AudioInput`, `ports.Provider`,
+`ports.Transcription` and `ports.Translation` live in `vocalbin/openai/realtime/ports.py`.
 They mark the boundary of the library, so callers can depend on the interface
 rather than the OpenAI implementation.
 

@@ -4,16 +4,7 @@ import pytest
 
 import vocalbin
 from vocalbin import cartesia, openai, piper, ports
-from vocalbin.openai.realtime import (
-    AudioInput,
-    MicrophoneInput,
-    Provider,
-    RealtimeProvider,
-    RealtimeTranscription,
-    RealtimeTranslation,
-    Transcriber,
-    Translator,
-)
+from vocalbin.openai import realtime
 
 
 def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
@@ -40,20 +31,20 @@ def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
 
 
 def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> None:
-    assert inspect.isabstract(AudioInput)
-    assert inspect.isabstract(RealtimeProvider)
-    assert inspect.isabstract(RealtimeTranscription)
-    assert inspect.isabstract(RealtimeTranslation)
-    assert issubclass(MicrophoneInput, AudioInput)
-    assert issubclass(Provider, RealtimeProvider)
-    assert issubclass(Transcriber, RealtimeTranscription)
-    assert issubclass(Translator, RealtimeTranslation)
+    assert inspect.isabstract(realtime.ports.AudioInput)
+    assert inspect.isabstract(realtime.ports.Provider)
+    assert inspect.isabstract(realtime.ports.Transcription)
+    assert inspect.isabstract(realtime.ports.Translation)
+    assert issubclass(realtime.MicrophoneInput, realtime.ports.AudioInput)
+    assert issubclass(realtime.Provider, realtime.ports.Provider)
+    assert issubclass(realtime.Transcriber, realtime.ports.Transcription)
+    assert issubclass(realtime.Translator, realtime.ports.Translation)
 
     for port in (
-        AudioInput,
-        RealtimeProvider,
-        RealtimeTranscription,
-        RealtimeTranslation,
+        realtime.ports.AudioInput,
+        realtime.ports.Provider,
+        realtime.ports.Transcription,
+        realtime.ports.Translation,
     ):
         with pytest.raises(TypeError):
             port()
@@ -62,4 +53,4 @@ def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> Non
 def test_root_api_does_not_flatten_realtime_namespaces() -> None:
     assert not hasattr(vocalbin, "Transcriber")
     assert not hasattr(vocalbin, "Translator")
-    assert not hasattr(vocalbin, "RealtimeTranslationConfig")
+    assert not hasattr(vocalbin, "TranslationConfig")

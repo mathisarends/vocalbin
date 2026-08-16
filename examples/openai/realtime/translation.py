@@ -4,15 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from examples.openai.realtime._terminal import RealtimeTerminal
-from vocalbin.openai.realtime import (
-    RealtimeError,
-    RealtimeSessionConnected,
-    RealtimeSourceTranscriptDelta,
-    RealtimeTranslationAudioDelta,
-    RealtimeTranslationClosed,
-    RealtimeTranslationTranscriptDelta,
-    RealtimeTranslatorBuilder,
-)
+from vocalbin.openai.realtime import TranslatorBuilder, events
 
 load_dotenv()
 
@@ -21,7 +13,7 @@ OUTPUT_PATH = OUTPUT_DIR / "realtime-translation.pcm"
 
 
 async def main() -> None:
-    translator = RealtimeTranslatorBuilder().target_language("en").build()
+    translator = TranslatorBuilder().target_language("en").build()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     source_text = ""
     target_text = ""
@@ -36,22 +28,22 @@ async def main() -> None:
         async with translator:
             async for event in translator.stream():
                 match event:
-                    case RealtimeSessionConnected():
+                    case events.SessionConnected():
                         terminal.update(status="Ready")
-                    case RealtimeSourceTranscriptDelta(delta=delta):
+                    case events.SourceTranscriptDelta(delta=delta):
                         source_text += delta
                         terminal.update(status="Listening", source=source_text)
-                    case RealtimeTranslationTranscriptDelta(delta=delta):
+                    case events.TranslationTranscriptDelta(delta=delta):
                         target_text += delta
                         terminal.update(
                             status="Translating",
                             translation=target_text,
                         )
-                    case RealtimeTranslationAudioDelta(audio=audio):
+                    case events.TranslationAudioDelta(audio=audio):
                         output.write(audio)
-                    case RealtimeTranslationClosed():
+                    case events.TranslationClosed():
                         terminal.update(status=f"Saved audio to {OUTPUT_PATH}")
-                    case RealtimeError(error=error):
+                    case events.Error(error=error):
                         terminal.error(str(error))
                         return
 

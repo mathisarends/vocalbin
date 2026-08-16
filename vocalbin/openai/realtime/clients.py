@@ -15,6 +15,11 @@ from vocalbin.openai.realtime.base import (
     TRANSLATION_SPEC,
     RealtimeSessionSpec,
 )
+from vocalbin.openai.realtime.events import (
+    SessionConnected,
+    TranscriptionEvent,
+    TranslationEvent,
+)
 from vocalbin.openai.realtime.messages import (
     RealtimeClientMessage,
     RealtimeSessionUpdate,
@@ -22,12 +27,9 @@ from vocalbin.openai.realtime.messages import (
     RealtimeTranslationSessionUpdate,
 )
 from vocalbin.openai.realtime.models import (
-    RealtimeSessionConnected,
-    RealtimeSessionType,
-    RealtimeTranscriptionConfig,
-    RealtimeTranscriptionEvent,
-    RealtimeTranslationConfig,
-    RealtimeTranslationEvent,
+    SessionType,
+    TranscriptionConfig,
+    TranslationConfig,
 )
 
 
@@ -42,7 +44,7 @@ async def _connect_websocket(url: str, headers: dict[str, str]) -> Any:
     return await connect(url, additional_headers=headers)
 
 
-class Provider(ports.RealtimeProvider):
+class Provider(ports.Provider):
     def __init__(
         self,
         api_key: str | None = None,
@@ -60,7 +62,7 @@ class Provider(ports.RealtimeProvider):
 
     def build_url(
         self,
-        session_type: RealtimeSessionType,
+        session_type: SessionType,
         model: str,
     ) -> str:
         if session_type == "translation":
@@ -77,10 +79,10 @@ class Provider(ports.RealtimeProvider):
 
 
 def _resolve_provider(
-    provider: ports.RealtimeProvider | None,
+    provider: ports.Provider | None,
     api_key: str | None,
     safety_identifier: str | None,
-) -> ports.RealtimeProvider:
+) -> ports.Provider:
     if provider is None:
         return Provider(api_key, safety_identifier=safety_identifier)
     if api_key is not None or safety_identifier is not None:
@@ -91,8 +93,8 @@ def _resolve_provider(
 class _RealtimeWebSocket:
     def __init__(
         self,
-        provider: ports.RealtimeProvider,
-        session_type: RealtimeSessionType,
+        provider: ports.Provider,
+        session_type: SessionType,
         model: str,
     ) -> None:
         self._provider = provider
@@ -134,14 +136,14 @@ class _RealtimeWebSocket:
         await connection.close()
 
 
-class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslationEvent)]:
+class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
     def __init__(
         self,
         *,
         spec: RealtimeSessionSpec[EventT],
         session_update: RealtimeSessionUpdate,
         audio_input: ports.AudioInput,
-        provider: ports.RealtimeProvider,
+        provider: ports.Provider,
         model: str,
     ) -> None:
         self._spec = spec
@@ -194,7 +196,7 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
         self._sender_task = asyncio.create_task(self._send_audio())
 
         try:
-            yield cast(EventT, RealtimeSessionConnected())
+            yield cast(EventT, SessionConnected())
             if self._stop_called:
                 return
             async for payload in self._connection.events():
@@ -230,20 +232,20 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
 
 
 class Transcriber(
-    _RealtimeStreamer[RealtimeTranscriptionEvent],
-    ports.RealtimeTranscription,
+    _RealtimeStreamer[TranscriptionEvent],
+    ports.Transcription,
 ):
     def __init__(
         self,
-        config: RealtimeTranscriptionConfig | None = None,
+        config: TranscriptionConfig | None = None,
         *,
         audio_input: ports.AudioInput | None = None,
-        provider: ports.RealtimeProvider | None = None,
+        provider: ports.Provider | None = None,
         api_key: str | None = None,
         safety_identifier: str | None = None,
     ) -> None:
         resolved_provider = _resolve_provider(provider, api_key, safety_identifier)
-        self.config = config or RealtimeTranscriptionConfig()
+        self.config = config or TranscriptionConfig()
         super().__init__(
             spec=TRANSCRIPTION_SPEC,
             session_update=RealtimeTranscriptionSessionUpdate.from_config(self.config),
@@ -261,15 +263,15 @@ class Transcriber(
 
 
 class Translator(
-    _RealtimeStreamer[RealtimeTranslationEvent],
-    ports.RealtimeTranslation,
+    _RealtimeStreamer[TranslationEvent],
+    ports.Translation,
 ):
     def __init__(
         self,
-        config: RealtimeTranslationConfig,
+        config: TranslationConfig,
         *,
         audio_input: ports.AudioInput | None = None,
-        provider: ports.RealtimeProvider | None = None,
+        provider: ports.Provider | None = None,
         api_key: str | None = None,
         safety_identifier: str | None = None,
     ) -> None:

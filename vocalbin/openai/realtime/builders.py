@@ -3,17 +3,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Self
 
 from vocalbin.openai.realtime.models import (
-    RealtimeNoiseReduction,
-    RealtimeTranscriptionConfig,
-    RealtimeTranscriptionDelay,
-    RealtimeTranscriptionModel,
-    RealtimeTranslationConfig,
-    RealtimeTranslationLanguage,
-    RealtimeTranslationModel,
-    RealtimeVadEagerness,
+    NoiseReduction,
     SemanticVadConfig,
+    TranscriptionConfig,
+    TranscriptionDelay,
+    TranscriptionModel,
+    TranslationConfig,
+    TranslationLanguage,
+    TranslationModel,
+    VadEagerness,
 )
-from vocalbin.openai.realtime.ports import AudioInput, RealtimeProvider
+from vocalbin.openai.realtime.ports import AudioInput, Provider
 
 if TYPE_CHECKING:
     from vocalbin.openai.realtime.clients import (
@@ -22,9 +22,9 @@ if TYPE_CHECKING:
     )
 
 
-class RealtimeTranscriberBuilder:
+class TranscriberBuilder:
     def __init__(self) -> None:
-        defaults = RealtimeTranscriptionConfig()
+        defaults = TranscriptionConfig()
         self._model = defaults.model
         self._language = defaults.language
         self._delay = defaults.delay
@@ -32,11 +32,11 @@ class RealtimeTranscriberBuilder:
         self._turn_detection = defaults.turn_detection
         self._include_logprobs = defaults.include_logprobs
         self._audio_input: AudioInput | None = None
-        self._provider: RealtimeProvider | None = None
+        self._provider: Provider | None = None
         self._api_key: str | None = None
         self._safety_identifier: str | None = None
 
-    def model(self, model: RealtimeTranscriptionModel) -> Self:
+    def model(self, model: TranscriptionModel) -> Self:
         self._model = model
         return self
 
@@ -44,15 +44,15 @@ class RealtimeTranscriberBuilder:
         self._language = language
         return self
 
-    def delay(self, delay: RealtimeTranscriptionDelay) -> Self:
+    def delay(self, delay: TranscriptionDelay) -> Self:
         self._delay = delay
         return self
 
-    def noise_reduction(self, noise_reduction: RealtimeNoiseReduction | None) -> Self:
+    def noise_reduction(self, noise_reduction: NoiseReduction | None) -> Self:
         self._noise_reduction = noise_reduction
         return self
 
-    def semantic_vad(self, eagerness: RealtimeVadEagerness = "medium") -> Self:
+    def semantic_vad(self, eagerness: VadEagerness = "medium") -> Self:
         self._turn_detection = SemanticVadConfig(eagerness=eagerness)
         return self
 
@@ -68,7 +68,7 @@ class RealtimeTranscriberBuilder:
         self._audio_input = audio_input
         return self
 
-    def provider(self, provider: RealtimeProvider) -> Self:
+    def provider(self, provider: Provider) -> Self:
         self._provider = provider
         return self
 
@@ -83,7 +83,7 @@ class RealtimeTranscriberBuilder:
     def build(self) -> Transcriber:
         from vocalbin.openai.realtime.clients import Transcriber
 
-        config = RealtimeTranscriptionConfig(
+        config = TranscriptionConfig(
             model=self._model,
             language=self._language,
             delay=self._delay,
@@ -100,26 +100,26 @@ class RealtimeTranscriberBuilder:
         )
 
 
-class RealtimeTranslatorBuilder:
+class TranslatorBuilder:
     def __init__(self) -> None:
-        self._model: RealtimeTranslationModel = "gpt-realtime-translate"
-        self._target_language: RealtimeTranslationLanguage | None = None
-        self._noise_reduction: RealtimeNoiseReduction | None = "far_field"
+        self._model: TranslationModel = "gpt-realtime-translate"
+        self._target_language: TranslationLanguage | None = None
+        self._noise_reduction: NoiseReduction | None = "far_field"
         self._include_source_transcript = True
         self._audio_input: AudioInput | None = None
-        self._provider: RealtimeProvider | None = None
+        self._provider: Provider | None = None
         self._api_key: str | None = None
         self._safety_identifier: str | None = None
 
-    def model(self, model: RealtimeTranslationModel) -> Self:
+    def model(self, model: TranslationModel) -> Self:
         self._model = model
         return self
 
-    def target_language(self, language: RealtimeTranslationLanguage) -> Self:
+    def target_language(self, language: TranslationLanguage) -> Self:
         self._target_language = language
         return self
 
-    def noise_reduction(self, noise_reduction: RealtimeNoiseReduction | None) -> Self:
+    def noise_reduction(self, noise_reduction: NoiseReduction | None) -> Self:
         self._noise_reduction = noise_reduction
         return self
 
@@ -131,7 +131,7 @@ class RealtimeTranslatorBuilder:
         self._audio_input = audio_input
         return self
 
-    def provider(self, provider: RealtimeProvider) -> Self:
+    def provider(self, provider: Provider) -> Self:
         self._provider = provider
         return self
 
@@ -148,7 +148,7 @@ class RealtimeTranslatorBuilder:
 
         if self._target_language is None:
             raise ValueError("target_language must be configured before build()")
-        config = RealtimeTranslationConfig(
+        config = TranslationConfig(
             model=self._model,
             target_language=self._target_language,
             noise_reduction=self._noise_reduction,
