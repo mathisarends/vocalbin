@@ -57,14 +57,12 @@ An explicit `api_key` takes precedence over the environment. An injected
 ```python
 from pathlib import Path
 
-from vocalbin.openai import SpeechToText, SpeechToTextRequest
+from vocalbin.openai import SpeechToText
 
 
 async def transcribe() -> str:
     async with SpeechToText() as speech_to_text:
-        response = await speech_to_text.transcribe(
-            SpeechToTextRequest(audio_path=Path("speech.wav"), language="de")
-        )
+        response = await speech_to_text.transcribe(Path("speech.wav"), language="de")
     return response.text
 ```
 
@@ -72,12 +70,17 @@ Audio can also be supplied directly as bytes; `filename` only sets the multipart
 upload name:
 
 ```python
-request = SpeechToTextRequest(audio=audio_bytes, filename="speech.wav")
+response = await speech_to_text.transcribe(
+    audio_bytes,
+    filename="speech.wav",
+    language="de",
+)
 ```
 
-Every request carries the transcript on `response.text` and the untouched provider
+Every response carries the transcript on `response.text` and the untouched provider
 payload on `response.raw` (a `dict` for JSON-like formats, a `str` for `text`,
-`srt` and `vtt`).
+`srt` and `vtt`). Reusable defaults can be supplied with `SpeechToTextConfig`
+through `default_config=` or per call with `config=`.
 
 ## Text to speech
 

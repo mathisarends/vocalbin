@@ -8,8 +8,9 @@ from openai.types.audio import Transcription
 
 from vocalbin.openai import (
     SpeechToText,
+    SpeechToTextConfig,
     SpeechToTextFormat,
-    SpeechToTextRequest,
+    SpeechToTextModel,
     TextToSpeech,
     TextToSpeechConfig,
     TextToSpeechFormat,
@@ -47,7 +48,10 @@ async def test_transcribe_bytes_returns_normalized_response() -> None:
     service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.transcribe(
-        SpeechToTextRequest(audio=b"wave", filename="speech.wav", language="de")
+        b"wave",
+        filename="speech.wav",
+        model=SpeechToTextModel.GPT_4O_TRANSCRIBE,
+        language="de",
     )
 
     assert response.text == "Hallo Welt"
@@ -64,7 +68,8 @@ async def test_transcribe_text_format_preserves_string_response() -> None:
     service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.transcribe(
-        SpeechToTextRequest(audio=b"wave", response_format=SpeechToTextFormat.TEXT)
+        b"wave",
+        response_format=SpeechToTextFormat.TEXT,
     )
 
     assert response.text == "plain transcript"
@@ -77,12 +82,65 @@ async def test_transcribe_reads_audio_from_path(tmp_path: Path) -> None:
     fake_client = FakeClient(transcription=Transcription(text="Hallo Datei"))
     service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
-    response = await service.transcribe(SpeechToTextRequest(audio_path=audio_path))
+    response = await service.transcribe(audio_path)
 
     assert response.text == "Hallo Datei"
     audio_file = fake_client.transcriptions.calls[0]["file"]
     assert audio_file.name == str(audio_path)
     assert audio_file.closed
+
+
+async def test_transcribe_accepts_config_and_default_config() -> None:
+    fake_client = FakeClient(transcription="plain transcript")
+    config = SpeechToTextConfig(response_format=SpeechToTextFormat.TEXT)
+    service = SpeechToText(
+        client=cast(AsyncOpenAI, fake_client),
+        default_config=config,
+    )
+
+    default_response = await service.transcribe(b"first")
+    config_response = await service.transcribe(b"second", config=config)
+
+    assert default_response.response_format == SpeechToTextFormat.TEXT
+    assert config_response.response_format == SpeechToTextFormat.TEXT
+
+
+async def test_transcribe_rejects_config_with_flat_parameters() -> None:
+    service = SpeechToText(client=cast(AsyncOpenAI, FakeClient()))
+
+    with pytest.raises(ValueError, match="either 'config' or flat parameters"):
+        await cast(Any, service).transcribe(
+            b"wave",
+            language="de",
+            config=SpeechToTextConfig(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("audio", "filename", "message"),
+    [
+        (b"", "speech.wav", "audio must not be empty"),
+        (b"wave", "  ", "filename must not be blank"),
+    ],
+)
+async def test_transcribe_rejects_invalid_byte_input(
+    audio: bytes,
+    filename: str,
+    message: str,
+) -> None:
+    service = SpeechToText(client=cast(AsyncOpenAI, FakeClient()))
+
+    with pytest.raises(ValueError, match=message):
+        await service.transcribe(audio, filename=filename)
+
+
+async def test_transcribe_rejects_invalid_paths(tmp_path: Path) -> None:
+    service = SpeechToText(client=cast(AsyncOpenAI, FakeClient()))
+
+    with pytest.raises(ValueError, match="does not exist"):
+        await service.transcribe(tmp_path / "missing.wav")
+    with pytest.raises(ValueError, match="not a file"):
+        await service.transcribe(str(tmp_path))
 
 
 async def test_generate_returns_audio_and_content_type() -> None:

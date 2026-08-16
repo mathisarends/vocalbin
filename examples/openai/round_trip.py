@@ -14,7 +14,6 @@ from dotenv import load_dotenv
 
 from vocalbin.openai import (
     SpeechToText,
-    SpeechToTextRequest,
     TextToSpeech,
     TextToSpeechFormat,
 )
@@ -31,11 +30,9 @@ async def main() -> None:
 
     async with SpeechToText() as stt:
         heard = await stt.transcribe(
-            SpeechToTextRequest(
-                audio=spoken.audio,
-                filename="round_trip.wav",
-                language="de",
-            )
+            spoken.audio,
+            filename="round_trip.wav",
+            language="de",
         )
 
     print(f"spoken:      {TEXT!r}")

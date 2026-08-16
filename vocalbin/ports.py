@@ -2,9 +2,11 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable, AsyncIterator
 
 
-class SpeechToText[RequestT, ResponseT](ABC):
+class SpeechToText[AudioT, ConfigT, ResponseT](ABC):
     @abstractmethod
-    async def transcribe(self, request: RequestT) -> ResponseT: ...
+    async def transcribe(
+        self, audio: AudioT, *, config: ConfigT | None = None
+    ) -> ResponseT: ...
 
 
 class StreamingSpeechToText[ConfigT, EventT](ABC):

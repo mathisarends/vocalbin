@@ -1,5 +1,4 @@
 from enum import StrEnum
-from pathlib import Path
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -26,12 +25,9 @@ class TimestampGranularity(StrEnum):
     SEGMENT = "segment"
 
 
-class SpeechToTextRequest(BaseModel):
+class SpeechToTextConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    audio_path: Path | None = None
-    audio: bytes | None = Field(default=None, min_length=1, repr=False)
-    filename: str = Field(default="utterance.wav", min_length=1)
     model: SpeechToTextModel | str = SpeechToTextModel.GPT_4O_TRANSCRIBE
     response_format: SpeechToTextFormat = SpeechToTextFormat.JSON
     language: str | None = Field(
@@ -45,24 +41,6 @@ class SpeechToTextRequest(BaseModel):
     chunking_strategy: Literal["auto"] | dict[str, Any] | None = None
     extra_body: dict[str, Any] | None = None
 
-    @field_validator("audio_path")
-    @classmethod
-    def audio_path_must_be_a_file(cls, value: Path | None) -> Path | None:
-        if value is None:
-            return None
-        if not value.exists():
-            raise ValueError(f"Audio file does not exist: {value}")
-        if not value.is_file():
-            raise ValueError(f"Audio path is not a file: {value}")
-        return value
-
-    @field_validator("filename")
-    @classmethod
-    def filename_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("filename must not be blank")
-        return value
-
     @field_validator("language")
     @classmethod
     def language_must_be_iso_639_1(cls, value: str | None) -> str | None:
@@ -72,12 +50,6 @@ class SpeechToTextRequest(BaseModel):
         if len(normalized) != 2 or not normalized.isalpha() or not normalized.isascii():
             raise ValueError("language must be an ISO-639-1 code like 'de' or 'en'")
         return normalized
-
-    @model_validator(mode="after")
-    def exactly_one_audio_source(self) -> Self:
-        if (self.audio_path is None) == (self.audio is None):
-            raise ValueError("Provide exactly one of 'audio_path' or 'audio'.")
-        return self
 
     @model_validator(mode="after")
     def validate_model_capabilities(self) -> Self:

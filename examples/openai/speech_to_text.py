@@ -17,7 +17,6 @@ from vocalbin.openai import (
     SpeechToText,
     SpeechToTextFormat,
     SpeechToTextModel,
-    SpeechToTextRequest,
     TextToSpeech,
     TextToSpeechFormat,
     TimestampGranularity,
@@ -33,9 +32,7 @@ SAMPLE_TEXT = "Guten Morgen, dies ist ein Test der Transkription mit vocalbin."
 async def from_path() -> None:
     """Read audio from a file path (default model gpt-4o-transcribe, json)."""
     async with SpeechToText() as stt:
-        response = await stt.transcribe(
-            SpeechToTextRequest(audio_path=SAMPLE, language="de")
-        )
+        response = await stt.transcribe(SAMPLE, language="de")
     print(f"from_path: {response.text!r}")
 
 
@@ -44,7 +41,9 @@ async def from_bytes() -> None:
     audio = SAMPLE.read_bytes()
     async with SpeechToText() as stt:
         response = await stt.transcribe(
-            SpeechToTextRequest(audio=audio, filename="sample.wav", language="de")
+            audio,
+            filename="sample.wav",
+            language="de",
         )
     print(f"from_bytes: {response.text!r}")
 
@@ -53,15 +52,13 @@ async def gpt_transcribe_json_with_logprobs() -> None:
     """gpt-4o-transcribe: json + logprobs, plus prompt/temperature hints."""
     async with SpeechToText() as stt:
         response = await stt.transcribe(
-            SpeechToTextRequest(
-                audio_path=SAMPLE,
-                model=SpeechToTextModel.GPT_4O_TRANSCRIBE,
-                response_format=SpeechToTextFormat.JSON,
-                language="de",
-                prompt="vocalbin, Transkription",
-                temperature=0.0,
-                include=["logprobs"],
-            )
+            SAMPLE,
+            model=SpeechToTextModel.GPT_4O_TRANSCRIBE,
+            response_format=SpeechToTextFormat.JSON,
+            language="de",
+            prompt="vocalbin, Transkription",
+            temperature=0.0,
+            include=["logprobs"],
         )
     print(f"gpt json+logprobs: {response.text!r}")
 
@@ -70,11 +67,9 @@ async def gpt_mini_text() -> None:
     """gpt-4o-mini-transcribe: text format returns the transcript as a plain string."""
     async with SpeechToText() as stt:
         response = await stt.transcribe(
-            SpeechToTextRequest(
-                audio_path=SAMPLE,
-                model=SpeechToTextModel.GPT_4O_MINI_TRANSCRIBE,
-                response_format=SpeechToTextFormat.TEXT,
-            )
+            SAMPLE,
+            model=SpeechToTextModel.GPT_4O_MINI_TRANSCRIBE,
+            response_format=SpeechToTextFormat.TEXT,
         )
     print(f"gpt-mini text: raw is str -> {isinstance(response.raw, str)}")
 
@@ -83,12 +78,10 @@ async def diarized() -> None:
     """gpt-4o-transcribe-diarize: diarized_json adds per-speaker segments in `raw`."""
     async with SpeechToText() as stt:
         response = await stt.transcribe(
-            SpeechToTextRequest(
-                audio_path=SAMPLE,
-                model=SpeechToTextModel.GPT_4O_TRANSCRIBE_DIARIZE,
-                response_format=SpeechToTextFormat.DIARIZED_JSON,
-                language="de",
-            )
+            SAMPLE,
+            model=SpeechToTextModel.GPT_4O_TRANSCRIBE_DIARIZE,
+            response_format=SpeechToTextFormat.DIARIZED_JSON,
+            language="de",
         )
     print(f"diarized: {response.text!r}")
 
@@ -97,15 +90,13 @@ async def whisper_verbose_json_with_timestamps() -> None:
     """Use whisper-1 verbose_json for word and segment timestamps."""
     async with SpeechToText() as stt:
         response = await stt.transcribe(
-            SpeechToTextRequest(
-                audio_path=SAMPLE,
-                model=SpeechToTextModel.WHISPER_1,
-                response_format=SpeechToTextFormat.VERBOSE_JSON,
-                timestamp_granularities=[
-                    TimestampGranularity.WORD,
-                    TimestampGranularity.SEGMENT,
-                ],
-            )
+            SAMPLE,
+            model=SpeechToTextModel.WHISPER_1,
+            response_format=SpeechToTextFormat.VERBOSE_JSON,
+            timestamp_granularities=[
+                TimestampGranularity.WORD,
+                TimestampGranularity.SEGMENT,
+            ],
         )
     print(f"whisper verbose_json: {response.text!r}")
 
@@ -115,11 +106,9 @@ async def whisper_subtitle_formats() -> None:
     async with SpeechToText() as stt:
         for fmt in (SpeechToTextFormat.SRT, SpeechToTextFormat.VTT):
             response = await stt.transcribe(
-                SpeechToTextRequest(
-                    audio_path=SAMPLE,
-                    model=SpeechToTextModel.WHISPER_1,
-                    response_format=fmt,
-                )
+                SAMPLE,
+                model=SpeechToTextModel.WHISPER_1,
+                response_format=fmt,
             )
             (OUTPUT_DIR / f"transcript.{fmt.value}").write_text(
                 response.text, encoding="utf-8"

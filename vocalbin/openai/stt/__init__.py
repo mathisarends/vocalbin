@@ -1,17 +1,17 @@
 from .client import SpeechToText
 from .models import (
+    SpeechToTextConfig,
     SpeechToTextFormat,
     SpeechToTextModel,
-    SpeechToTextRequest,
     SpeechToTextResponse,
     TimestampGranularity,
 )
 
 __all__ = [
     "SpeechToText",
+    "SpeechToTextConfig",
     "SpeechToTextFormat",
     "SpeechToTextModel",
-    "SpeechToTextRequest",
     "SpeechToTextResponse",
     "TimestampGranularity",
 ]

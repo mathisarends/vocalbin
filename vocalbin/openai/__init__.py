@@ -1,9 +1,9 @@
 from .credentials import Credentials
 from .stt import (
     SpeechToText,
+    SpeechToTextConfig,
     SpeechToTextFormat,
     SpeechToTextModel,
-    SpeechToTextRequest,
     SpeechToTextResponse,
     TimestampGranularity,
 )
@@ -19,9 +19,9 @@ from .tts import (
 __all__ = [
     "Credentials",
     "SpeechToText",
+    "SpeechToTextConfig",
     "SpeechToTextFormat",
     "SpeechToTextModel",
-    "SpeechToTextRequest",
     "SpeechToTextResponse",
     "TextToSpeech",
     "TextToSpeechConfig",
