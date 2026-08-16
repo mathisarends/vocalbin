@@ -111,11 +111,12 @@ Cartesia is an alternative text-to-speech provider, grouped under
 ```python
 from vocalbin.cartesia import (
     TextToSpeech,
+    Voice,
     WavOutputFormat,
 )
 
 
-async def generate(voice_id: str) -> bytes:
+async def generate(voice_id: str = Voice.SKYLAR_FRIENDLY_GUIDE) -> bytes:
     async with TextToSpeech() as text_to_speech:
         response = await text_to_speech.generate(
             "Hallo aus vocalbin mit Cartesia!",
@@ -124,6 +125,14 @@ async def generate(voice_id: str) -> bytes:
             output_format=WavOutputFormat(),
         )
     return response.audio
+```
+
+`Voice` maps Cartesia's published voice names to their UUIDs. Raw UUID strings
+remain supported. Refresh the checked-in mapping after Cartesia adds or renames
+voices:
+
+```console
+uv run --extra cartesia python scripts/generate_voices.py
 ```
 
 `TextToSpeech` also implements `StreamingTextToSpeech`. `stream()` returns

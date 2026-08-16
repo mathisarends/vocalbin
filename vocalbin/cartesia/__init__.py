@@ -1,5 +1,6 @@
 from . import events
 from .credentials import Credentials
+from .generated import Voice
 from .stt import (
     SpeechToText,
     SpeechToTextConfig,
@@ -42,6 +43,7 @@ __all__ = [
     "TextToSpeechError",
     "TextToSpeechModel",
     "TextToSpeechResponse",
+    "Voice",
     "WavOutputFormat",
     "events",
 ]

@@ -1,3 +1,4 @@
+from ..generated import Voice
 from .client import TextToSpeech, TextToSpeechError
 from .models import (
     AudioEncoding,
@@ -26,5 +27,6 @@ __all__ = [
     "TextToSpeechError",
     "TextToSpeechModel",
     "TextToSpeechResponse",
+    "Voice",
     "WavOutputFormat",
 ]

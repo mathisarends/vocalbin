@@ -3,6 +3,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from vocalbin.cartesia.generated import Voice
+
 
 class TextToSpeechModel(StrEnum):
     SONIC_3_5 = "sonic-3.5"
@@ -72,7 +74,7 @@ class GenerationConfig(BaseModel):
 class TextToSpeechConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    voice_id: str = Field(min_length=1)
+    voice_id: Voice | str = Field(min_length=1)
     model: TextToSpeechModel | str = Field(
         default=TextToSpeechModel.SONIC_3_5,
         serialization_alias="model_id",

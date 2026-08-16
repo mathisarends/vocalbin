@@ -7,6 +7,7 @@ from vocalbin.cartesia import (
     Mp3OutputFormat,
     RawOutputFormat,
     TextToSpeechConfig,
+    Voice,
     WavOutputFormat,
 )
 
@@ -23,6 +24,14 @@ def test_cartesia_config_defaults_and_serialization() -> None:
             "sample_rate": 24000,
         },
     }
+
+
+def test_cartesia_config_accepts_generated_voice() -> None:
+    voice = next(iter(Voice))
+    config = TextToSpeechConfig(voice_id=voice)
+
+    assert config.voice_id == voice
+    assert config.model_dump(mode="json")["voice_id"] == voice.value
 
 
 def test_cartesia_config_forwards_unknown_model_ids() -> None:
