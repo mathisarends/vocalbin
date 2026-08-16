@@ -4,28 +4,28 @@ import pytest
 
 import vocalbin
 from vocalbin import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
-    StreamingSpeechToText,
-    StreamingTextToSpeech,
+    SpeechToText as SpeechToTextPort,
 )
 from vocalbin import (
-    SpeechToText as SpeechToTextPort,
+    StreamingSpeechToText,
+    StreamingTextToSpeech,
 )
 from vocalbin import (
     TextToSpeech as TextToSpeechPort,
 )
 from vocalbin.cartesia import SpeechToText as CartesiaSpeechToText
 from vocalbin.cartesia import TextToSpeech as CartesiaTextToSpeech
+from vocalbin.openai import SpeechToText as OpenAISpeechToText
+from vocalbin.openai import TextToSpeech as OpenAITextToSpeech
 from vocalbin.openai.realtime import (
     AudioInput,
     MicrophoneInput,
-    OpenAIRealtimeProvider,
-    OpenAIRealtimeTranscriber,
-    OpenAIRealtimeTranslator,
+    Provider,
     RealtimeProvider,
     RealtimeTranscription,
     RealtimeTranslation,
+    Transcriber,
+    Translator,
 )
 
 
@@ -56,9 +56,9 @@ def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> Non
     assert inspect.isabstract(RealtimeTranscription)
     assert inspect.isabstract(RealtimeTranslation)
     assert issubclass(MicrophoneInput, AudioInput)
-    assert issubclass(OpenAIRealtimeProvider, RealtimeProvider)
-    assert issubclass(OpenAIRealtimeTranscriber, RealtimeTranscription)
-    assert issubclass(OpenAIRealtimeTranslator, RealtimeTranslation)
+    assert issubclass(Provider, RealtimeProvider)
+    assert issubclass(Transcriber, RealtimeTranscription)
+    assert issubclass(Translator, RealtimeTranslation)
 
     for port in (
         AudioInput,
@@ -71,6 +71,6 @@ def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> Non
 
 
 def test_root_api_does_not_flatten_realtime_namespaces() -> None:
-    assert not hasattr(vocalbin, "OpenAIRealtimeTranscriber")
-    assert not hasattr(vocalbin, "OpenAIRealtimeTranslator")
+    assert not hasattr(vocalbin, "Transcriber")
+    assert not hasattr(vocalbin, "Translator")
     assert not hasattr(vocalbin, "RealtimeTranslationConfig")

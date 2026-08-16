@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from vocalbin import (
+from vocalbin.openai import (
     SpeechToTextFormat,
     SpeechToTextModel,
     SpeechToTextRequest,

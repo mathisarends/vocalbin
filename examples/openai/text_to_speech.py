@@ -12,8 +12,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from vocalbin import (
-    OpenAITextToSpeech,
+from vocalbin.openai import (
+    TextToSpeech,
     TextToSpeechFormat,
     TextToSpeechModel,
     TextToSpeechVoice,
@@ -39,7 +39,7 @@ LEGACY_VOICES = [
 
 async def basic() -> None:
     """Defaults: gpt-4o-mini-tts, voice 'marin', mp3."""
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         response = await tts.generate("Hallo aus vocalbin!")
     _save(response.audio, "basic.mp3")
     print(f"basic: {len(response.audio)} bytes, {response.content_type}")
@@ -47,7 +47,7 @@ async def basic() -> None:
 
 async def with_instructions_and_speed() -> None:
     """gpt-4o-mini-tts supports free-form voice instructions and a speed factor."""
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         response = await tts.generate(
             "Diese Stimme klingt ruhig, freundlich und ein wenig langsamer.",
             model=TextToSpeechModel.GPT_4O_MINI_TTS,
@@ -61,7 +61,7 @@ async def with_instructions_and_speed() -> None:
 
 async def every_format() -> None:
     """gpt-4o-mini-tts can emit every supported container/codec."""
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         for fmt in TextToSpeechFormat:
             response = await tts.generate(
                 f"Dies ist das Format {fmt.value}.",
@@ -73,7 +73,7 @@ async def every_format() -> None:
 
 async def every_voice() -> None:
     """gpt-4o-mini-tts accepts every voice in the enum."""
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         for voice in TextToSpeechVoice:
             response = await tts.generate(
                 f"Das ist die Stimme {voice.value}.",
@@ -85,7 +85,7 @@ async def every_voice() -> None:
 
 async def legacy_models() -> None:
     """tts-1 and tts-1-hd: legacy voices only, no instructions, speed allowed."""
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         for model in (TextToSpeechModel.TTS_1, TextToSpeechModel.TTS_1_HD):
             response = await tts.generate(
                 "Dies ist ein Legacy-Text-to-Speech-Modell.",

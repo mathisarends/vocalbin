@@ -12,10 +12,10 @@ import asyncio
 
 from dotenv import load_dotenv
 
-from vocalbin import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
+from vocalbin.openai import (
+    SpeechToText,
     SpeechToTextRequest,
+    TextToSpeech,
     TextToSpeechFormat,
 )
 
@@ -26,10 +26,10 @@ TEXT = f"Dies ist ein Round-Trip-Test von {PHRASE}."
 
 
 async def main() -> None:
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         spoken = await tts.generate(TEXT, response_format=TextToSpeechFormat.WAV)
 
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         heard = await stt.transcribe(
             SpeechToTextRequest(
                 audio=spoken.audio,

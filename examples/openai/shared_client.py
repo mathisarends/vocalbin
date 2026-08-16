@@ -12,10 +12,10 @@ import asyncio
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-from vocalbin import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
+from vocalbin.openai import (
+    SpeechToText,
     SpeechToTextRequest,
+    TextToSpeech,
     TextToSpeechFormat,
 )
 
@@ -25,8 +25,8 @@ load_dotenv()
 async def main() -> None:
     client = AsyncOpenAI()
 
-    tts = OpenAITextToSpeech(client=client)
-    stt = OpenAISpeechToText(client=client)
+    tts = TextToSpeech(client=client)
+    stt = SpeechToText(client=client)
 
     spoken = await tts.generate(
         "Ein Client, zwei Dienste.",

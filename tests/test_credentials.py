@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from vocalbin import OpenAICredentials, OpenAISpeechToText
 from vocalbin.cartesia.credentials import CartesiaCredentials
+from vocalbin.openai import OpenAICredentials, SpeechToText
 
 
 def test_credentials_read_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -37,7 +37,7 @@ def test_credentials_require_cartesia_api_key(monkeypatch: pytest.MonkeyPatch) -
 
 async def test_client_uses_environment_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
-    service = OpenAISpeechToText()
+    service = SpeechToText()
 
     try:
         assert service.client.api_key == "environment-key"
@@ -49,7 +49,7 @@ async def test_explicit_api_key_takes_precedence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
-    service = OpenAISpeechToText(api_key="explicit-key")
+    service = SpeechToText(api_key="explicit-key")
 
     try:
         assert service.client.api_key == "explicit-key"

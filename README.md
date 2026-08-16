@@ -43,7 +43,7 @@ Set `OPENAI_API_KEY` in the environment, or pass an API key directly when creati
 a service. The default path reads the environment through `OpenAICredentials`:
 
 ```python
-from vocalbin import OpenAICredentials
+from vocalbin.openai import OpenAICredentials
 
 credentials = OpenAICredentials()
 api_key = credentials.api_key.get_secret_value()
@@ -57,11 +57,11 @@ An explicit `api_key` takes precedence over the environment. An injected
 ```python
 from pathlib import Path
 
-from vocalbin import OpenAISpeechToText, SpeechToTextRequest
+from vocalbin.openai import SpeechToText, SpeechToTextRequest
 
 
 async def transcribe() -> str:
-    async with OpenAISpeechToText() as speech_to_text:
+    async with SpeechToText() as speech_to_text:
         response = await speech_to_text.transcribe(
             SpeechToTextRequest(audio_path=Path("speech.wav"), language="de")
         )
@@ -82,15 +82,15 @@ payload on `response.raw` (a `dict` for JSON-like formats, a `str` for `text`,
 ## Text to speech
 
 ```python
-from vocalbin import (
-    OpenAITextToSpeech,
+from vocalbin.openai import (
+    TextToSpeech,
     TextToSpeechFormat,
     TextToSpeechVoice,
 )
 
 
 async def generate() -> bytes:
-    async with OpenAITextToSpeech() as text_to_speech:
+    async with TextToSpeech() as text_to_speech:
         response = await text_to_speech.generate(
             "Hallo aus vocalbin!",
             voice=TextToSpeechVoice.MARIN,
@@ -301,7 +301,7 @@ from vocalbin.openai.realtime import (
     AudioInput,
     AudioStreamInput,
     MicrophoneInput,
-    OpenAIRealtimeProvider,
+    Provider,
     RealtimeError,
     RealtimeNoiseReduction,
     RealtimeSessionConnected,
@@ -394,11 +394,11 @@ closed by `vocalbin`:
 ```python
 from openai import AsyncOpenAI
 
-from vocalbin import OpenAISpeechToText, OpenAITextToSpeech
+from vocalbin.openai import SpeechToText, TextToSpeech
 
 client = AsyncOpenAI()
-tts = OpenAITextToSpeech(client=client)
-stt = OpenAISpeechToText(client=client)
+tts = TextToSpeech(client=client)
+stt = SpeechToText(client=client)
 # ... use both, then close it yourself:
 await client.close()
 ```

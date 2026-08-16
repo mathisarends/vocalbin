@@ -4,9 +4,9 @@ from .builders import (
     RealtimeTranslatorBuilder,
 )
 from .clients import (
-    OpenAIRealtimeProvider,
-    OpenAIRealtimeTranscriber,
-    OpenAIRealtimeTranslator,
+    Provider,
+    Transcriber,
+    Translator,
 )
 from .models import (
     RealtimeError,
@@ -45,9 +45,7 @@ __all__ = [
     "AudioInput",
     "AudioStreamInput",
     "MicrophoneInput",
-    "OpenAIRealtimeProvider",
-    "OpenAIRealtimeTranscriber",
-    "OpenAIRealtimeTranslator",
+    "Provider",
     "RealtimeError",
     "RealtimeErrorDetails",
     "RealtimeEvent",
@@ -77,4 +75,6 @@ __all__ = [
     "RealtimeTranslationTranscriptDelta",
     "RealtimeTranslatorBuilder",
     "SemanticVadConfig",
+    "Transcriber",
+    "Translator",
 ]

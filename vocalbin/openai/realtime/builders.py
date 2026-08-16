@@ -17,8 +17,8 @@ from vocalbin.openai.realtime.ports import AudioInput, RealtimeProvider
 
 if TYPE_CHECKING:
     from vocalbin.openai.realtime.clients import (
-        OpenAIRealtimeTranscriber,
-        OpenAIRealtimeTranslator,
+        Transcriber,
+        Translator,
     )
 
 
@@ -80,8 +80,8 @@ class RealtimeTranscriberBuilder:
         self._safety_identifier = safety_identifier
         return self
 
-    def build(self) -> OpenAIRealtimeTranscriber:
-        from vocalbin.openai.realtime.clients import OpenAIRealtimeTranscriber
+    def build(self) -> Transcriber:
+        from vocalbin.openai.realtime.clients import Transcriber
 
         config = RealtimeTranscriptionConfig(
             model=self._model,
@@ -91,7 +91,7 @@ class RealtimeTranscriberBuilder:
             turn_detection=self._turn_detection,
             include_logprobs=self._include_logprobs,
         )
-        return OpenAIRealtimeTranscriber(
+        return Transcriber(
             config,
             audio_input=self._audio_input,
             provider=self._provider,
@@ -143,8 +143,8 @@ class RealtimeTranslatorBuilder:
         self._safety_identifier = safety_identifier
         return self
 
-    def build(self) -> OpenAIRealtimeTranslator:
-        from vocalbin.openai.realtime.clients import OpenAIRealtimeTranslator
+    def build(self) -> Translator:
+        from vocalbin.openai.realtime.clients import Translator
 
         if self._target_language is None:
             raise ValueError("target_language must be configured before build()")
@@ -154,7 +154,7 @@ class RealtimeTranslatorBuilder:
             noise_reduction=self._noise_reduction,
             include_source_transcript=self._include_source_transcript,
         )
-        return OpenAIRealtimeTranslator(
+        return Translator(
             config,
             audio_input=self._audio_input,
             provider=self._provider,

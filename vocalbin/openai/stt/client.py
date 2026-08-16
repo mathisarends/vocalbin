@@ -3,16 +3,16 @@ from typing import Any, cast
 from openai import AsyncOpenAI
 from openai.types.audio import TranscriptionCreateResponse
 
+from vocalbin import ports
 from vocalbin.openai._shared import _OpenAIClientOwner
 from vocalbin.openai.stt.models import SpeechToTextRequest, SpeechToTextResponse
-from vocalbin.ports import SpeechToText
 
 type TranscriptionResult = TranscriptionCreateResponse | str
 
 
-class OpenAISpeechToText(
+class SpeechToText(
     _OpenAIClientOwner,
-    SpeechToText[SpeechToTextRequest, SpeechToTextResponse],
+    ports.SpeechToText[SpeechToTextRequest, SpeechToTextResponse],
 ):
     def __init__(
         self,

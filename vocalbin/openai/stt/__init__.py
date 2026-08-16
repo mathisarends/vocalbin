@@ -1,4 +1,4 @@
-from .client import OpenAISpeechToText
+from .client import SpeechToText
 from .models import (
     SpeechToTextFormat,
     SpeechToTextModel,
@@ -8,7 +8,7 @@ from .models import (
 )
 
 __all__ = [
-    "OpenAISpeechToText",
+    "SpeechToText",
     "SpeechToTextFormat",
     "SpeechToTextModel",
     "SpeechToTextRequest",

@@ -1,4 +1,4 @@
-from .client import OpenAITextToSpeech
+from .client import TextToSpeech
 from .models import (
     TextToSpeechConfig,
     TextToSpeechFormat,
@@ -8,7 +8,7 @@ from .models import (
 )
 
 __all__ = [
-    "OpenAITextToSpeech",
+    "TextToSpeech",
     "TextToSpeechConfig",
     "TextToSpeechFormat",
     "TextToSpeechModel",

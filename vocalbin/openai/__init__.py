@@ -1,6 +1,6 @@
 from .credentials import OpenAICredentials
 from .stt import (
-    OpenAISpeechToText,
+    SpeechToText,
     SpeechToTextFormat,
     SpeechToTextModel,
     SpeechToTextRequest,
@@ -8,7 +8,7 @@ from .stt import (
     TimestampGranularity,
 )
 from .tts import (
-    OpenAITextToSpeech,
+    TextToSpeech,
     TextToSpeechConfig,
     TextToSpeechFormat,
     TextToSpeechModel,
@@ -18,12 +18,12 @@ from .tts import (
 
 __all__ = [
     "OpenAICredentials",
-    "OpenAISpeechToText",
-    "OpenAITextToSpeech",
+    "SpeechToText",
     "SpeechToTextFormat",
     "SpeechToTextModel",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
+    "TextToSpeech",
     "TextToSpeechConfig",
     "TextToSpeechFormat",
     "TextToSpeechModel",

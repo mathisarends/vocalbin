@@ -8,6 +8,7 @@ from typing import Any, Self, cast
 from urllib.parse import urlencode
 
 from vocalbin.openai.credentials import OpenAICredentials
+from vocalbin.openai.realtime import ports
 from vocalbin.openai.realtime.audio import MicrophoneInput
 from vocalbin.openai.realtime.base import (
     TRANSCRIPTION_SPEC,
@@ -28,12 +29,6 @@ from vocalbin.openai.realtime.models import (
     RealtimeTranslationConfig,
     RealtimeTranslationEvent,
 )
-from vocalbin.openai.realtime.ports import (
-    AudioInput,
-    RealtimeProvider,
-    RealtimeTranscription,
-    RealtimeTranslation,
-)
 
 
 async def _connect_websocket(url: str, headers: dict[str, str]) -> Any:
@@ -47,7 +42,7 @@ async def _connect_websocket(url: str, headers: dict[str, str]) -> Any:
     return await connect(url, additional_headers=headers)
 
 
-class OpenAIRealtimeProvider(RealtimeProvider):
+class Provider(ports.RealtimeProvider):
     def __init__(
         self,
         api_key: str | None = None,
@@ -84,12 +79,12 @@ class OpenAIRealtimeProvider(RealtimeProvider):
 
 
 def _resolve_provider(
-    provider: RealtimeProvider | None,
+    provider: ports.RealtimeProvider | None,
     api_key: str | None,
     safety_identifier: str | None,
-) -> RealtimeProvider:
+) -> ports.RealtimeProvider:
     if provider is None:
-        return OpenAIRealtimeProvider(api_key, safety_identifier=safety_identifier)
+        return Provider(api_key, safety_identifier=safety_identifier)
     if api_key is not None or safety_identifier is not None:
         raise ValueError("Pass either 'provider' or OpenAI credentials, not both.")
     return provider
@@ -98,7 +93,7 @@ def _resolve_provider(
 class _RealtimeWebSocket:
     def __init__(
         self,
-        provider: RealtimeProvider,
+        provider: ports.RealtimeProvider,
         session_type: RealtimeSessionType,
         model: str,
     ) -> None:
@@ -147,8 +142,8 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
         *,
         spec: RealtimeSessionSpec[EventT],
         session_update: RealtimeSessionUpdate,
-        audio_input: AudioInput,
-        provider: RealtimeProvider,
+        audio_input: ports.AudioInput,
+        provider: ports.RealtimeProvider,
         model: str,
     ) -> None:
         self._spec = spec
@@ -236,16 +231,16 @@ class _RealtimeStreamer[EventT: (RealtimeTranscriptionEvent, RealtimeTranslation
             await self._connection.close()
 
 
-class OpenAIRealtimeTranscriber(
+class Transcriber(
     _RealtimeStreamer[RealtimeTranscriptionEvent],
-    RealtimeTranscription,
+    ports.RealtimeTranscription,
 ):
     def __init__(
         self,
         config: RealtimeTranscriptionConfig | None = None,
         *,
-        audio_input: AudioInput | None = None,
-        provider: RealtimeProvider | None = None,
+        audio_input: ports.AudioInput | None = None,
+        provider: ports.RealtimeProvider | None = None,
         api_key: str | None = None,
         safety_identifier: str | None = None,
     ) -> None:
@@ -267,16 +262,16 @@ class OpenAIRealtimeTranscriber(
         await self._connection.send(self._spec.input_finished())
 
 
-class OpenAIRealtimeTranslator(
+class Translator(
     _RealtimeStreamer[RealtimeTranslationEvent],
-    RealtimeTranslation,
+    ports.RealtimeTranslation,
 ):
     def __init__(
         self,
         config: RealtimeTranslationConfig,
         *,
-        audio_input: AudioInput | None = None,
-        provider: RealtimeProvider | None = None,
+        audio_input: ports.AudioInput | None = None,
+        provider: ports.RealtimeProvider | None = None,
         api_key: str | None = None,
         safety_identifier: str | None = None,
     ) -> None:

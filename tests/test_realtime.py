@@ -13,9 +13,7 @@ from vocalbin.openai.realtime import (
     AudioInput,
     AudioStreamInput,
     MicrophoneInput,
-    OpenAIRealtimeProvider,
-    OpenAIRealtimeTranscriber,
-    OpenAIRealtimeTranslator,
+    Provider,
     RealtimeError,
     RealtimeLogprob,
     RealtimeProvider,
@@ -34,6 +32,8 @@ from vocalbin.openai.realtime import (
     RealtimeTranslationTranscriptDelta,
     RealtimeTranslatorBuilder,
     SemanticVadConfig,
+    Transcriber,
+    Translator,
 )
 from vocalbin.openai.realtime.base import TRANSCRIPTION_SPEC, TRANSLATION_SPEC
 from vocalbin.openai.realtime.messages import RealtimeTranscriptionAudioCommit
@@ -193,7 +193,7 @@ def test_realtime_translation_builder_configures_service() -> None:
 def test_openai_realtime_provider_builds_urls_and_headers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    provider = OpenAIRealtimeProvider(
+    provider = Provider(
         "key",
         safety_identifier="hashed-user",
         base_url="wss://example.test/v1/realtime/",
@@ -211,13 +211,13 @@ def test_openai_realtime_provider_builds_urls_and_headers(
     }
 
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
-    environment_provider = OpenAIRealtimeProvider()
+    environment_provider = Provider()
     assert environment_provider.build_headers() == {
         "Authorization": "Bearer environment-key"
     }
 
     with pytest.raises(ValueError, match="must not be blank"):
-        OpenAIRealtimeProvider("key", safety_identifier=" ")
+        Provider("key", safety_identifier=" ")
 
 
 async def test_connect_websocket_loads_optional_dependency(
@@ -354,7 +354,7 @@ async def test_realtime_transcriber_streams_and_maps_events(
         ]
     )
     install_connection(monkeypatch, connection)
-    service = OpenAIRealtimeTranscriber(
+    service = Transcriber(
         RealtimeTranscriptionConfig(
             model="gpt-4o-transcribe",
             language="de",
@@ -445,7 +445,7 @@ async def test_realtime_translator_streams_audio_and_transcripts(
         ]
     )
     install_connection(monkeypatch, connection)
-    service = OpenAIRealtimeTranslator(
+    service = Translator(
         RealtimeTranslationConfig(
             target_language="de",
             noise_reduction=None,
@@ -519,7 +519,7 @@ class BlockingAudioInput(AudioInput):
 async def test_transcriber_flush_and_lifecycle_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    before_start = OpenAIRealtimeTranscriber(
+    before_start = Transcriber(
         audio_input=AudioStreamInput(chunks()),
         provider=DummyProvider(),
     )
@@ -533,7 +533,7 @@ async def test_transcriber_flush_and_lifecycle_errors(
     connection = FakeConnection(wait_until_closed=True)
     install_connection(monkeypatch, connection)
     audio_input = BlockingAudioInput()
-    service = OpenAIRealtimeTranscriber(
+    service = Transcriber(
         audio_input=audio_input,
         provider=DummyProvider(),
     )
@@ -563,7 +563,7 @@ async def test_sender_errors_are_raised_by_event_stream(
 
     connection = FakeConnection(wait_until_closed=True)
     install_connection(monkeypatch, connection)
-    service = OpenAIRealtimeTranslator(
+    service = Translator(
         RealtimeTranslationConfig(target_language="fr"),
         audio_input=AudioStreamInput(broken_source()),
         provider=DummyProvider(),
@@ -578,7 +578,7 @@ async def test_sender_errors_are_raised_by_event_stream(
 
 
 async def test_sender_returns_when_connection_is_not_open() -> None:
-    service = OpenAIRealtimeTranscriber(
+    service = Transcriber(
         audio_input=AudioStreamInput(chunks(b"ignored")),
         provider=DummyProvider(),
     )
@@ -588,7 +588,7 @@ async def test_sender_returns_when_connection_is_not_open() -> None:
 
     assert service._input_finished is False
 
-    empty_service = OpenAIRealtimeTranscriber(
+    empty_service = Transcriber(
         audio_input=AudioStreamInput(chunks()),
         provider=DummyProvider(),
     )
@@ -605,7 +605,7 @@ async def test_sender_preserves_task_cancellation() -> None:
             yield b""
         raise asyncio.CancelledError
 
-    service = OpenAIRealtimeTranscriber(
+    service = Transcriber(
         audio_input=AudioStreamInput(cancelled_source()),
         provider=DummyProvider(),
     )
@@ -619,8 +619,8 @@ async def test_context_manager_and_default_realtime_components(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "key")
-    transcriber = OpenAIRealtimeTranscriber(api_key="key")
-    translator = OpenAIRealtimeTranslator(
+    transcriber = Transcriber(api_key="key")
+    translator = Translator(
         RealtimeTranslationConfig(
             target_language="es",
             noise_reduction="near_field",
@@ -651,10 +651,10 @@ async def test_context_manager_and_default_realtime_components(
 
 def test_provider_and_credentials_are_mutually_exclusive() -> None:
     with pytest.raises(ValueError, match="either 'provider'"):
-        OpenAIRealtimeTranscriber(provider=DummyProvider(), api_key="key")
+        Transcriber(provider=DummyProvider(), api_key="key")
 
     with pytest.raises(ValueError, match="either 'provider'"):
-        OpenAIRealtimeTranslator(
+        Translator(
             RealtimeTranslationConfig(target_language="en"),
             provider=DummyProvider(),
             safety_identifier="user",

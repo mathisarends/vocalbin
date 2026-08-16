@@ -13,12 +13,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from vocalbin import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
+from vocalbin.openai import (
+    SpeechToText,
     SpeechToTextFormat,
     SpeechToTextModel,
     SpeechToTextRequest,
+    TextToSpeech,
     TextToSpeechFormat,
     TimestampGranularity,
 )
@@ -32,7 +32,7 @@ SAMPLE_TEXT = "Guten Morgen, dies ist ein Test der Transkription mit vocalbin."
 
 async def from_path() -> None:
     """Read audio from a file path (default model gpt-4o-transcribe, json)."""
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(audio_path=SAMPLE, language="de")
         )
@@ -42,7 +42,7 @@ async def from_path() -> None:
 async def from_bytes() -> None:
     """Read audio from raw bytes; `filename` only sets the multipart name."""
     audio = SAMPLE.read_bytes()
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(audio=audio, filename="sample.wav", language="de")
         )
@@ -51,7 +51,7 @@ async def from_bytes() -> None:
 
 async def gpt_transcribe_json_with_logprobs() -> None:
     """gpt-4o-transcribe: json + logprobs, plus prompt/temperature hints."""
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(
                 audio_path=SAMPLE,
@@ -68,7 +68,7 @@ async def gpt_transcribe_json_with_logprobs() -> None:
 
 async def gpt_mini_text() -> None:
     """gpt-4o-mini-transcribe: text format returns the transcript as a plain string."""
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(
                 audio_path=SAMPLE,
@@ -81,7 +81,7 @@ async def gpt_mini_text() -> None:
 
 async def diarized() -> None:
     """gpt-4o-transcribe-diarize: diarized_json adds per-speaker segments in `raw`."""
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(
                 audio_path=SAMPLE,
@@ -95,7 +95,7 @@ async def diarized() -> None:
 
 async def whisper_verbose_json_with_timestamps() -> None:
     """Use whisper-1 verbose_json for word and segment timestamps."""
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         response = await stt.transcribe(
             SpeechToTextRequest(
                 audio_path=SAMPLE,
@@ -112,7 +112,7 @@ async def whisper_verbose_json_with_timestamps() -> None:
 
 async def whisper_subtitle_formats() -> None:
     """whisper-1 additionally supports subtitle formats; text is the raw srt/vtt."""
-    async with OpenAISpeechToText() as stt:
+    async with SpeechToText() as stt:
         for fmt in (SpeechToTextFormat.SRT, SpeechToTextFormat.VTT):
             response = await stt.transcribe(
                 SpeechToTextRequest(
@@ -131,7 +131,7 @@ async def _ensure_sample() -> None:
     if SAMPLE.exists():
         return
     OUTPUT_DIR.mkdir(exist_ok=True)
-    async with OpenAITextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         response = await tts.generate(
             SAMPLE_TEXT,
             response_format=TextToSpeechFormat.WAV,

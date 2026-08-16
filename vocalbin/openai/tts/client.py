@@ -2,6 +2,7 @@ from typing import Any, cast, overload
 
 from openai import AsyncOpenAI, omit
 
+from vocalbin import ports
 from vocalbin.openai._shared import _OpenAIClientOwner
 from vocalbin.openai.tts.models import (
     TextToSpeechConfig,
@@ -10,7 +11,6 @@ from vocalbin.openai.tts.models import (
     TextToSpeechResponse,
     TextToSpeechVoice,
 )
-from vocalbin.ports import TextToSpeech
 
 _MAX_TEXT_LENGTH = 4096
 
@@ -24,9 +24,9 @@ _CONTENT_TYPES = {
 }
 
 
-class OpenAITextToSpeech(
+class TextToSpeech(
     _OpenAIClientOwner,
-    TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
+    ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
 ):
     def __init__(
         self,

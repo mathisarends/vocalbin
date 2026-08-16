@@ -6,11 +6,11 @@ import pytest
 from openai import AsyncOpenAI, omit
 from openai.types.audio import Transcription
 
-from vocalbin import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
+from vocalbin.openai import (
+    SpeechToText,
     SpeechToTextFormat,
     SpeechToTextRequest,
+    TextToSpeech,
     TextToSpeechConfig,
     TextToSpeechFormat,
     TextToSpeechModel,
@@ -44,7 +44,7 @@ class FakeClient:
 
 async def test_transcribe_bytes_returns_normalized_response() -> None:
     fake_client = FakeClient(transcription=Transcription(text="Hallo Welt"))
-    service = OpenAISpeechToText(client=cast(AsyncOpenAI, fake_client))
+    service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.transcribe(
         SpeechToTextRequest(audio=b"wave", filename="speech.wav", language="de")
@@ -61,7 +61,7 @@ async def test_transcribe_bytes_returns_normalized_response() -> None:
 
 async def test_transcribe_text_format_preserves_string_response() -> None:
     fake_client = FakeClient(transcription="plain transcript")
-    service = OpenAISpeechToText(client=cast(AsyncOpenAI, fake_client))
+    service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.transcribe(
         SpeechToTextRequest(audio=b"wave", response_format=SpeechToTextFormat.TEXT)
@@ -75,7 +75,7 @@ async def test_transcribe_reads_audio_from_path(tmp_path: Path) -> None:
     audio_path = tmp_path / "speech.wav"
     audio_path.write_bytes(b"wave")
     fake_client = FakeClient(transcription=Transcription(text="Hallo Datei"))
-    service = OpenAISpeechToText(client=cast(AsyncOpenAI, fake_client))
+    service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.transcribe(SpeechToTextRequest(audio_path=audio_path))
 
@@ -87,7 +87,7 @@ async def test_transcribe_reads_audio_from_path(tmp_path: Path) -> None:
 
 async def test_generate_returns_audio_and_content_type() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
+    service = TextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.generate(
         "Hallo",
@@ -108,7 +108,7 @@ async def test_generate_returns_audio_and_content_type() -> None:
 
 async def test_generate_passes_instructions_and_omits_default_speed() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
+    service = TextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
     await service.generate("Hallo", config=TextToSpeechConfig(instructions="Calm"))
 
@@ -119,7 +119,7 @@ async def test_generate_passes_instructions_and_omits_default_speed() -> None:
 
 async def test_generate_uses_default_config() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
-    service = OpenAITextToSpeech(
+    service = TextToSpeech(
         client=cast(AsyncOpenAI, fake_client),
         default_config=TextToSpeechConfig(response_format=TextToSpeechFormat.WAV),
     )
@@ -131,7 +131,7 @@ async def test_generate_uses_default_config() -> None:
 
 async def test_generate_uses_builtin_defaults() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
+    service = TextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.generate("Hallo")
 
@@ -141,7 +141,7 @@ async def test_generate_uses_builtin_defaults() -> None:
 
 
 async def test_generate_rejects_config_with_flat_parameters() -> None:
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
+    service = TextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
 
     with pytest.raises(ValueError, match="either 'config' or flat parameters"):
         await cast(Any, service).generate(
@@ -152,14 +152,14 @@ async def test_generate_rejects_config_with_flat_parameters() -> None:
 
 
 async def test_generate_rejects_blank_text() -> None:
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
+    service = TextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
 
     with pytest.raises(ValueError, match="text must not be blank"):
         await service.generate("   ", config=TextToSpeechConfig())
 
 
 async def test_generate_rejects_text_over_max_length() -> None:
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
+    service = TextToSpeech(client=cast(AsyncOpenAI, FakeClient()))
 
     with pytest.raises(ValueError, match="must not exceed 4096 characters"):
         await service.generate("x" * 4097, config=TextToSpeechConfig())
@@ -181,7 +181,7 @@ async def test_generate_maps_every_format_to_content_type(
     content_type: str,
 ) -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"audio"))
-    service = OpenAITextToSpeech(client=cast(AsyncOpenAI, fake_client))
+    service = TextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
     response = await service.generate(
         "Hallo", config=TextToSpeechConfig(response_format=response_format)
@@ -194,7 +194,7 @@ def test_api_key_and_injected_client_are_mutually_exclusive() -> None:
     fake_client = FakeClient()
 
     with pytest.raises(ValueError, match="either 'api_key' or 'client'"):
-        OpenAISpeechToText(
+        SpeechToText(
             api_key="explicit-key",
             client=cast(AsyncOpenAI, fake_client),
         )
@@ -211,7 +211,7 @@ async def test_owned_client_is_closed_by_context_manager(
 
     monkeypatch.setattr("vocalbin.openai._shared.AsyncOpenAI", create_client)
 
-    async with OpenAISpeechToText(api_key="explicit-key") as service:
+    async with SpeechToText(api_key="explicit-key") as service:
         assert service.client is fake_client
 
     assert fake_client.closed
@@ -219,7 +219,7 @@ async def test_owned_client_is_closed_by_context_manager(
 
 async def test_injected_client_is_not_closed() -> None:
     fake_client = FakeClient()
-    service = OpenAISpeechToText(client=cast(AsyncOpenAI, fake_client))
+    service = SpeechToText(client=cast(AsyncOpenAI, fake_client))
 
     await service.aclose()
 
