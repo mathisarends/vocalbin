@@ -1,14 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from vocalbin.cartesia.credentials import CartesiaCredentials
-from vocalbin.openai import OpenAICredentials, SpeechToText
+from vocalbin import cartesia, openai
 
 
 def test_credentials_read_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
 
-    credentials = OpenAICredentials()
+    credentials = openai.Credentials()
 
     assert credentials.api_key.get_secret_value() == "environment-key"
 
@@ -17,13 +16,13 @@ def test_credentials_require_openai_api_key(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     with pytest.raises(ValidationError, match="api_key"):
-        OpenAICredentials(_env_file=None)
+        openai.Credentials(_env_file=None)
 
 
 def test_credentials_read_cartesia_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CARTESIA_API_KEY", "cartesia-key")
 
-    credentials = CartesiaCredentials()
+    credentials = cartesia.Credentials()
 
     assert credentials.api_key.get_secret_value() == "cartesia-key"
 
@@ -32,12 +31,12 @@ def test_credentials_require_cartesia_api_key(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.delenv("CARTESIA_API_KEY", raising=False)
 
     with pytest.raises(ValidationError, match="api_key"):
-        CartesiaCredentials(_env_file=None)
+        cartesia.Credentials(_env_file=None)
 
 
 async def test_client_uses_environment_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
-    service = SpeechToText()
+    service = openai.SpeechToText()
 
     try:
         assert service.client.api_key == "environment-key"
@@ -49,7 +48,7 @@ async def test_explicit_api_key_takes_precedence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
-    service = SpeechToText(api_key="explicit-key")
+    service = openai.SpeechToText(api_key="explicit-key")
 
     try:
         assert service.client.api_key == "explicit-key"

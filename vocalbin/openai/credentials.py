@@ -2,7 +2,7 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class OpenAICredentials(BaseSettings):
+class Credentials(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="OPENAI_", env_file=".env", extra="ignore"
     )

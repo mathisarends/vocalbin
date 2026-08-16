@@ -7,7 +7,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 from vocalbin import ports
-from vocalbin.cartesia.credentials import CartesiaCredentials
+from vocalbin.cartesia.credentials import Credentials
 from vocalbin.cartesia.events import (
     Connected,
     Event,
@@ -59,7 +59,7 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
             resolved_api_key = (
                 api_key
                 if api_key is not None
-                else CartesiaCredentials().api_key.get_secret_value()
+                else Credentials().api_key.get_secret_value()
             )
             client = _create_client(resolved_api_key)
         self.client = client

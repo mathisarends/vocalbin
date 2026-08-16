@@ -40,12 +40,12 @@ uv add "vocalbin[piper]"     # Piper local/offline TTS
 ```
 
 Set `OPENAI_API_KEY` in the environment, or pass an API key directly when creating
-a service. The default path reads the environment through `OpenAICredentials`:
+a service. The default path reads the environment through `Credentials`:
 
 ```python
-from vocalbin.openai import OpenAICredentials
+from vocalbin.openai import Credentials
 
-credentials = OpenAICredentials()
+credentials = Credentials()
 api_key = credentials.api_key.get_secret_value()
 ```
 

@@ -5,7 +5,7 @@ from typing import Self
 
 from openai import AsyncOpenAI
 
-from vocalbin.openai.credentials import OpenAICredentials
+from vocalbin.openai.credentials import Credentials
 
 
 class _OpenAIClientOwner:
@@ -18,7 +18,7 @@ class _OpenAIClientOwner:
             resolved_api_key = (
                 api_key
                 if api_key is not None
-                else OpenAICredentials().api_key.get_secret_value()
+                else Credentials().api_key.get_secret_value()
             )
             self.client = AsyncOpenAI(api_key=resolved_api_key)
         self._owns_client = client is None

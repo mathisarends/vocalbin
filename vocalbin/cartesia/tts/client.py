@@ -7,7 +7,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from vocalbin import ports
-from vocalbin.cartesia.credentials import CartesiaCredentials
+from vocalbin.cartesia.credentials import Credentials
 from vocalbin.cartesia.tts.models import (
     GenerationConfig,
     OutputFormat,
@@ -57,7 +57,7 @@ class TextToSpeech(
             resolved_api_key = (
                 api_key
                 if api_key is not None
-                else CartesiaCredentials().api_key.get_secret_value()
+                else Credentials().api_key.get_secret_value()
             )
             client = _create_client(resolved_api_key)
         self.client = client

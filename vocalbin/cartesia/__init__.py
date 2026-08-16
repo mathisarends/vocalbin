@@ -1,5 +1,5 @@
 from . import events
-from .credentials import CartesiaCredentials
+from .credentials import Credentials
 from .stt import (
     SpeechToText,
     SpeechToTextConfig,
@@ -26,7 +26,7 @@ from .tts import (
 __all__ = [
     "AudioEncoding",
     "BitRate",
-    "CartesiaCredentials",
+    "Credentials",
     "GenerationConfig",
     "Mp3OutputFormat",
     "OutputFormat",

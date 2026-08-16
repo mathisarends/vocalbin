@@ -7,7 +7,7 @@ from types import TracebackType
 from typing import Any, Self, cast
 from urllib.parse import urlencode
 
-from vocalbin.openai.credentials import OpenAICredentials
+from vocalbin.openai.credentials import Credentials
 from vocalbin.openai.realtime import ports
 from vocalbin.openai.realtime.audio import MicrophoneInput
 from vocalbin.openai.realtime.base import (
@@ -53,9 +53,7 @@ class Provider(ports.RealtimeProvider):
         if safety_identifier is not None and not safety_identifier.strip():
             raise ValueError("safety_identifier must not be blank")
         self._api_key = (
-            api_key
-            if api_key is not None
-            else OpenAICredentials().api_key.get_secret_value()
+            api_key if api_key is not None else Credentials().api_key.get_secret_value()
         )
         self._safety_identifier = safety_identifier
         self._base_url = base_url.rstrip("/")

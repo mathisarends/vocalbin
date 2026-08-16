@@ -1,4 +1,4 @@
-from .credentials import OpenAICredentials
+from .credentials import Credentials
 from .stt import (
     SpeechToText,
     SpeechToTextFormat,
@@ -17,7 +17,7 @@ from .tts import (
 )
 
 __all__ = [
-    "OpenAICredentials",
+    "Credentials",
     "SpeechToText",
     "SpeechToTextFormat",
     "SpeechToTextModel",
