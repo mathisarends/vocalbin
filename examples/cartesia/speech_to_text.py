@@ -2,6 +2,8 @@ import asyncio
 import os
 from collections.abc import AsyncIterator
 
+from dotenv import load_dotenv
+
 from vocalbin.cartesia import (
     CartesiaRawOutputFormat,
     CartesiaSpeechToText,
@@ -9,6 +11,8 @@ from vocalbin.cartesia import (
     CartesiaSpeechToTextTurnUpdate,
     CartesiaTextToSpeech,
 )
+
+load_dotenv()
 
 SAMPLE_RATE = 16000
 CHUNK_SIZE = 3200

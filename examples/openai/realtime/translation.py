@@ -1,6 +1,8 @@
 import asyncio
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.openai.realtime import (
     RealtimeError,
@@ -11,6 +13,8 @@ from vocalbin.openai.realtime import (
     RealtimeTranslationTranscriptDelta,
     RealtimeTranslatorBuilder,
 )
+
+load_dotenv()
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 OUTPUT_PATH = OUTPUT_DIR / "realtime-translation.pcm"

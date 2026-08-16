@@ -10,12 +10,16 @@ cheap end-to-end check that both endpoints are reachable and wired correctly.
 
 import asyncio
 
+from dotenv import load_dotenv
+
 from vocalbin import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
     SpeechToTextRequest,
     TextToSpeechFormat,
 )
+
+load_dotenv()
 
 PHRASE = "vocalbin"
 TEXT = f"Dies ist ein Round-Trip-Test von {PHRASE}."

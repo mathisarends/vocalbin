@@ -10,12 +10,16 @@ Generated audio is written to examples/output/.
 import asyncio
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from vocalbin import (
     OpenAITextToSpeech,
     TextToSpeechFormat,
     TextToSpeechModel,
     TextToSpeechVoice,
 )
+
+load_dotenv()
 
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 

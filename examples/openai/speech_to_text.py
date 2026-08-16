@@ -11,6 +11,8 @@ it is generated once via text-to-speech so every example below is self-contained
 import asyncio
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from vocalbin import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -20,6 +22,8 @@ from vocalbin import (
     TextToSpeechFormat,
     TimestampGranularity,
 )
+
+load_dotenv()
 
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 SAMPLE = OUTPUT_DIR / "sample.wav"

@@ -9,6 +9,7 @@ speech-to-text and text-to-speech, and close it yourself when you are done.
 
 import asyncio
 
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 from vocalbin import (
@@ -17,6 +18,8 @@ from vocalbin import (
     SpeechToTextRequest,
     TextToSpeechFormat,
 )
+
+load_dotenv()
 
 
 async def main() -> None:

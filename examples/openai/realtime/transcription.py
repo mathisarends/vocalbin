@@ -1,5 +1,7 @@
 import asyncio
 
+from dotenv import load_dotenv
+
 from examples.openai.realtime._terminal import RealtimeTerminal
 from vocalbin.openai.realtime import (
     RealtimeError,
@@ -10,6 +12,8 @@ from vocalbin.openai.realtime import (
     RealtimeTranscriptCompleted,
     RealtimeTranscriptDelta,
 )
+
+load_dotenv()
 
 
 async def main() -> None:
