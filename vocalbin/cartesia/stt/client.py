@@ -6,6 +6,7 @@ from contextlib import suppress
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
+from vocalbin import ports
 from vocalbin.cartesia.credentials import CartesiaCredentials
 from vocalbin.cartesia.events import (
     Connected,
@@ -17,7 +18,6 @@ from vocalbin.cartesia.events import (
     TurnUpdate,
 )
 from vocalbin.cartesia.stt.models import SpeechToTextConfig
-from vocalbin.ports import StreamingSpeechToText as StreamingSpeechToTextPort
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -44,7 +44,7 @@ class SpeechToTextError(RuntimeError):
         self.doc_url = doc_url
 
 
-class SpeechToText(StreamingSpeechToTextPort[SpeechToTextConfig, Event]):
+class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
     def __init__(
         self,
         api_key: str | None = None,

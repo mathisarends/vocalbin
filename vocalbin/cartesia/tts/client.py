@@ -6,6 +6,7 @@ from contextlib import suppress
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self, overload
 
+from vocalbin import ports
 from vocalbin.cartesia.credentials import CartesiaCredentials
 from vocalbin.cartesia.tts.models import (
     GenerationConfig,
@@ -14,10 +15,6 @@ from vocalbin.cartesia.tts.models import (
     TextToSpeechModel,
     TextToSpeechResponse,
 )
-from vocalbin.ports import (
-    StreamingTextToSpeech as StreamingTextToSpeechPort,
-)
-from vocalbin.ports import TextToSpeech as TextToSpeechPort
 from vocalbin.ports import resolve_config
 
 if TYPE_CHECKING:
@@ -43,8 +40,8 @@ class TextToSpeechError(RuntimeError):
 
 
 class TextToSpeech(
-    TextToSpeechPort[TextToSpeechConfig, TextToSpeechResponse],
-    StreamingTextToSpeechPort[TextToSpeechConfig, bytes],
+    ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
+    ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
 ):
     def __init__(
         self,
