@@ -7,17 +7,17 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 from vocalbin.cartesia.credentials import CartesiaCredentials
-from vocalbin.cartesia.stt.models import (
-    CartesiaSpeechToTextConfig,
-    CartesiaSpeechToTextConnected,
-    CartesiaSpeechToTextEvent,
-    CartesiaSpeechToTextTurnEagerEnd,
-    CartesiaSpeechToTextTurnEnd,
-    CartesiaSpeechToTextTurnResume,
-    CartesiaSpeechToTextTurnStart,
-    CartesiaSpeechToTextTurnUpdate,
+from vocalbin.cartesia.events import (
+    Connected,
+    Event,
+    TurnEagerEnd,
+    TurnEnd,
+    TurnResume,
+    TurnStart,
+    TurnUpdate,
 )
-from vocalbin.ports import StreamingSpeechToText
+from vocalbin.cartesia.stt.models import SpeechToTextConfig
+from vocalbin.ports import StreamingSpeechToText as StreamingSpeechToTextPort
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from cartesia.types.stt import STTAutoFinalizeWebsocketResponse
 
 
-class CartesiaSpeechToTextError(RuntimeError):
+class SpeechToTextError(RuntimeError):
     def __init__(
         self,
         message: str,
@@ -44,15 +44,13 @@ class CartesiaSpeechToTextError(RuntimeError):
         self.doc_url = doc_url
 
 
-class CartesiaSpeechToText(
-    StreamingSpeechToText[CartesiaSpeechToTextConfig, CartesiaSpeechToTextEvent]
-):
+class SpeechToText(StreamingSpeechToTextPort[SpeechToTextConfig, Event]):
     def __init__(
         self,
         api_key: str | None = None,
         *,
         client: AsyncCartesia | None = None,
-        default_config: CartesiaSpeechToTextConfig | None = None,
+        default_config: SpeechToTextConfig | None = None,
     ) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -65,15 +63,15 @@ class CartesiaSpeechToText(
             )
             client = _create_client(resolved_api_key)
         self.client = client
-        self.default_config = default_config or CartesiaSpeechToTextConfig()
+        self.default_config = default_config or SpeechToTextConfig()
         self._owns_client = owns_client
 
     async def stream(
         self,
         audio: AsyncIterable[bytes],
         *,
-        config: CartesiaSpeechToTextConfig | None = None,
-    ) -> AsyncGenerator[CartesiaSpeechToTextEvent]:
+        config: SpeechToTextConfig | None = None,
+    ) -> AsyncGenerator[Event]:
         resolved_config = config or self.default_config
         manager = self.client.stt.auto_finalize.websocket(
             **resolved_config.to_cartesia_params()
@@ -106,7 +104,7 @@ class CartesiaSpeechToText(
                         break
 
                     if event.type == "error":
-                        raise CartesiaSpeechToTextError(
+                        raise SpeechToTextError(
                             event.message,
                             error_code=event.error_code,
                             status_code=event.status_code,
@@ -169,26 +167,26 @@ async def _stop_task(task: asyncio.Future[Any]) -> None:
 
 def _normalize_event(
     event: STTAutoFinalizeWebsocketResponse,
-) -> CartesiaSpeechToTextEvent:
+) -> Event:
     match event.type:
         case "connected":
-            return CartesiaSpeechToTextConnected(request_id=event.request_id)
+            return Connected(request_id=event.request_id)
         case "turn.start":
-            return CartesiaSpeechToTextTurnStart(request_id=event.request_id)
+            return TurnStart(request_id=event.request_id)
         case "turn.update":
-            return CartesiaSpeechToTextTurnUpdate(
+            return TurnUpdate(
                 request_id=event.request_id,
                 transcript=event.transcript,
             )
         case "turn.eager_end":
-            return CartesiaSpeechToTextTurnEagerEnd(
+            return TurnEagerEnd(
                 request_id=event.request_id,
                 transcript=event.transcript,
             )
         case "turn.resume":
-            return CartesiaSpeechToTextTurnResume(request_id=event.request_id)
+            return TurnResume(request_id=event.request_id)
         case "turn.end":
-            return CartesiaSpeechToTextTurnEnd(
+            return TurnEnd(
                 request_id=event.request_id,
                 transcript=event.transcript,
             )

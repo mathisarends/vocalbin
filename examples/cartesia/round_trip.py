@@ -8,15 +8,10 @@ from typing import Any
 from dotenv import load_dotenv
 
 from vocalbin.cartesia import (
-    CartesiaRawOutputFormat,
-    CartesiaSpeechToText,
-    CartesiaSpeechToTextConnected,
-    CartesiaSpeechToTextTurnEagerEnd,
-    CartesiaSpeechToTextTurnEnd,
-    CartesiaSpeechToTextTurnResume,
-    CartesiaSpeechToTextTurnStart,
-    CartesiaSpeechToTextTurnUpdate,
-    CartesiaTextToSpeech,
+    RawOutputFormat,
+    SpeechToText,
+    TextToSpeech,
+    events,
 )
 
 load_dotenv()
@@ -78,29 +73,29 @@ async def microphone_audio(logger: logging.Logger) -> AsyncIterator[bytes]:
 
 async def transcribe_turn(logger: logging.Logger) -> str:
     transcript = ""
-    async with CartesiaSpeechToText() as speech_to_text:
-        events = speech_to_text.stream(microphone_audio(logger))
+    async with SpeechToText() as speech_to_text:
+        event_stream = speech_to_text.stream(microphone_audio(logger))
         try:
-            async for event in events:
+            async for event in event_stream:
                 match event:
-                    case CartesiaSpeechToTextConnected():
+                    case events.Connected():
                         logger.info("STT connected")
-                    case CartesiaSpeechToTextTurnStart():
+                    case events.TurnStart():
                         logger.info("Speech detected")
-                    case CartesiaSpeechToTextTurnUpdate(transcript=text):
+                    case events.TurnUpdate(transcript=text):
                         transcript = text
                         logger.info("STT partial: %r", text)
-                    case CartesiaSpeechToTextTurnEagerEnd(transcript=text):
+                    case events.TurnEagerEnd(transcript=text):
                         transcript = text
                         logger.info("STT eager end: %r", text)
-                    case CartesiaSpeechToTextTurnResume():
+                    case events.TurnResume():
                         logger.info("Speech resumed")
-                    case CartesiaSpeechToTextTurnEnd(transcript=text):
+                    case events.TurnEnd(transcript=text):
                         transcript = text
                         logger.info("STT finished: %r", text)
                         break
         finally:
-            await events.aclose()
+            await event_stream.aclose()
 
     if not transcript.strip():
         raise RuntimeError("Cartesia finished the turn without a transcript")
@@ -133,7 +128,7 @@ async def speak_response(
             "This example requires sounddevice. Run it with the 'audio' extra."
         ) from exc
 
-    output_format = CartesiaRawOutputFormat(sample_rate=SAMPLE_RATE)
+    output_format = RawOutputFormat(sample_rate=SAMPLE_RATE)
     output: Any = sounddevice.RawOutputStream(
         samplerate=SAMPLE_RATE,
         channels=1,
@@ -144,7 +139,7 @@ async def speak_response(
     logger.info("TTS started")
     output.start()
     try:
-        async with CartesiaTextToSpeech() as text_to_speech:
+        async with TextToSpeech() as text_to_speech:
             async for audio in text_to_speech.stream_incremental(
                 mock_llm(transcript, logger),
                 voice_id=voice_id,

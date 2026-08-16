@@ -4,13 +4,7 @@ from collections.abc import AsyncIterator
 
 from dotenv import load_dotenv
 
-from vocalbin.cartesia import (
-    CartesiaRawOutputFormat,
-    CartesiaSpeechToText,
-    CartesiaSpeechToTextTurnEnd,
-    CartesiaSpeechToTextTurnUpdate,
-    CartesiaTextToSpeech,
-)
+from vocalbin.cartesia import RawOutputFormat, SpeechToText, TextToSpeech, events
 
 load_dotenv()
 
@@ -26,20 +20,20 @@ async def paced_audio(audio: bytes) -> AsyncIterator[bytes]:
 
 async def main() -> None:
     voice_id = os.environ["CARTESIA_VOICE_ID"]
-    async with CartesiaTextToSpeech() as text_to_speech:
+    async with TextToSpeech() as text_to_speech:
         response = await text_to_speech.generate(
             "Hello from Sonic 3.5. Ink 2 will transcribe this audio in real time.",
             voice_id=voice_id,
             language="en",
-            output_format=CartesiaRawOutputFormat(sample_rate=SAMPLE_RATE),
+            output_format=RawOutputFormat(sample_rate=SAMPLE_RATE),
         )
 
-    async with CartesiaSpeechToText() as speech_to_text:
+    async with SpeechToText() as speech_to_text:
         async for event in speech_to_text.stream(paced_audio(response.audio)):
             match event:
-                case CartesiaSpeechToTextTurnUpdate(transcript=transcript):
+                case events.TurnUpdate(transcript=transcript):
                     print(f"update: {transcript}")
-                case CartesiaSpeechToTextTurnEnd(transcript=transcript):
+                case events.TurnEnd(transcript=transcript):
                     print(f"final: {transcript}")
 
 

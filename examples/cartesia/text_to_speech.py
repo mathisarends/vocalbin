@@ -15,7 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from vocalbin.cartesia import CartesiaTextToSpeech, CartesiaWavOutputFormat
+from vocalbin.cartesia import TextToSpeech, WavOutputFormat
 
 load_dotenv()
 
@@ -23,12 +23,12 @@ OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 
 async def generate(voice_id: str) -> None:
-    async with CartesiaTextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         response = await tts.generate(
             "Hallo aus vocalbin mit Cartesia!",
             voice_id=voice_id,
             language="de",
-            output_format=CartesiaWavOutputFormat(),
+            output_format=WavOutputFormat(),
         )
 
     _save(response.audio, "cartesia_generate.wav")
@@ -37,7 +37,7 @@ async def generate(voice_id: str) -> None:
 
 async def stream(voice_id: str) -> None:
     audio = bytearray()
-    async with CartesiaTextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         async for chunk in tts.stream(
             "Dieser vollständige Text wird als Audiostream übertragen.",
             voice_id=voice_id,
@@ -59,7 +59,7 @@ async def stream_incremental(voice_id: str) -> None:
             yield chunk
 
     audio = bytearray()
-    async with CartesiaTextToSpeech() as tts:
+    async with TextToSpeech() as tts:
         async for chunk in tts.stream_incremental(
             text_chunks(),
             voice_id=voice_id,

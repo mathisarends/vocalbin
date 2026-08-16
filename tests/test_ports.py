@@ -6,12 +6,17 @@ import vocalbin
 from vocalbin import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
-    SpeechToText,
     StreamingSpeechToText,
     StreamingTextToSpeech,
-    TextToSpeech,
 )
-from vocalbin.cartesia import CartesiaSpeechToText, CartesiaTextToSpeech
+from vocalbin import (
+    SpeechToText as SpeechToTextPort,
+)
+from vocalbin import (
+    TextToSpeech as TextToSpeechPort,
+)
+from vocalbin.cartesia import SpeechToText as CartesiaSpeechToText
+from vocalbin.cartesia import TextToSpeech as CartesiaTextToSpeech
 from vocalbin.openai.realtime import (
     AudioInput,
     MicrophoneInput,
@@ -25,20 +30,20 @@ from vocalbin.openai.realtime import (
 
 
 def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
-    assert inspect.isabstract(SpeechToText)
-    assert inspect.isabstract(TextToSpeech)
+    assert inspect.isabstract(SpeechToTextPort)
+    assert inspect.isabstract(TextToSpeechPort)
     assert inspect.isabstract(StreamingSpeechToText)
     assert inspect.isabstract(StreamingTextToSpeech)
-    assert issubclass(OpenAISpeechToText, SpeechToText)
-    assert issubclass(OpenAITextToSpeech, TextToSpeech)
-    assert issubclass(CartesiaTextToSpeech, TextToSpeech)
+    assert issubclass(OpenAISpeechToText, SpeechToTextPort)
+    assert issubclass(OpenAITextToSpeech, TextToSpeechPort)
+    assert issubclass(CartesiaTextToSpeech, TextToSpeechPort)
     assert issubclass(CartesiaTextToSpeech, StreamingTextToSpeech)
     assert issubclass(CartesiaSpeechToText, StreamingSpeechToText)
 
     with pytest.raises(TypeError):
-        SpeechToText()
+        SpeechToTextPort()
     with pytest.raises(TypeError):
-        TextToSpeech()
+        TextToSpeechPort()
     with pytest.raises(TypeError):
         StreamingSpeechToText()
     with pytest.raises(TypeError):

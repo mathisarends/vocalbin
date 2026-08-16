@@ -2,19 +2,18 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from vocalbin.cartesia import (
-    CartesiaSpeechToTextConfig,
-    CartesiaSpeechToTextEncoding,
-    CartesiaSpeechToTextEvent,
-    CartesiaSpeechToTextModel,
-    CartesiaSpeechToTextTurnEnd,
+    SpeechToTextConfig,
+    SpeechToTextEncoding,
+    SpeechToTextModel,
+    events,
 )
 
 
 def test_cartesia_stt_config_defaults_and_serialization() -> None:
-    config = CartesiaSpeechToTextConfig(keyterms=None)
+    config = SpeechToTextConfig(keyterms=None)
 
-    assert config.model == CartesiaSpeechToTextModel.INK_2
-    assert config.encoding == CartesiaSpeechToTextEncoding.PCM_S16LE
+    assert config.model == SpeechToTextModel.INK_2
+    assert config.encoding == SpeechToTextEncoding.PCM_S16LE
     assert config.to_cartesia_params() == {
         "model": "ink-2",
         "encoding": "pcm_s16le",
@@ -24,9 +23,9 @@ def test_cartesia_stt_config_defaults_and_serialization() -> None:
 
 
 def test_cartesia_stt_config_serializes_every_option() -> None:
-    config = CartesiaSpeechToTextConfig(
+    config = SpeechToTextConfig(
         model="ink-future",
-        encoding=CartesiaSpeechToTextEncoding.PCM_F32LE,
+        encoding=SpeechToTextEncoding.PCM_F32LE,
         sample_rate=48000,
         keyterms=["vocalbin", "Ink 2"],
         turn_start_threshold=0.9,
@@ -65,19 +64,19 @@ def test_cartesia_stt_config_rejects_invalid_values(
     values: dict[str, object],
 ) -> None:
     with pytest.raises(ValidationError):
-        CartesiaSpeechToTextConfig(**values)
+        SpeechToTextConfig(**values)
 
 
 def test_cartesia_stt_config_rejects_misordered_thresholds() -> None:
     with pytest.raises(ValidationError, match="start > eager_end > end"):
-        CartesiaSpeechToTextConfig(
+        SpeechToTextConfig(
             turn_start_threshold=0.5,
             turn_eager_end_threshold=0.5,
         )
 
 
 def test_cartesia_stt_event_union_is_discriminated() -> None:
-    event = TypeAdapter(CartesiaSpeechToTextEvent).validate_python(
+    event = TypeAdapter(events.Event).validate_python(
         {
             "type": "turn.end",
             "request_id": "request-id",
@@ -85,4 +84,4 @@ def test_cartesia_stt_event_union_is_discriminated() -> None:
         }
     )
 
-    assert isinstance(event, CartesiaSpeechToTextTurnEnd)
+    assert isinstance(event, events.TurnEnd)

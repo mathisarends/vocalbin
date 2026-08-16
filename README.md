@@ -110,23 +110,23 @@ Cartesia is an alternative text-to-speech provider, grouped under
 
 ```python
 from vocalbin.cartesia import (
-    CartesiaTextToSpeech,
-    CartesiaWavOutputFormat,
+    TextToSpeech,
+    WavOutputFormat,
 )
 
 
 async def generate(voice_id: str) -> bytes:
-    async with CartesiaTextToSpeech() as text_to_speech:
+    async with TextToSpeech() as text_to_speech:
         response = await text_to_speech.generate(
             "Hallo aus vocalbin mit Cartesia!",
             voice_id=voice_id,
             language="de",
-            output_format=CartesiaWavOutputFormat(),
+            output_format=WavOutputFormat(),
         )
     return response.audio
 ```
 
-`CartesiaTextToSpeech` also implements `StreamingTextToSpeech`. `stream()` returns
+`TextToSpeech` also implements `StreamingTextToSpeech`. `stream()` returns
 one full request as an audio chunk stream; `stream_incremental()` takes an async
 iterable of text chunks and streams matching audio back over the same WebSocket
 connection, so text can be sent incrementally as it becomes available:
@@ -134,7 +134,7 @@ connection, so text can be sent incrementally as it becomes available:
 ```python
 from collections.abc import AsyncIterator
 
-from vocalbin.cartesia import CartesiaTextToSpeech
+from vocalbin.cartesia import TextToSpeech
 
 
 async def stream_incremental(
@@ -142,7 +142,7 @@ async def stream_incremental(
 ) -> bytes:
     audio = bytearray()
 
-    async with CartesiaTextToSpeech() as text_to_speech:
+    async with TextToSpeech() as text_to_speech:
         async for chunk in text_to_speech.stream_incremental(
             text_chunks,
             voice_id=voice_id,
@@ -152,38 +152,34 @@ async def stream_incremental(
     return bytes(audio)
 ```
 
-WebSocket streaming requires `output_format=CartesiaRawOutputFormat()` (the
+WebSocket streaming requires `output_format=RawOutputFormat()` (the
 default), which returns raw 16-bit PCM audio.
 
 ## Cartesia realtime speech to text
 
-`CartesiaSpeechToText` implements `StreamingSpeechToText` with Cartesia's Ink 2
+`SpeechToText` implements `StreamingSpeechToText` with Cartesia's Ink 2
 model and built-in turn detection. It accepts an async stream of raw, mono audio
 chunks and emits typed turn lifecycle events:
 
 ```python
 from collections.abc import AsyncIterator
 
-from vocalbin.cartesia import (
-    CartesiaSpeechToText,
-    CartesiaSpeechToTextTurnEnd,
-    CartesiaSpeechToTextTurnUpdate,
-)
+from vocalbin.cartesia import SpeechToText, events
 
 
 async def transcribe(audio: AsyncIterator[bytes]) -> None:
-    async with CartesiaSpeechToText() as speech_to_text:
+    async with SpeechToText() as speech_to_text:
         async for event in speech_to_text.stream(audio):
             match event:
-                case CartesiaSpeechToTextTurnUpdate(transcript=transcript):
+                case events.TurnUpdate(transcript=transcript):
                     print(transcript)
-                case CartesiaSpeechToTextTurnEnd(transcript=transcript):
+                case events.TurnEnd(transcript=transcript):
                     print(f"final: {transcript}")
 ```
 
 The default input is mono `pcm_s16le` at 16 kHz. Other raw PCM encodings,
 sample rates, keyterms, and turn-detection thresholds can be set with
-`CartesiaSpeechToTextConfig`. Audio should arrive at realtime speed in small
+`SpeechToTextConfig`. Audio should arrive at realtime speed in small
 chunks (Cartesia recommends about 100 ms). Ink 2 currently supports English
 only. Cartesia does not expose Ink 2 through its batch STT endpoint, so this
 adapter intentionally has no `transcribe()` method.

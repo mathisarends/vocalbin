@@ -7,12 +7,12 @@ from typing import Any, cast
 import pytest
 
 from vocalbin.cartesia import (
-    CartesiaMp3OutputFormat,
-    CartesiaRawOutputFormat,
-    CartesiaTextToSpeech,
-    CartesiaTextToSpeechConfig,
-    CartesiaTextToSpeechError,
-    CartesiaWavOutputFormat,
+    Mp3OutputFormat,
+    RawOutputFormat,
+    TextToSpeech,
+    TextToSpeechConfig,
+    TextToSpeechError,
+    WavOutputFormat,
 )
 from vocalbin.cartesia.tts import client as cartesia_clients
 
@@ -122,19 +122,17 @@ async def text_stream(*chunks: str) -> AsyncIterator[str]:
 @pytest.mark.parametrize(
     ("output_format", "content_type"),
     [
-        (CartesiaRawOutputFormat(), "audio/pcm"),
-        (CartesiaWavOutputFormat(), "audio/wav"),
-        (CartesiaMp3OutputFormat(), "audio/mpeg"),
+        (RawOutputFormat(), "audio/pcm"),
+        (WavOutputFormat(), "audio/wav"),
+        (Mp3OutputFormat(), "audio/mpeg"),
     ],
 )
 async def test_cartesia_generate_returns_normalized_response(
-    output_format: CartesiaRawOutputFormat
-    | CartesiaWavOutputFormat
-    | CartesiaMp3OutputFormat,
+    output_format: RawOutputFormat | WavOutputFormat | Mp3OutputFormat,
     content_type: str,
 ) -> None:
     fake_client = FakeClient()
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client))
+    service = TextToSpeech(client=cast(Any, fake_client))
 
     response = await service.generate(
         "Hallo",
@@ -170,8 +168,8 @@ async def test_cartesia_generate_returns_normalized_response(
 
 async def test_cartesia_generate_accepts_legacy_config() -> None:
     fake_client = FakeClient()
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id", language="de")
+    service = TextToSpeech(client=cast(Any, fake_client))
+    config = TextToSpeechConfig(voice_id="voice-id", language="de")
 
     response = await service.generate("Hallo", config=config)
 
@@ -182,18 +180,18 @@ async def test_cartesia_generate_accepts_legacy_config() -> None:
 
 
 async def test_cartesia_generate_rejects_config_with_flat_parameters() -> None:
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient()))
+    service = TextToSpeech(client=cast(Any, FakeClient()))
 
     with pytest.raises(ValueError, match="either 'config' or flat parameters"):
         await cast(Any, service).generate(
             "Hallo",
             voice_id="voice-id",
-            config=CartesiaTextToSpeechConfig(voice_id="other-voice"),
+            config=TextToSpeechConfig(voice_id="other-voice"),
         )
 
 
 async def test_cartesia_generate_requires_voice_id_for_flat_parameters() -> None:
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient()))
+    service = TextToSpeech(client=cast(Any, FakeClient()))
 
     with pytest.raises(ValueError, match="'voice_id' is required"):
         await cast(Any, service).generate("Hallo", language="de")
@@ -201,8 +199,8 @@ async def test_cartesia_generate_requires_voice_id_for_flat_parameters() -> None
 
 async def test_cartesia_generate_uses_default_config() -> None:
     fake_client = FakeClient()
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client), default_config=config)
+    config = TextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, fake_client), default_config=config)
 
     response = await service.generate("Hallo")
 
@@ -211,15 +209,15 @@ async def test_cartesia_generate_uses_default_config() -> None:
 
 
 async def test_cartesia_generate_requires_config() -> None:
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient()))
+    service = TextToSpeech(client=cast(Any, FakeClient()))
 
     with pytest.raises(ValueError, match="Provide 'config'"):
         await service.generate("Hallo")
 
 
 async def test_cartesia_generate_rejects_blank_text() -> None:
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient()))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient()))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
     with pytest.raises(ValueError, match="text must not be blank"):
         await service.generate("   ", config=config)
@@ -236,7 +234,7 @@ async def test_cartesia_stream_yields_audio_and_reuses_websocket() -> None:
     )
     second = FakeContext([event("chunk", audio=b"two"), event("done")])
     fake_client = FakeClient([first, second])
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client))
+    service = TextToSpeech(client=cast(Any, fake_client))
 
     assert await collect(
         service.stream(
@@ -265,7 +263,7 @@ async def test_cartesia_stream_yields_audio_and_reuses_websocket() -> None:
 async def test_cartesia_stream_incremental_accepts_async_text_chunks() -> None:
     context = FakeContext([event("chunk", audio=b"audio"), event("done")])
     fake_client = FakeClient([context])
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client))
+    service = TextToSpeech(client=cast(Any, fake_client))
     audio = await collect(
         service.stream_incremental(
             text_stream("", "Hallo ", "Welt"), voice_id="voice-id"
@@ -289,10 +287,10 @@ async def test_cartesia_stream_raises_typed_provider_error() -> None:
             )
         ]
     )
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
-    with pytest.raises(CartesiaTextToSpeechError, match="Invalid model") as error:
+    with pytest.raises(TextToSpeechError, match="Invalid model") as error:
         await collect(service.stream("Hallo", config=config))
 
     assert error.value.error_code == "model_not_found"
@@ -312,17 +310,17 @@ async def test_cartesia_stream_uses_default_error_message() -> None:
             )
         ]
     )
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
-    with pytest.raises(CartesiaTextToSpeechError, match="Cartesia TTS failed"):
+    with pytest.raises(TextToSpeechError, match="Cartesia TTS failed"):
         await collect(service.stream("Hallo", config=config))
 
 
 async def test_cartesia_stream_cancels_context_when_consumer_stops() -> None:
     context = FakeContext([event("chunk", audio=b"audio"), event("done")])
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
     stream = service.stream("Hallo", config=config)
 
     assert await anext(stream) == b"audio"
@@ -332,10 +330,10 @@ async def test_cartesia_stream_cancels_context_when_consumer_stops() -> None:
 
 
 async def test_cartesia_stream_rejects_non_raw_output() -> None:
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient()))
-    config = CartesiaTextToSpeechConfig(
+    service = TextToSpeech(client=cast(Any, FakeClient()))
+    config = TextToSpeechConfig(
         voice_id="voice-id",
-        output_format=CartesiaWavOutputFormat(),
+        output_format=WavOutputFormat(),
     )
 
     with pytest.raises(ValueError, match="requires raw output"):
@@ -344,8 +342,8 @@ async def test_cartesia_stream_rejects_non_raw_output() -> None:
 
 async def test_cartesia_stream_rejects_empty_text_stream() -> None:
     context = FakeContext([])
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
     with pytest.raises(ValueError, match="at least one non-empty chunk"):
         await collect(service.stream_incremental(text_stream(""), config=config))
@@ -355,8 +353,8 @@ async def test_cartesia_stream_rejects_empty_text_stream() -> None:
 
 async def test_cartesia_stream_cancels_when_response_ends_without_done() -> None:
     context = FakeContext([])
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
     assert await collect(service.stream("Hallo", config=config)) == []
     assert context.cancelled
@@ -369,8 +367,8 @@ async def test_cartesia_stream_waits_for_response_after_sender_finishes() -> Non
             yield event("done")
 
     context = SlowResponseContext([])
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
     assert await collect(service.stream("Hallo", config=config)) == []
     assert context.finished
@@ -378,8 +376,8 @@ async def test_cartesia_stream_waits_for_response_after_sender_finishes() -> Non
 
 async def test_cartesia_stream_propagates_sender_errors() -> None:
     context = FakeContext([], push_error=RuntimeError("socket failed"))
-    service = CartesiaTextToSpeech(client=cast(Any, FakeClient([context])))
-    config = CartesiaTextToSpeechConfig(voice_id="voice-id")
+    service = TextToSpeech(client=cast(Any, FakeClient([context])))
+    config = TextToSpeechConfig(voice_id="voice-id")
 
     with pytest.raises(RuntimeError, match="socket failed"):
         await collect(service.stream("Hallo", config=config))
@@ -389,7 +387,7 @@ async def test_cartesia_stream_propagates_sender_errors() -> None:
 
 async def test_cartesia_connection_initialization_is_concurrency_safe() -> None:
     fake_client = FakeClient()
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client))
+    service = TextToSpeech(client=cast(Any, fake_client))
 
     first, second = await asyncio.gather(
         service._get_connection(), service._get_connection()
@@ -412,11 +410,9 @@ async def test_cartesia_context_manager_closes_owned_resources(
 
     monkeypatch.setattr(cartesia_clients, "_create_client", create_client)
 
-    async with CartesiaTextToSpeech() as service:
+    async with TextToSpeech() as service:
         await collect(
-            service.stream(
-                "Hallo", config=CartesiaTextToSpeechConfig(voice_id="voice-id")
-            )
+            service.stream("Hallo", config=TextToSpeechConfig(voice_id="voice-id"))
         )
 
     assert fake_client.closed
@@ -425,7 +421,7 @@ async def test_cartesia_context_manager_closes_owned_resources(
 
 async def test_cartesia_injected_client_is_not_closed() -> None:
     fake_client = FakeClient()
-    service = CartesiaTextToSpeech(client=cast(Any, fake_client))
+    service = TextToSpeech(client=cast(Any, fake_client))
 
     await service.aclose()
 
@@ -434,7 +430,7 @@ async def test_cartesia_injected_client_is_not_closed() -> None:
 
 def test_cartesia_api_key_and_client_are_mutually_exclusive() -> None:
     with pytest.raises(ValueError, match="either 'api_key' or 'client'"):
-        CartesiaTextToSpeech(api_key="key", client=cast(Any, FakeClient()))
+        TextToSpeech(api_key="key", client=cast(Any, FakeClient()))
 
 
 def test_create_client_uses_official_sdk(monkeypatch: pytest.MonkeyPatch) -> None:

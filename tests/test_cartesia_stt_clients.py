@@ -7,15 +7,12 @@ from typing import Any, cast
 import pytest
 
 from vocalbin.cartesia import (
-    CartesiaSpeechToText,
-    CartesiaSpeechToTextConfig,
-    CartesiaSpeechToTextConnected,
-    CartesiaSpeechToTextError,
-    CartesiaSpeechToTextTurnEagerEnd,
-    CartesiaSpeechToTextTurnEnd,
-    CartesiaSpeechToTextTurnResume,
-    CartesiaSpeechToTextTurnStart,
-    CartesiaSpeechToTextTurnUpdate,
+    SpeechToText,
+    SpeechToTextConfig,
+    SpeechToTextError,
+)
+from vocalbin.cartesia import (
+    events as cartesia_events,
 )
 from vocalbin.cartesia.stt import client as cartesia_stt_clients
 
@@ -108,17 +105,17 @@ async def test_cartesia_stt_stream_yields_normalized_turn_events() -> None:
         ]
     )
     fake_client = FakeClient(connection)
-    service = CartesiaSpeechToText(client=cast(Any, fake_client))
+    service = SpeechToText(client=cast(Any, fake_client))
 
     events = await collect(service.stream(audio_stream(b"", b"one", b"two")))
 
     assert [type(item) for item in events] == [
-        CartesiaSpeechToTextConnected,
-        CartesiaSpeechToTextTurnStart,
-        CartesiaSpeechToTextTurnUpdate,
-        CartesiaSpeechToTextTurnEagerEnd,
-        CartesiaSpeechToTextTurnResume,
-        CartesiaSpeechToTextTurnEnd,
+        cartesia_events.Connected,
+        cartesia_events.TurnStart,
+        cartesia_events.TurnUpdate,
+        cartesia_events.TurnEagerEnd,
+        cartesia_events.TurnResume,
+        cartesia_events.TurnEnd,
     ]
     assert connection.audio == [b"one", b"two"]
     assert connection.commands == [{"type": "close"}]
@@ -135,8 +132,8 @@ async def test_cartesia_stt_stream_yields_normalized_turn_events() -> None:
 async def test_cartesia_stt_stream_uses_call_config() -> None:
     connection = FakeConnection([])
     fake_client = FakeClient(connection)
-    service = CartesiaSpeechToText(client=cast(Any, fake_client))
-    config = CartesiaSpeechToTextConfig(
+    service = SpeechToText(client=cast(Any, fake_client))
+    config = SpeechToTextConfig(
         keyterms=["vocalbin"],
         turn_end_timeout_ms=640,
     )
@@ -154,7 +151,7 @@ async def test_cartesia_stt_stream_waits_for_events_after_sending_audio() -> Non
                 yield
 
     connection = SlowConnection([])
-    service = CartesiaSpeechToText(client=cast(Any, FakeClient(connection)))
+    service = SpeechToText(client=cast(Any, FakeClient(connection)))
 
     assert await collect(service.stream(audio_stream(b"audio"))) == []
     assert connection.commands == [{"type": "close"}]
@@ -166,12 +163,12 @@ async def test_cartesia_stt_stream_receives_while_audio_is_still_sending() -> No
         yield b"audio"
 
     connection = FakeConnection([event("connected", request_id="id")])
-    service = CartesiaSpeechToText(client=cast(Any, FakeClient(connection)))
+    service = SpeechToText(client=cast(Any, FakeClient(connection)))
 
     events = await collect(service.stream(slow_audio()))
 
     assert len(events) == 1
-    assert isinstance(events[0], CartesiaSpeechToTextConnected)
+    assert isinstance(events[0], cartesia_events.Connected)
     assert connection.closed
 
 
@@ -188,9 +185,9 @@ async def test_cartesia_stt_stream_raises_typed_provider_error() -> None:
             )
         ]
     )
-    service = CartesiaSpeechToText(client=cast(Any, FakeClient(connection)))
+    service = SpeechToText(client=cast(Any, FakeClient(connection)))
 
-    with pytest.raises(CartesiaSpeechToTextError, match="Invalid model") as error:
+    with pytest.raises(SpeechToTextError, match="Invalid model") as error:
         await collect(service.stream(audio_stream(b"audio")))
 
     assert error.value.error_code == "model_not_found"
@@ -202,7 +199,7 @@ async def test_cartesia_stt_stream_raises_typed_provider_error() -> None:
 
 async def test_cartesia_stt_stream_rejects_empty_audio() -> None:
     connection = FakeConnection([])
-    service = CartesiaSpeechToText(client=cast(Any, FakeClient(connection)))
+    service = SpeechToText(client=cast(Any, FakeClient(connection)))
 
     with pytest.raises(ValueError, match="at least one non-empty chunk"):
         await collect(service.stream(audio_stream(b"")))
@@ -213,7 +210,7 @@ async def test_cartesia_stt_stream_rejects_empty_audio() -> None:
 
 async def test_cartesia_stt_stream_propagates_sender_errors() -> None:
     connection = FakeConnection([], send_error=RuntimeError("socket failed"))
-    service = CartesiaSpeechToText(client=cast(Any, FakeClient(connection)))
+    service = SpeechToText(client=cast(Any, FakeClient(connection)))
 
     with pytest.raises(RuntimeError, match="socket failed"):
         await collect(service.stream(audio_stream(b"audio")))
@@ -228,10 +225,10 @@ async def test_cartesia_stt_consumer_can_stop_early() -> None:
             event("turn.start", request_id="id"),
         ]
     )
-    service = CartesiaSpeechToText(client=cast(Any, FakeClient(connection)))
+    service = SpeechToText(client=cast(Any, FakeClient(connection)))
     stream = service.stream(audio_stream(b"audio"))
 
-    assert isinstance(await anext(stream), CartesiaSpeechToTextConnected)
+    assert isinstance(await anext(stream), cartesia_events.Connected)
     await stream.aclose()
 
     assert connection.closed
@@ -250,7 +247,7 @@ async def test_cartesia_stt_context_manager_closes_owned_client(
 
     monkeypatch.setattr(cartesia_stt_clients, "_create_client", create_client)
 
-    async with CartesiaSpeechToText() as service:
+    async with SpeechToText() as service:
         await collect(service.stream(audio_stream(b"audio")))
 
     assert fake_client.closed
@@ -258,7 +255,7 @@ async def test_cartesia_stt_context_manager_closes_owned_client(
 
 async def test_cartesia_stt_injected_client_is_not_closed() -> None:
     fake_client = FakeClient(FakeConnection([]))
-    service = CartesiaSpeechToText(client=cast(Any, fake_client))
+    service = SpeechToText(client=cast(Any, fake_client))
 
     await service.aclose()
 
@@ -267,7 +264,7 @@ async def test_cartesia_stt_injected_client_is_not_closed() -> None:
 
 def test_cartesia_stt_api_key_and_client_are_mutually_exclusive() -> None:
     with pytest.raises(ValueError, match="either 'api_key' or 'client'"):
-        CartesiaSpeechToText(
+        SpeechToText(
             api_key="key",
             client=cast(Any, FakeClient(FakeConnection([]))),
         )

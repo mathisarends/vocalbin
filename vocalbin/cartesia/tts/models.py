@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class CartesiaTextToSpeechModel(StrEnum):
+class TextToSpeechModel(StrEnum):
     SONIC_3_5 = "sonic-3.5"
     SONIC_3 = "sonic-3"
     SONIC_3_5_2026_05_04 = "sonic-3.5-2026-05-04"
@@ -13,48 +13,48 @@ class CartesiaTextToSpeechModel(StrEnum):
     SONIC_LATEST = "sonic-latest"
 
 
-class CartesiaAudioEncoding(StrEnum):
+class AudioEncoding(StrEnum):
     PCM_F32LE = "pcm_f32le"
     PCM_S16LE = "pcm_s16le"
     PCM_MULAW = "pcm_mulaw"
     PCM_ALAW = "pcm_alaw"
 
 
-type CartesiaSampleRate = Literal[8000, 16000, 22050, 24000, 44100, 48000]
-type CartesiaBitRate = Literal[32000, 64000, 96000, 128000, 192000]
+type SampleRate = Literal[8000, 16000, 22050, 24000, 44100, 48000]
+type BitRate = Literal[32000, 64000, 96000, 128000, 192000]
 
 
-class CartesiaRawOutputFormat(BaseModel):
+class RawOutputFormat(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     container: Literal["raw"] = "raw"
-    encoding: CartesiaAudioEncoding = CartesiaAudioEncoding.PCM_S16LE
-    sample_rate: CartesiaSampleRate = 24000
+    encoding: AudioEncoding = AudioEncoding.PCM_S16LE
+    sample_rate: SampleRate = 24000
 
 
-class CartesiaWavOutputFormat(BaseModel):
+class WavOutputFormat(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     container: Literal["wav"] = "wav"
-    encoding: CartesiaAudioEncoding = CartesiaAudioEncoding.PCM_S16LE
-    sample_rate: CartesiaSampleRate = 44100
+    encoding: AudioEncoding = AudioEncoding.PCM_S16LE
+    sample_rate: SampleRate = 44100
 
 
-class CartesiaMp3OutputFormat(BaseModel):
+class Mp3OutputFormat(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     container: Literal["mp3"] = "mp3"
-    sample_rate: CartesiaSampleRate = 44100
-    bit_rate: CartesiaBitRate = 128000
+    sample_rate: SampleRate = 44100
+    bit_rate: BitRate = 128000
 
 
-type CartesiaOutputFormat = Annotated[
-    CartesiaRawOutputFormat | CartesiaWavOutputFormat | CartesiaMp3OutputFormat,
+type OutputFormat = Annotated[
+    RawOutputFormat | WavOutputFormat | Mp3OutputFormat,
     Field(discriminator="container"),
 ]
 
 
-class CartesiaGenerationConfig(BaseModel):
+class GenerationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     emotion: str | None = None
@@ -72,17 +72,17 @@ class CartesiaGenerationConfig(BaseModel):
         return self.model_dump(exclude_none=True, mode="json")
 
 
-class CartesiaTextToSpeechConfig(BaseModel):
+class TextToSpeechConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     voice_id: str = Field(min_length=1)
-    model: CartesiaTextToSpeechModel | str = CartesiaTextToSpeechModel.SONIC_3_5
-    output_format: CartesiaOutputFormat = Field(
-        default_factory=CartesiaRawOutputFormat,
+    model: TextToSpeechModel | str = TextToSpeechModel.SONIC_3_5
+    output_format: OutputFormat = Field(
+        default_factory=RawOutputFormat,
         discriminator="container",
     )
     language: str | None = None
-    generation_config: CartesiaGenerationConfig | None = None
+    generation_config: GenerationConfig | None = None
     pronunciation_dict_id: str | None = None
     max_buffer_delay_ms: int | None = Field(default=None, ge=0)
     timeout: float | None = Field(default=None, gt=0)
@@ -108,7 +108,7 @@ class CartesiaTextToSpeechConfig(BaseModel):
         params: dict[str, Any] = {
             "model_id": (
                 self.model.value
-                if isinstance(self.model, CartesiaTextToSpeechModel)
+                if isinstance(self.model, TextToSpeechModel)
                 else self.model
             ),
             "voice": {"mode": "id", "id": self.voice_id},
@@ -123,9 +123,9 @@ class CartesiaTextToSpeechConfig(BaseModel):
         return params
 
 
-class CartesiaTextToSpeechResponse(BaseModel):
+class TextToSpeechResponse(BaseModel):
     audio: bytes
-    model: CartesiaTextToSpeechModel | str
+    model: TextToSpeechModel | str
     voice_id: str
-    output_format: CartesiaOutputFormat
+    output_format: OutputFormat
     content_type: str
