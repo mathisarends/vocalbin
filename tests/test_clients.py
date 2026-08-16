@@ -90,12 +90,12 @@ async def test_transcribe_reads_audio_from_path(tmp_path: Path) -> None:
     assert audio_file.closed
 
 
-async def test_transcribe_accepts_config_and_default_config() -> None:
+async def test_transcribe_accepts_config_and_constructor_defaults() -> None:
     fake_client = FakeClient(transcription="plain transcript")
     config = SpeechToTextConfig(response_format=SpeechToTextFormat.TEXT)
     service = SpeechToText(
         client=cast(AsyncOpenAI, fake_client),
-        default_config=config,
+        response_format=SpeechToTextFormat.TEXT,
     )
 
     default_response = await service.transcribe(b"first")
@@ -168,18 +168,18 @@ async def test_generate_passes_instructions_and_omits_default_speed() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
     service = TextToSpeech(client=cast(AsyncOpenAI, fake_client))
 
-    await service.generate("Hallo", config=TextToSpeechConfig(instructions="Calm"))
+    await service.generate("Hallo", instructions="Calm")
 
     call = fake_client.speech.calls[0]
     assert call["instructions"] == "Calm"
     assert call["speed"] is omit
 
 
-async def test_generate_uses_default_config() -> None:
+async def test_generate_uses_constructor_defaults() -> None:
     fake_client = FakeClient(speech=SimpleNamespace(content=b"generated-audio"))
     service = TextToSpeech(
         client=cast(AsyncOpenAI, fake_client),
-        default_config=TextToSpeechConfig(response_format=TextToSpeechFormat.WAV),
+        response_format=TextToSpeechFormat.WAV,
     )
 
     response = await service.generate("Hallo")

@@ -79,8 +79,9 @@ response = await speech_to_text.transcribe(
 
 Every response carries the transcript on `response.text` and the untouched provider
 payload on `response.raw` (a `dict` for JSON-like formats, a `str` for `text`,
-`srt` and `vtt`). Reusable defaults can be supplied with `SpeechToTextConfig`
-through `default_config=` or per call with `config=`.
+`srt` and `vtt`). Reusable defaults use the same flat parameters on the service
+constructor, for example `SpeechToText(language="de")`. A complete
+`SpeechToTextConfig` can still be supplied per call with `config=`.
 
 ## Text to speech
 
@@ -120,13 +121,12 @@ from vocalbin.cartesia import (
 
 
 async def generate(voice_id: str = Voice.SKYLAR_FRIENDLY_GUIDE) -> bytes:
-    async with TextToSpeech() as text_to_speech:
-        response = await text_to_speech.generate(
-            "Hallo aus vocalbin mit Cartesia!",
-            voice_id=voice_id,
-            language="de",
-            output_format=WavOutputFormat(),
-        )
+    async with TextToSpeech(
+        voice_id=voice_id,
+        language="de",
+        output_format=WavOutputFormat(),
+    ) as text_to_speech:
+        response = await text_to_speech.generate("Hallo aus vocalbin mit Cartesia!")
     return response.audio
 ```
 
@@ -180,7 +180,7 @@ from vocalbin.cartesia import SpeechToText, events
 
 
 async def transcribe(audio: AsyncIterator[bytes]) -> None:
-    async with SpeechToText() as speech_to_text:
+    async with SpeechToText(sample_rate=16_000) as speech_to_text:
         async for event in speech_to_text.stream(audio):
             match event:
                 case events.TurnUpdate(transcript=transcript):
@@ -190,11 +190,12 @@ async def transcribe(audio: AsyncIterator[bytes]) -> None:
 ```
 
 The default input is mono `pcm_s16le` at 16 kHz. Other raw PCM encodings,
-sample rates, keyterms, and turn-detection thresholds can be set with
-`SpeechToTextConfig`. Audio should arrive at realtime speed in small
-chunks (Cartesia recommends about 100 ms). Ink 2 currently supports English
-only. Cartesia does not expose Ink 2 through its batch STT endpoint, so this
-adapter intentionally has no `transcribe()` method.
+sample rates, keyterms, and turn-detection thresholds use flat parameters on
+the constructor or `stream()`. A complete `SpeechToTextConfig` remains available
+as a per-call `config=` override. Audio should arrive at realtime speed in small
+chunks (Cartesia recommends about 100 ms). Ink 2 currently supports English only.
+Cartesia does not expose Ink 2 through its batch STT endpoint, so this adapter
+intentionally has no `transcribe()` method.
 
 ## Piper text to speech
 

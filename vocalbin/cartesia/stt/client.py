@@ -54,7 +54,14 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         api_key: str | None = None,
         *,
         client: AsyncCartesia | None = None,
-        default_config: SpeechToTextConfig | None = None,
+        model: SpeechToTextModel | str = SpeechToTextModel.INK_2,
+        encoding: SpeechToTextEncoding = SpeechToTextEncoding.PCM_S16LE,
+        sample_rate: int = 16000,
+        keyterms: list[str] | None = None,
+        turn_start_threshold: float | None = None,
+        turn_eager_end_threshold: float | None = None,
+        turn_end_threshold: float | None = None,
+        turn_end_timeout_ms: float | None = None,
     ) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -67,7 +74,16 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
             )
             client = _create_client(resolved_api_key)
         self.client = client
-        self.default_config = default_config or SpeechToTextConfig()
+        self.default_config = SpeechToTextConfig(
+            model=model,
+            encoding=encoding,
+            sample_rate=sample_rate,
+            keyterms=keyterms,
+            turn_start_threshold=turn_start_threshold,
+            turn_eager_end_threshold=turn_eager_end_threshold,
+            turn_end_threshold=turn_end_threshold,
+            turn_end_timeout_ms=turn_end_timeout_ms,
+        )
         self._owns_client = owns_client
 
     @overload

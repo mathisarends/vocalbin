@@ -207,21 +207,27 @@ async def test_cartesia_generate_requires_voice_id_for_flat_parameters() -> None
         await cast(Any, service).generate("Hallo", language="de")
 
 
-async def test_cartesia_generate_uses_default_config() -> None:
+async def test_cartesia_generate_uses_constructor_defaults() -> None:
     fake_client = FakeClient()
-    config = TextToSpeechConfig(voice_id="voice-id")
-    service = TextToSpeech(client=cast(Any, fake_client), default_config=config)
+    service = TextToSpeech(
+        client=cast(Any, fake_client),
+        voice_id="voice-id",
+        language="de",
+        output_format=RawOutputFormat(sample_rate=24000),
+    )
 
     response = await service.generate("Hallo")
 
     assert response.audio == b"generated"
     assert response.voice_id == "voice-id"
+    assert fake_client.tts.generate_calls[0]["language"] == "de"
+    assert fake_client.tts.generate_calls[0]["output_format"]["sample_rate"] == 24000
 
 
 async def test_cartesia_generate_requires_config() -> None:
     service = TextToSpeech(client=cast(Any, FakeClient()))
 
-    with pytest.raises(ValueError, match="Provide 'config'"):
+    with pytest.raises(ValueError, match="Provide configuration"):
         await service.generate("Hallo")
 
 

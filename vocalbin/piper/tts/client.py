@@ -27,7 +27,10 @@ class TextToSpeech(
         config_path: str | Path | None = None,
         *,
         voice: PiperVoice | None = None,
-        default_config: TextToSpeechConfig | None = None,
+        speaker_id: int | None = None,
+        length_scale: float | None = None,
+        noise_scale: float | None = None,
+        noise_w_scale: float | None = None,
     ) -> None:
         if model_path is not None and voice is not None:
             raise ValueError("Pass either 'model_path' or 'voice', not both.")
@@ -43,7 +46,12 @@ class TextToSpeech(
                 resolved_config_path = config.config_path
             voice = _create_voice(resolved_model_path, resolved_config_path)
         self.voice = voice
-        self.default_config = default_config
+        self.default_config = TextToSpeechConfig(
+            speaker_id=speaker_id,
+            length_scale=length_scale,
+            noise_scale=noise_scale,
+            noise_w_scale=noise_w_scale,
+        )
 
     @overload
     async def generate(

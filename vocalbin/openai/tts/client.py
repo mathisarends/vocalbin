@@ -33,10 +33,20 @@ class TextToSpeech(
         api_key: str | None = None,
         *,
         client: AsyncOpenAI | None = None,
-        default_config: TextToSpeechConfig | None = None,
+        model: TextToSpeechModel | str = TextToSpeechModel.GPT_4O_MINI_TTS,
+        voice: TextToSpeechVoice | str = TextToSpeechVoice.MARIN,
+        response_format: TextToSpeechFormat = TextToSpeechFormat.MP3,
+        instructions: str | None = None,
+        speed: float | None = None,
     ) -> None:
         super().__init__(api_key, client)
-        self.default_config = default_config
+        self.default_config = TextToSpeechConfig(
+            model=model,
+            voice=voice,
+            response_format=response_format,
+            instructions=instructions,
+            speed=speed,
+        )
 
     @overload
     async def generate(

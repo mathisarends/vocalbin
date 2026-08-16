@@ -30,10 +30,28 @@ class SpeechToText(
         api_key: str | None = None,
         *,
         client: AsyncOpenAI | None = None,
-        default_config: SpeechToTextConfig | None = None,
+        model: SpeechToTextModel | str = SpeechToTextModel.GPT_4O_TRANSCRIBE,
+        response_format: SpeechToTextFormat = SpeechToTextFormat.JSON,
+        language: str | None = None,
+        prompt: str | None = None,
+        temperature: float | None = None,
+        timestamp_granularities: list[TimestampGranularity] | None = None,
+        include: list[Literal["logprobs"]] | None = None,
+        chunking_strategy: Literal["auto"] | dict[str, Any] | None = None,
+        extra_body: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(api_key, client)
-        self.default_config = default_config
+        self.default_config = SpeechToTextConfig(
+            model=model,
+            response_format=response_format,
+            language=language,
+            prompt=prompt,
+            temperature=temperature,
+            timestamp_granularities=timestamp_granularities,
+            include=include,
+            chunking_strategy=chunking_strategy,
+            extra_body=extra_body,
+        )
 
     @overload
     async def transcribe(

@@ -49,7 +49,16 @@ class TextToSpeech(
         api_key: str | None = None,
         *,
         client: AsyncCartesia | None = None,
-        default_config: TextToSpeechConfig | None = None,
+        voice_id: Voice | str | None = None,
+        model: TextToSpeechModel | str | None = None,
+        output_format: OutputFormat | None = None,
+        language: str | None = None,
+        emotion: str | None = None,
+        speed: float | None = None,
+        volume: float | None = None,
+        pronunciation_dict_id: str | None = None,
+        max_buffer_delay_ms: int | None = None,
+        timeout: float | None = None,
     ) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -62,7 +71,36 @@ class TextToSpeech(
             )
             client = _create_client(resolved_api_key)
         self.client = client
-        self.default_config = default_config
+        constructor_values = (
+            voice_id,
+            model,
+            output_format,
+            language,
+            emotion,
+            speed,
+            volume,
+            pronunciation_dict_id,
+            max_buffer_delay_ms,
+            timeout,
+        )
+        self.default_config = (
+            _resolve_call_config(
+                config=None,
+                default_config=None,
+                voice_id=voice_id,
+                model=model,
+                output_format=output_format,
+                language=language,
+                emotion=emotion,
+                speed=speed,
+                volume=volume,
+                pronunciation_dict_id=pronunciation_dict_id,
+                max_buffer_delay_ms=max_buffer_delay_ms,
+                timeout=timeout,
+            )
+            if any(value is not None for value in constructor_values)
+            else None
+        )
         self._owns_client = owns_client
         self._connection: AsyncTTSResourceConnection | None = None
         self._connection_manager: AsyncTTSResourceConnectionManager | None = None

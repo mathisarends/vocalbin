@@ -163,6 +163,20 @@ async def test_cartesia_stt_stream_accepts_flat_parameters() -> None:
     assert fake_client.auto_finalize.calls[0]["keyterm"] == ["vocalbin"]
 
 
+async def test_cartesia_stt_stream_uses_constructor_defaults() -> None:
+    connection = FakeConnection([])
+    fake_client = FakeClient(connection)
+    service = SpeechToText(
+        client=cast(Any, fake_client),
+        sample_rate=48000,
+        keyterms=["vocalbin"],
+    )
+
+    assert await collect(service.stream(audio_stream(b"audio"))) == []
+    assert fake_client.auto_finalize.calls[0]["sample_rate"] == 48000
+    assert fake_client.auto_finalize.calls[0]["keyterm"] == ["vocalbin"]
+
+
 async def test_cartesia_stt_stream_accepts_flat_model_and_encoding() -> None:
     connection = FakeConnection([])
     fake_client = FakeClient(connection)

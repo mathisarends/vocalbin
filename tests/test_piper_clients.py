@@ -73,12 +73,12 @@ async def test_generate_returns_joined_audio(monkeypatch: pytest.MonkeyPatch) ->
     ]
 
 
-async def test_generate_uses_default_config(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_generate_uses_constructor_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     stub_syn_config(monkeypatch)
     voice = FakeVoice([b"one", b"two"])
-    service = TextToSpeech(
-        voice=cast(Any, voice), default_config=TextToSpeechConfig(speaker_id=2)
-    )
+    service = TextToSpeech(voice=cast(Any, voice), speaker_id=2)
 
     response = await service.generate("Hallo")
 

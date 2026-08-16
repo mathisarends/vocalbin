@@ -38,7 +38,5 @@ def resolve_config[ConfigT](
 ) -> ConfigT:
     resolved = config if config is not None else default_config
     if resolved is None:
-        raise ValueError(
-            "Provide 'config' either at construction time (default_config) or per call."
-        )
+        raise ValueError("Provide configuration at construction time or per call.")
     return resolved
