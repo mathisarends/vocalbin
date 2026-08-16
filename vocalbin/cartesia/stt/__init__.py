@@ -1,4 +1,4 @@
-from .clients import CartesiaSpeechToText, CartesiaSpeechToTextError
+from .client import CartesiaSpeechToText, CartesiaSpeechToTextError
 from .models import (
     CartesiaSpeechToTextConfig,
     CartesiaSpeechToTextConnected,

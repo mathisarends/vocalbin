@@ -17,7 +17,7 @@ from vocalbin.cartesia import (
     CartesiaSpeechToTextTurnStart,
     CartesiaSpeechToTextTurnUpdate,
 )
-from vocalbin.cartesia.stt import clients as cartesia_stt_clients
+from vocalbin.cartesia.stt import client as cartesia_stt_clients
 
 
 class FakeConnection:

@@ -1,4 +1,4 @@
-from .clients import PiperTextToSpeech
+from .client import PiperTextToSpeech
 from .models import PiperTextToSpeechConfig, PiperTextToSpeechResponse
 
 __all__ = [

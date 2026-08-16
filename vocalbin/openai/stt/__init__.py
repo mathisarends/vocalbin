@@ -1,4 +1,4 @@
-from .clients import OpenAISpeechToText
+from .client import OpenAISpeechToText
 from .models import (
     SpeechToTextFormat,
     SpeechToTextModel,

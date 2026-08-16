@@ -1,4 +1,4 @@
-from .clients import OpenAITextToSpeech
+from .client import OpenAITextToSpeech
 from .models import (
     TextToSpeechConfig,
     TextToSpeechFormat,
