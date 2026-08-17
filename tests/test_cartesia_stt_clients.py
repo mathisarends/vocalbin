@@ -177,6 +177,40 @@ async def test_cartesia_stt_stream_uses_constructor_defaults() -> None:
     assert fake_client.auto_finalize.calls[0]["keyterm"] == ["vocalbin"]
 
 
+async def test_cartesia_stt_websocket_can_be_prewarmed() -> None:
+    connection = FakeConnection([])
+    fake_client = FakeClient(connection)
+    service = SpeechToText(client=cast(Any, fake_client))
+
+    assert service.is_connected is False
+    await service.connect()
+    await service.connect()
+    assert service.is_connected is True
+    assert len(fake_client.auto_finalize.calls) == 1
+
+    assert await collect(service.stream(audio_stream(b"audio"))) == []
+    assert service.is_connected is False
+    assert len(fake_client.auto_finalize.calls) == 1
+
+    await service.disconnect()
+
+
+async def test_cartesia_stt_reconnects_for_a_different_stream_config() -> None:
+    connection = FakeConnection([])
+    fake_client = FakeClient(connection)
+    service = SpeechToText(client=cast(Any, fake_client))
+
+    await service.connect()
+    events = await collect(service.stream(audio_stream(b"audio"), sample_rate=48000))
+
+    assert events == []
+    assert [call["sample_rate"] for call in fake_client.auto_finalize.calls] == [
+        16000,
+        48000,
+    ]
+    assert service.is_connected is False
+
+
 async def test_cartesia_stt_stream_accepts_flat_model_and_encoding() -> None:
     connection = FakeConnection([])
     fake_client = FakeClient(connection)

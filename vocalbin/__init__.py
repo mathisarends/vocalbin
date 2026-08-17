@@ -3,6 +3,7 @@ from .ports import (
     StreamingSpeechToText,
     StreamingTextToSpeech,
     TextToSpeech,
+    WebSocketClient,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "StreamingSpeechToText",
     "StreamingTextToSpeech",
     "TextToSpeech",
+    "WebSocketClient",
 ]

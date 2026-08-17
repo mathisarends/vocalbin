@@ -2,6 +2,18 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable, AsyncIterator
 
 
+class WebSocketClient(ABC):
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool: ...
+
+    @abstractmethod
+    async def connect(self) -> None: ...
+
+    @abstractmethod
+    async def disconnect(self) -> None: ...
+
+
 class SpeechToText[AudioT, ConfigT, ResponseT](ABC):
     @abstractmethod
     async def transcribe(

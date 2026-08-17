@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable
 from contextlib import suppress
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self, cast, overload
 
 from vocalbin import ports
 from vocalbin.cartesia.credentials import Credentials
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from cartesia import AsyncCartesia
     from cartesia.resources.stt.auto_finalize import (
         AsyncAutoFinalizeResourceConnection,
+        AsyncAutoFinalizeResourceConnectionManager,
     )
     from cartesia.types.stt import STTAutoFinalizeWebsocketResponse
 
@@ -48,7 +49,10 @@ class SpeechToTextError(RuntimeError):
         self.doc_url = doc_url
 
 
-class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
+class SpeechToText(
+    ports.StreamingSpeechToText[SpeechToTextConfig, Event],
+    ports.WebSocketClient,
+):
     def __init__(
         self,
         api_key: str | None = None,
@@ -85,6 +89,28 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
             turn_end_timeout_ms=turn_end_timeout_ms,
         )
         self._owns_client = owns_client
+        self._connection: AsyncAutoFinalizeResourceConnection | None = None
+        self._connection_manager: AsyncAutoFinalizeResourceConnectionManager | None = (
+            None
+        )
+        self._connection_config: SpeechToTextConfig | None = None
+        self._connection_lock = asyncio.Lock()
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connection is not None
+
+    async def connect(self) -> None:
+        await self._get_connection(self.default_config)
+
+    async def disconnect(self) -> None:
+        async with self._connection_lock:
+            manager = self._connection_manager
+            self._connection = None
+            self._connection_manager = None
+            self._connection_config = None
+            if manager is not None:
+                await manager.__aexit__(None, None, None)
 
     @overload
     def stream(
@@ -135,15 +161,8 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
             turn_end_threshold=turn_end_threshold,
             turn_end_timeout_ms=turn_end_timeout_ms,
         )
-        manager = self.client.stt.auto_finalize.websocket(
-            **resolved_config.model_dump(
-                exclude_none=True,
-                mode="json",
-                by_alias=True,
-            )
-        )
-
-        async with manager as connection:
+        connection = await self._get_connection(resolved_config)
+        try:
             sender = asyncio.create_task(self._send_audio(connection, audio))
             responses = connection.__aiter__()
             receiver = asyncio.ensure_future(anext(responses))
@@ -182,6 +201,32 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
             finally:
                 await _stop_task(receiver)
                 await _stop_task(sender)
+        finally:
+            await self.disconnect()
+
+    async def _get_connection(
+        self, config: SpeechToTextConfig
+    ) -> AsyncAutoFinalizeResourceConnection:
+        async with self._connection_lock:
+            if self._connection is not None:
+                if self._connection_config == config:
+                    return self._connection
+                manager = cast(Any, self._connection_manager)
+                self._connection = None
+                self._connection_manager = None
+                self._connection_config = None
+                await manager.__aexit__(None, None, None)
+            manager = self.client.stt.auto_finalize.websocket(
+                **config.model_dump(
+                    exclude_none=True,
+                    mode="json",
+                    by_alias=True,
+                )
+            )
+            self._connection = await manager.__aenter__()
+            self._connection_manager = manager
+            self._connection_config = config
+            return self._connection
 
     async def _send_audio(
         self,
@@ -201,6 +246,7 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         await connection.send({"type": "close"})
 
     async def aclose(self) -> None:
+        await self.disconnect()
         if self._owns_client:
             await self.client.close()
 

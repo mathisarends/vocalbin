@@ -43,6 +43,7 @@ class TextToSpeechError(RuntimeError):
 class TextToSpeech(
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
     ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
+    ports.WebSocketClient,
 ):
     def __init__(
         self,
@@ -105,6 +106,21 @@ class TextToSpeech(
         self._connection: AsyncTTSResourceConnection | None = None
         self._connection_manager: AsyncTTSResourceConnectionManager | None = None
         self._connection_lock = asyncio.Lock()
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connection is not None
+
+    async def connect(self) -> None:
+        await self._get_connection()
+
+    async def disconnect(self) -> None:
+        async with self._connection_lock:
+            manager = self._connection_manager
+            self._connection = None
+            self._connection_manager = None
+            if manager is not None:
+                await manager.__aexit__(None, None, None)
 
     @overload
     async def generate(
@@ -378,10 +394,7 @@ class TextToSpeech(
         return self._connection
 
     async def aclose(self) -> None:
-        if self._connection_manager is not None:
-            await self._connection_manager.__aexit__(None, None, None)
-            self._connection = None
-            self._connection_manager = None
+        await self.disconnect()
         if self._owns_client:
             await self.client.close()
 

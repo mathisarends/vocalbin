@@ -157,6 +157,19 @@ class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
         self._stop_called = False
         self._input_finished = False
 
+    @property
+    def is_connected(self) -> bool:
+        return self._connection.is_connected
+
+    async def connect(self) -> None:
+        if self._stop_called:
+            raise RuntimeError("Realtime session has already been stopped.")
+        if not self._connection.is_connected:
+            await self._connection.connect()
+
+    async def disconnect(self) -> None:
+        await self._connection.close()
+
     async def __aenter__(self) -> Self:
         return self
 
@@ -186,10 +199,10 @@ class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
             with suppress(asyncio.CancelledError):
                 await self._sender_task
         self._sender_task = None
-        await self._connection.close()
+        await self.disconnect()
 
     async def _stream_events(self) -> AsyncIterator[EventT]:
-        await self._connection.connect()
+        await self.connect()
         await self._connection.send(self._session_update)
         self._session_started = True
         await self._audio_input.start()

@@ -413,6 +413,28 @@ async def test_cartesia_connection_initialization_is_concurrency_safe() -> None:
     assert fake_client.tts.websocket_calls == 1
 
 
+async def test_cartesia_websocket_can_be_prewarmed_and_disconnected() -> None:
+    fake_client = FakeClient()
+    service = TextToSpeech(client=cast(Any, fake_client))
+
+    assert service.is_connected is False
+    await service.connect()
+    await service.connect()
+    assert service.is_connected is True
+    assert fake_client.tts.websocket_calls == 1
+
+    await service.disconnect()
+    await service.disconnect()
+    assert service.is_connected is False
+    assert fake_client.tts.manager.exited == 1
+
+    await service.connect()
+    assert service.is_connected is True
+    assert fake_client.tts.websocket_calls == 2
+    await service.aclose()
+    assert service.is_connected is False
+
+
 async def test_cartesia_context_manager_closes_owned_resources(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

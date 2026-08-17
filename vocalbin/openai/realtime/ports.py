@@ -32,7 +32,19 @@ class Provider(ABC):
     def build_headers(self) -> dict[str, str]: ...
 
 
-class Transcription(ABC):
+class WebSocketSession(ABC):
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool: ...
+
+    @abstractmethod
+    async def connect(self) -> None: ...
+
+    @abstractmethod
+    async def disconnect(self) -> None: ...
+
+
+class Transcription(WebSocketSession):
     @abstractmethod
     def stream(self) -> AsyncIterator[TranscriptionEvent]: ...
 
@@ -43,7 +55,7 @@ class Transcription(ABC):
     async def stop(self) -> None: ...
 
 
-class Translation(ABC):
+class Translation(WebSocketSession):
     @abstractmethod
     def stream(self) -> AsyncIterator[TranslationEvent]: ...
 

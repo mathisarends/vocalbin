@@ -149,9 +149,7 @@ from collections.abc import AsyncIterator
 from vocalbin.cartesia import TextToSpeech
 
 
-async def stream_incremental(
-    voice_id: str, text_chunks: AsyncIterator[str]
-) -> bytes:
+async def stream_incremental(voice_id: str, text_chunks: AsyncIterator[str]) -> bytes:
     audio = bytearray()
 
     async with TextToSpeech() as text_to_speech:
@@ -166,6 +164,15 @@ async def stream_incremental(
 
 WebSocket streaming requires `output_format=RawOutputFormat()` (the
 default), which returns raw 16-bit PCM audio.
+
+WebSocket-backed clients connect lazily on the first stream. Call
+`await client.connect()` to prewarm the connection, inspect
+`client.is_connected`, and call `await client.disconnect()` to close only the
+WebSocket. A later call can connect again. For terminal cleanup, Cartesia clients
+provide `aclose()` while OpenAI realtime sessions provide `stop()`; their async
+context managers call the corresponding cleanup method. This lifecycle is
+available on Cartesia streaming clients and OpenAI realtime sessions; HTTP and
+local streaming clients do not expose it.
 
 ## Cartesia realtime speech to text
 

@@ -299,6 +299,37 @@ async def test_realtime_websocket_rejects_non_object_events(
     await websocket.close()
 
 
+async def test_realtime_service_websocket_can_be_prewarmed_and_disconnected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = FakeConnection()
+    second = FakeConnection()
+    install_connection(monkeypatch, first, second)
+    service = Transcriber(
+        audio_input=AudioStreamInput(chunks()),
+        provider=DummyProvider(),
+    )
+
+    assert service.is_connected is False
+    await service.connect()
+    await service.connect()
+    assert service.is_connected is True
+
+    await service.disconnect()
+    await service.disconnect()
+    assert service.is_connected is False
+    assert first.closed is True
+
+    await service.connect()
+    assert service.is_connected is True
+    await service.stop()
+    assert service.is_connected is False
+    assert second.closed is True
+
+    with pytest.raises(RuntimeError, match="already been stopped"):
+        await service.connect()
+
+
 async def test_realtime_transcriber_streams_and_maps_events(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

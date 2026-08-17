@@ -12,11 +12,14 @@ def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
     assert inspect.isabstract(ports.TextToSpeech)
     assert inspect.isabstract(ports.StreamingSpeechToText)
     assert inspect.isabstract(ports.StreamingTextToSpeech)
+    assert inspect.isabstract(ports.WebSocketClient)
     assert issubclass(openai.SpeechToText, ports.SpeechToText)
     assert issubclass(openai.TextToSpeech, ports.TextToSpeech)
     assert issubclass(cartesia.TextToSpeech, ports.TextToSpeech)
     assert issubclass(cartesia.TextToSpeech, ports.StreamingTextToSpeech)
     assert issubclass(cartesia.SpeechToText, ports.StreamingSpeechToText)
+    assert issubclass(cartesia.TextToSpeech, ports.WebSocketClient)
+    assert issubclass(cartesia.SpeechToText, ports.WebSocketClient)
     assert issubclass(piper.TextToSpeech, ports.TextToSpeech)
     assert issubclass(piper.TextToSpeech, ports.StreamingTextToSpeech)
 
@@ -28,6 +31,8 @@ def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
         ports.StreamingSpeechToText()
     with pytest.raises(TypeError):
         ports.StreamingTextToSpeech()
+    with pytest.raises(TypeError):
+        ports.WebSocketClient()
 
 
 def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> None:
@@ -35,6 +40,7 @@ def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> Non
     assert inspect.isabstract(realtime.ports.Provider)
     assert inspect.isabstract(realtime.ports.Transcription)
     assert inspect.isabstract(realtime.ports.Translation)
+    assert inspect.isabstract(realtime.ports.WebSocketSession)
     assert issubclass(realtime.MicrophoneInput, realtime.ports.AudioInput)
     assert issubclass(realtime.Provider, realtime.ports.Provider)
     assert issubclass(realtime.Transcriber, realtime.ports.Transcription)
@@ -45,6 +51,7 @@ def test_realtime_ports_are_abstract_and_openai_services_implement_them() -> Non
         realtime.ports.Provider,
         realtime.ports.Transcription,
         realtime.ports.Translation,
+        realtime.ports.WebSocketSession,
     ):
         with pytest.raises(TypeError):
             port()
