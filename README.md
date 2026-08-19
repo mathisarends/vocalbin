@@ -2,10 +2,11 @@
 
 ![vocalbin — typed, async voice APIs](static/banner.png)
 
-`vocalbin` is a small, typed, asynchronous wrapper around OpenAI, Cartesia, and
-Piper speech APIs. It validates known model capabilities up front, forwards future
-model IDs as strings, normalizes responses without discarding useful data, and
-stays independent of application-specific settings or domain code.
+`vocalbin` is a small, typed, asynchronous wrapper around OpenAI, Cartesia,
+Deepgram, and Piper speech APIs. It validates known model capabilities up front,
+forwards future model IDs as strings, normalizes responses without discarding
+useful data, and stays independent of application-specific settings or domain
+code.
 
 ## Inhaltsverzeichnis
 
@@ -14,6 +15,8 @@ stays independent of application-specific settings or domain code.
 - [Text to speech](#text-to-speech)
 - [Cartesia text to speech](#cartesia-text-to-speech)
 - [Cartesia realtime speech to text](#cartesia-realtime-speech-to-text)
+- [Deepgram speech to text](#deepgram-speech-to-text)
+- [Deepgram text to speech](#deepgram-text-to-speech)
 - [Piper text to speech](#piper-text-to-speech)
 - [Realtime transcription](#realtime-transcription)
 - [Realtime translation](#realtime-translation)
@@ -36,6 +39,7 @@ stack:
 uv add "vocalbin[realtime]"  # custom audio input
 uv add "vocalbin[audio]"     # WebSockets plus microphone input
 uv add "vocalbin[cartesia]"  # Cartesia TTS and realtime STT
+uv add "vocalbin[deepgram]"  # Deepgram Nova 3, Flux and Aura 2
 uv add "vocalbin[piper]"     # Piper local/offline TTS
 ```
 
@@ -197,6 +201,89 @@ chunks (Cartesia recommends about 100 ms). Ink 2 currently supports English only
 Cartesia does not expose Ink 2 through its batch STT endpoint, so this adapter
 intentionally has no `transcribe()` method.
 
+## Deepgram speech to text
+
+Deepgram is grouped under `vocalbin.deepgram`. Install it with
+`uv add "vocalbin[deepgram]"` and set `DEEPGRAM_API_KEY` in the environment.
+
+`SpeechToText` transcribes complete recordings with Nova 3 over the REST API and
+accepts raw bytes or a file path:
+
+```python
+from pathlib import Path
+
+from vocalbin.deepgram import SpeechToText
+
+
+async def transcribe(audio: Path) -> str:
+    async with SpeechToText(smart_format=True) as speech_to_text:
+        response = await speech_to_text.transcribe(audio, keyterms=["vocalbin"])
+    return response.text
+```
+
+`keyterms` are Nova 3 only; passing them with an older model raises before the
+request is sent. The response keeps the provider payload in `raw` alongside the
+normalized `text`, `confidence`, `detected_language`, and `request_id`.
+
+`StreamingSpeechToText` implements the `StreamingSpeechToText` port with
+Deepgram's Flux model and its conversational turn detection. It accepts an async stream of raw,
+mono audio and yields typed turn events:
+
+```python
+from collections.abc import AsyncIterator
+
+from vocalbin.deepgram import StreamingSpeechToText, events
+
+
+async def transcribe(audio: AsyncIterator[bytes]) -> str:
+    async with StreamingSpeechToText(
+        sample_rate=16000,
+        eager_eot_threshold=0.6,
+        eot_threshold=0.8,
+    ) as speech_to_text:
+        async for event in speech_to_text.stream(audio):
+            match event:
+                case events.TurnEnd(transcript=transcript):
+                    return transcript
+    return ""
+```
+
+Flux emits `Connected`, `TurnStart`, `TurnUpdate`, `TurnEagerEnd`, `TurnResume`,
+and `TurnEnd` events; each turn event carries the running `transcript`, its
+`words` with confidences, and `end_of_turn_confidence`. `eager_eot_threshold`
+must not exceed `eot_threshold` (default `0.7`), which is validated up front. A
+`FatalError` from the socket is raised as `SpeechToTextError` with the provider
+error code.
+
+## Deepgram text to speech
+
+`TextToSpeech` speaks with Aura 2 and implements both the request-response and
+the streaming port:
+
+```python
+from vocalbin.deepgram import AudioContainer, TextToSpeech, TextToSpeechModel
+
+
+async def generate() -> bytes:
+    async with TextToSpeech(
+        model=TextToSpeechModel.AURA_2_THALIA_EN,
+        container=AudioContainer.WAV,
+    ) as text_to_speech:
+        response = await text_to_speech.generate("Hallo aus vocalbin mit Deepgram!")
+    return response.audio
+```
+
+`stream()` sends one full request and yields audio chunks;
+`stream_incremental()` takes an async iterable of text chunks and streams
+matching audio back over the same WebSocket connection. WebSocket streaming
+carries no container and supports `linear16`, `mulaw`, and `alaw` only, so
+compressed encodings are rejected before connecting. Deepgram signals problems on
+the socket as warnings, which are raised as `TextToSpeechError`.
+
+Both Deepgram clients follow the same WebSocket lifecycle as the Cartesia
+clients: lazy connect, `connect()`, `is_connected`, `disconnect()`, and `aclose()`
+for terminal cleanup.
+
 ## Piper text to speech
 
 [Piper](https://github.com/OHF-Voice/piper1-gpl) is a local, offline
@@ -333,6 +420,16 @@ encoding), `wav`, and `mp3`. WebSocket streaming via `stream()` or
 detection. Input encodings are `pcm_s16le`, `pcm_s32le`, `pcm_f16le`,
 `pcm_f32le`, `pcm_mulaw`, and `pcm_alaw`; the model currently supports English.
 
+**Deepgram speech to text** — `nova-3`, `nova-3-general`, `nova-3-medical`, and
+`nova-2` over REST; `flux-general-en` and `flux-general-multi` over the realtime
+WebSocket with native turn detection. Streaming input encodings are `linear16`,
+`mulaw`, and `alaw`.
+
+**Deepgram text to speech** — the Aura 2 voices (`aura-2-thalia-en` and the
+English and Spanish voices alongside it); encodings `linear16`, `mulaw`, `alaw`,
+`mp3`, `opus`, `flac`, and `aac`, optionally wrapped in a `wav` or `ogg`
+container. `bit_rate` applies to the compressed encodings only.
+
 **Piper text to speech** — any locally installed Piper voice model (`.onnx` +
 `.onnx.json`); output is always raw 16-bit PCM at the voice's native sample
 rate. `speaker_id` selects a speaker for multi-speaker models; `length_scale`,
@@ -374,6 +471,16 @@ uv run --extra cartesia --extra audio python examples/cartesia/round_trip.py
 `round_trip.py` records one English turn from the microphone, sends it through
 Ink 2, simulates a streaming LLM response, and plays the Sonic 3.5 response as it
 arrives. Timestamped logs make the latency of each stage visible.
+
+Deepgram's REST and WebSocket calls are demonstrated the same way. The STT
+script synthesizes its own sample with Aura 2, and `round_trip.py` streams that
+audio into Flux. Set `DEEPGRAM_API_KEY`, then run:
+
+```bash
+uv run --extra deepgram python examples/deepgram/text_to_speech.py
+uv run --extra deepgram python examples/deepgram/speech_to_text.py
+uv run --extra deepgram python examples/deepgram/round_trip.py
+```
 
 Piper's request-response and streaming calls are demonstrated the same way.
 Set `PIPER_MODEL_PATH` (and optionally `PIPER_CONFIG_PATH`) to a downloaded
