@@ -11,6 +11,8 @@
   `pydantic-settings`. Providers with no remote credentials (e.g. the local
   `vocalbin/piper/config.py`) follow the same beside-the-client,
   `pydantic-settings` pattern but are named `config.py`, not `credentials.py`.
+- Declare `__all__` only in `__init__.py`; regular modules must not repeat their
+  public names in a trailing `__all__`.
 - Avoid comments and docstrings that merely restate what the code already says.
 - Add a comment only when it explains a non-obvious reason, constraint, or tradeoff.
 - Do not add module docstrings that only summarize the module name or contents.
