@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.deepgram.events import (
@@ -24,8 +24,6 @@ from vocalbin.deepgram.stt.models import (
 )
 
 if TYPE_CHECKING:
-    from contextlib import AbstractAsyncContextManager
-
     from deepgram import AsyncDeepgramClient
     from deepgram.listen.v2.socket_client import (
         AsyncV2SocketClient,
@@ -50,7 +48,6 @@ class SpeechToTextError(RuntimeError):
 class StreamingSpeechToText(
     DeepgramClientOwner,
     ports.StreamingSpeechToText[StreamingSpeechToTextConfig, Event],
-    ports.WebSocketClient,
 ):
     def __init__(
         self,
@@ -78,28 +75,6 @@ class StreamingSpeechToText(
             eager_eot_threshold=eager_eot_threshold,
             eot_timeout_ms=eot_timeout_ms,
         )
-        self._connection: AsyncV2SocketClient | None = None
-        self._connection_manager: (
-            AbstractAsyncContextManager[AsyncV2SocketClient] | None
-        ) = None
-        self._connection_config: StreamingSpeechToTextConfig | None = None
-        self._connection_lock = asyncio.Lock()
-
-    @property
-    def is_connected(self) -> bool:
-        return self._connection is not None
-
-    async def connect(self) -> None:
-        await self._get_connection(self.default_config)
-
-    async def disconnect(self) -> None:
-        async with self._connection_lock:
-            manager = self._connection_manager
-            self._connection = None
-            self._connection_manager = None
-            self._connection_config = None
-            if manager is not None:
-                await manager.__aexit__(None, None, None)
 
     @overload
     def stream(
@@ -150,8 +125,9 @@ class StreamingSpeechToText(
             eager_eot_threshold=eager_eot_threshold,
             eot_timeout_ms=eot_timeout_ms,
         )
-        connection = await self._get_connection(resolved_config)
-        try:
+        async with self.client.listen.v2.connect(
+            **_connect_params(resolved_config)
+        ) as connection:
             sender = asyncio.create_task(self._send_audio(connection, audio))
             responses = connection.__aiter__()
             receiver = asyncio.ensure_future(anext(responses))
@@ -182,26 +158,6 @@ class StreamingSpeechToText(
             finally:
                 await _stop_task(receiver)
                 await _stop_task(sender)
-        finally:
-            await self.disconnect()
-
-    async def _get_connection(
-        self, config: StreamingSpeechToTextConfig
-    ) -> AsyncV2SocketClient:
-        async with self._connection_lock:
-            if self._connection is not None:
-                if self._connection_config == config:
-                    return self._connection
-                manager = cast(Any, self._connection_manager)
-                self._connection = None
-                self._connection_manager = None
-                self._connection_config = None
-                await manager.__aexit__(None, None, None)
-            manager = self.client.listen.v2.connect(**_connect_params(config))
-            self._connection = await manager.__aenter__()
-            self._connection_manager = manager
-            self._connection_config = config
-            return self._connection
 
     async def _send_audio(
         self, connection: AsyncV2SocketClient, audio: AsyncIterable[bytes]

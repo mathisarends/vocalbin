@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable, AsyncIterator
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.deepgram.shared import DeepgramClientOwner
@@ -16,8 +16,6 @@ from vocalbin.deepgram.tts.models import (
 )
 
 if TYPE_CHECKING:
-    from contextlib import AbstractAsyncContextManager
-
     from deepgram import AsyncDeepgramClient
     from deepgram.speak.v1.socket_client import AsyncV1SocketClient
 
@@ -39,7 +37,6 @@ class TextToSpeech(
     DeepgramClientOwner,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
     ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
-    ports.WebSocketClient,
 ):
     def __init__(
         self,
@@ -60,32 +57,6 @@ class TextToSpeech(
             sample_rate=sample_rate,
             bit_rate=bit_rate,
         )
-        self._connection: AsyncV1SocketClient | None = None
-        self._connection_manager: (
-            AbstractAsyncContextManager[AsyncV1SocketClient] | None
-        ) = None
-        self._connection_config: TextToSpeechConfig | None = None
-        self._connection_lock = asyncio.Lock()
-
-    @property
-    def is_connected(self) -> bool:
-        return self._connection is not None
-
-    async def connect(self) -> None:
-        await self._get_connection(self.default_config)
-
-    async def disconnect(self) -> None:
-        async with self._connection_lock:
-            manager = self._connection_manager
-            self._connection = None
-            self._connection_manager = None
-            self._connection_config = None
-            if manager is not None:
-                await manager.__aexit__(None, None, None)
-
-    async def aclose(self) -> None:
-        await self.disconnect()
-        await super().aclose()
 
     @overload
     async def generate(
@@ -224,46 +195,47 @@ class TextToSpeech(
         if resolved_config.container not in (None, AudioContainer.NONE):
             raise ValueError("Deepgram WebSocket streaming requires no container.")
 
-        connection = await self._get_connection(resolved_config)
-        sender = asyncio.create_task(self._send_text(connection, text))
-        responses = connection.__aiter__()
-        receiver = asyncio.ensure_future(anext(responses))
-        sender_pending = True
+        async with self.client.speak.v1.connect(
+            **_connect_params(resolved_config)
+        ) as connection:
+            sender = asyncio.create_task(self._send_text(connection, text))
+            responses = connection.__aiter__()
+            receiver = asyncio.ensure_future(anext(responses))
+            sender_pending = True
 
-        try:
-            while True:
-                pending = {receiver}
-                if sender_pending:
-                    pending.add(sender)
-                done, _ = await asyncio.wait(
-                    pending, return_when=asyncio.FIRST_COMPLETED
-                )
-
-                if sender in done:
-                    sender_pending = False
-                    sender.result()
-
-                if receiver not in done:
-                    continue
-                try:
-                    message = receiver.result()
-                except StopAsyncIteration:
-                    break
-
-                if isinstance(message, bytes):
-                    yield message
-                elif message.type == "Warning":
-                    raise TextToSpeechError(
-                        message.warn_msg, error_code=message.warn_code
+            try:
+                while True:
+                    pending = {receiver}
+                    if sender_pending:
+                        pending.add(sender)
+                    done, _ = await asyncio.wait(
+                        pending, return_when=asyncio.FIRST_COMPLETED
                     )
-                elif message.type == "Flushed":
-                    break
 
-                receiver = asyncio.ensure_future(anext(responses))
-        finally:
-            await _stop_task(receiver)
-            await _stop_task(sender)
-            await self.disconnect()
+                    if sender in done:
+                        sender_pending = False
+                        sender.result()
+
+                    if receiver not in done:
+                        continue
+                    try:
+                        message = receiver.result()
+                    except StopAsyncIteration:
+                        break
+
+                    if isinstance(message, bytes):
+                        yield message
+                    elif message.type == "Warning":
+                        raise TextToSpeechError(
+                            message.warn_msg, error_code=message.warn_code
+                        )
+                    elif message.type == "Flushed":
+                        break
+
+                    receiver = asyncio.ensure_future(anext(responses))
+            finally:
+                await _stop_task(receiver)
+                await _stop_task(sender)
 
     async def _send_text(
         self, connection: AsyncV1SocketClient, text: AsyncIterable[str]
@@ -279,22 +251,6 @@ class TextToSpeech(
                 "The text stream must contain at least one non-empty chunk."
             )
         await connection.send_control(_flush_message())
-
-    async def _get_connection(self, config: TextToSpeechConfig) -> AsyncV1SocketClient:
-        async with self._connection_lock:
-            if self._connection is not None:
-                if self._connection_config == config:
-                    return self._connection
-                manager = cast(Any, self._connection_manager)
-                self._connection = None
-                self._connection_manager = None
-                self._connection_config = None
-                await manager.__aexit__(None, None, None)
-            manager = self.client.speak.v1.connect(**_connect_params(config))
-            self._connection = await manager.__aenter__()
-            self._connection_manager = manager
-            self._connection_config = config
-            return self._connection
 
 
 def _text_message(text: str) -> Any:

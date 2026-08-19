@@ -383,30 +383,16 @@ async def test_deepgram_streaming_stt_rejects_config_with_flat_parameters() -> N
         )
 
 
-async def test_deepgram_streaming_stt_websocket_can_be_prewarmed() -> None:
-    client = FakeStreamingClient(FakeConnection([]))
+async def test_deepgram_streaming_stt_connects_once_per_stream() -> None:
+    connection = FakeConnection([])
+    client = FakeStreamingClient(connection)
     service = StreamingSpeechToText(client=cast(Any, client))
-
-    assert service.is_connected is False
-    await service.connect()
-    await service.connect()
-    assert service.is_connected is True
-    assert len(client.v2.calls) == 1
 
     await collect(service.stream(audio_stream(b"audio")))
-
-    assert service.is_connected is False
-    assert len(client.v2.calls) == 1
-
-
-async def test_deepgram_streaming_stt_reconnects_for_a_different_config() -> None:
-    client = FakeStreamingClient(FakeConnection([]))
-    service = StreamingSpeechToText(client=cast(Any, client))
-
-    await service.connect()
     await collect(service.stream(audio_stream(b"audio"), sample_rate=48000))
 
     assert [call["sample_rate"] for call in client.v2.calls] == ["16000", "48000"]
+    assert connection.closed
 
 
 async def test_deepgram_streaming_stt_raises_typed_provider_error() -> None:
@@ -541,13 +527,3 @@ async def test_deepgram_streaming_stt_accepts_flat_model_and_encoding() -> None:
     assert client.v2.calls[0]["model"] == "flux-general-multi"
     assert client.v2.calls[0]["encoding"] == "alaw"
     assert client.v2.calls[0]["sample_rate"] == "16000"
-
-
-async def test_deepgram_streaming_stt_disconnect_without_a_connection() -> None:
-    service = StreamingSpeechToText(
-        client=cast(Any, FakeStreamingClient(FakeConnection([])))
-    )
-
-    await service.disconnect()
-
-    assert service.is_connected is False

@@ -348,30 +348,16 @@ async def test_deepgram_tts_consumer_can_stop_early() -> None:
     assert connection.closed
 
 
-async def test_deepgram_tts_websocket_can_be_prewarmed() -> None:
+async def test_deepgram_tts_connects_once_per_stream() -> None:
     connection = FakeConnection([b"audio", ControlMessage(type="Flushed")])
     client = FakeClient(connection)
     service = TextToSpeech(client=cast(Any, client))
 
-    assert service.is_connected is False
-    await service.connect()
-    await service.connect()
-    assert service.is_connected is True
-
     await collect(service.stream("Hallo"))
-
-    assert service.is_connected is False
-    assert len(client.v1.calls) == 1
-
-
-async def test_deepgram_tts_reconnects_for_a_different_stream_config() -> None:
-    client = FakeClient(FakeConnection([]))
-    service = TextToSpeech(client=cast(Any, client))
-
-    await service.connect()
     await collect(service.stream("Hallo", sample_rate=16000))
 
     assert [call["sample_rate"] for call in client.v1.calls] == ["24000", "16000"]
+    assert connection.closed
 
 
 async def test_deepgram_tts_context_manager_closes_the_owned_transport(

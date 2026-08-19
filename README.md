@@ -280,9 +280,10 @@ carries no container and supports `linear16`, `mulaw`, and `alaw` only, so
 compressed encodings are rejected before connecting. Deepgram signals problems on
 the socket as warnings, which are raised as `TextToSpeechError`.
 
-Both Deepgram clients follow the same WebSocket lifecycle as the Cartesia
-clients: lazy connect, `connect()`, `is_connected`, `disconnect()`, and `aclose()`
-for terminal cleanup.
+Both Deepgram clients open the WebSocket for the duration of a single stream and
+close it again when the stream ends, so the connection stays an implementation
+detail. `aclose()` (or the async context manager) releases the owned HTTP
+transport.
 
 ## Piper text to speech
 
