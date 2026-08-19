@@ -515,3 +515,39 @@ def test_deepgram_streaming_stt_close_stream_message_uses_official_sdk(
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
     assert deepgram_streaming._close_stream_message() == "CloseStream"
+
+
+async def test_deepgram_stt_flat_parameters_keep_the_default_model() -> None:
+    client = FakeRestClient(transcription())
+    service = SpeechToText(client=cast(Any, client))
+
+    await service.transcribe(b"audio", smart_format=True)
+
+    assert client.media.calls[0]["model"] == "nova-3"
+
+
+async def test_deepgram_streaming_stt_accepts_flat_model_and_encoding() -> None:
+    client = FakeStreamingClient(FakeConnection([]))
+    service = StreamingSpeechToText(client=cast(Any, client))
+
+    await collect(
+        service.stream(
+            audio_stream(b"audio"),
+            model="flux-general-multi",
+            encoding=StreamingSpeechToTextEncoding.ALAW,
+        )
+    )
+
+    assert client.v2.calls[0]["model"] == "flux-general-multi"
+    assert client.v2.calls[0]["encoding"] == "alaw"
+    assert client.v2.calls[0]["sample_rate"] == "16000"
+
+
+async def test_deepgram_streaming_stt_disconnect_without_a_connection() -> None:
+    service = StreamingSpeechToText(
+        client=cast(Any, FakeStreamingClient(FakeConnection([])))
+    )
+
+    await service.disconnect()
+
+    assert service.is_connected is False
