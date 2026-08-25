@@ -287,12 +287,12 @@ the `languages_hinted` it was given.
 the streaming port:
 
 ```python
-from vocalbin.deepgram import AudioContainer, TextToSpeech, TextToSpeechModel
+from vocalbin.deepgram import AudioContainer, AuraVoice, TextToSpeech
 
 
 async def generate() -> bytes:
     async with TextToSpeech(
-        model=TextToSpeechModel.AURA_2_THALIA_EN,
+        model=AuraVoice.AURA_2_THALIA_EN,
         container=AudioContainer.WAV,
     ) as text_to_speech:
         response = await text_to_speech.generate("Hallo aus vocalbin mit Deepgram!")
@@ -305,6 +305,14 @@ matching audio back over the same WebSocket connection. WebSocket streaming
 carries no container and supports `linear16`, `mulaw`, and `alaw` only, so
 compressed encodings are rejected before connecting. Deepgram signals problems on
 the socket as warnings, which are raised as `TextToSpeechError`.
+
+`AuraVoice` lists every Aura 2 voice and is generated from the installed SDK by
+`scripts/generate_deepgram_voices.py`; `TextToSpeechModel` remains as an alias.
+Regenerate it after a Deepgram SDK upgrade:
+
+```bash
+uv run --extra deepgram python scripts/generate_deepgram_voices.py
+```
 
 Both Deepgram clients open the WebSocket for the duration of a single stream and
 close it again when the stream ends, so the connection stays an implementation
@@ -452,8 +460,9 @@ detection. Input encodings are `pcm_s16le`, `pcm_s32le`, `pcm_f16le`,
 over the realtime WebSocket with native turn detection. Streaming input
 encodings are `linear16`, `linear32`, `mulaw`, `alaw`, `opus`, and `ogg-opus`.
 
-**Deepgram text to speech** — the Aura 2 voices (`aura-2-thalia-en` and the
-English and Spanish voices alongside it); encodings `linear16`, `mulaw`, `alaw`,
+**Deepgram text to speech** — the Aura 2 voices from `AuraVoice` (English,
+Spanish, German, French, Italian, Dutch, and Japanese); encodings `linear16`,
+`mulaw`, `alaw`,
 `mp3`, `opus`, `flac`, and `aac`, optionally wrapped in a `wav` or `ogg`
 container. `bit_rate` applies to the compressed encodings only.
 
@@ -507,6 +516,7 @@ audio into Flux. Set `DEEPGRAM_API_KEY`, then run:
 uv run --extra deepgram python examples/deepgram/text_to_speech.py
 uv run --extra deepgram python examples/deepgram/speech_to_text.py
 uv run --extra deepgram python examples/deepgram/round_trip.py
+uv run --extra deepgram python examples/deepgram/flux_multilingual.py
 ```
 
 Piper's request-response and streaming calls are demonstrated the same way.

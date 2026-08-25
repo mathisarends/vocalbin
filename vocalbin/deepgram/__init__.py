@@ -18,6 +18,7 @@ from .stt import (
 from .tts import (
     AudioContainer,
     AudioEncoding,
+    AuraVoice,
     TextToSpeech,
     TextToSpeechConfig,
     TextToSpeechError,
@@ -28,6 +29,7 @@ from .tts import (
 __all__ = [
     "AudioContainer",
     "AudioEncoding",
+    "AuraVoice",
     "Credentials",
     "DeepgramClientOwner",
     "FluxModel",
