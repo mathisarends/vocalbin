@@ -3,6 +3,7 @@ import pytest
 from vocalbin.deepgram import (
     AudioContainer,
     AudioEncoding,
+    FluxModel,
     SpeechToTextConfig,
     SpeechToTextModel,
     StreamingSpeechToTextConfig,
@@ -110,3 +111,25 @@ def test_deepgram_tts_config_rejects_ogg_container_without_opus() -> None:
         TextToSpeechConfig(
             encoding=AudioEncoding.LINEAR16, container=AudioContainer.OGG
         )
+
+
+def test_deepgram_flux_config_accepts_language_hints_with_locale_subtags() -> None:
+    config = StreamingSpeechToTextConfig(
+        model=FluxModel.FLUX_GENERAL_MULTI, language_hints=["de", "pt-BR"]
+    )
+
+    assert config.language_hints == ["de", "pt-BR"]
+
+
+def test_deepgram_flux_config_rejects_unsupported_language_hints() -> None:
+    with pytest.raises(ValueError, match="unsupported language hints: kl, zz"):
+        StreamingSpeechToTextConfig(
+            model=FluxModel.FLUX_GENERAL_MULTI, language_hints=["de", "zz", "kl"]
+        )
+
+
+def test_deepgram_flux_config_restricts_language_hints_to_the_multilingual_model() -> (
+    None
+):
+    with pytest.raises(ValueError, match="only by flux-general-multi"):
+        StreamingSpeechToTextConfig(language_hints=["de"])

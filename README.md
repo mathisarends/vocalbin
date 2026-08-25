@@ -16,6 +16,7 @@ code.
 - [Cartesia text to speech](#cartesia-text-to-speech)
 - [Cartesia realtime speech to text](#cartesia-realtime-speech-to-text)
 - [Deepgram speech to text](#deepgram-speech-to-text)
+  - [Flux realtime speech to text](#flux-realtime-speech-to-text)
 - [Deepgram text to speech](#deepgram-text-to-speech)
 - [Piper text to speech](#piper-text-to-speech)
 - [Realtime transcription](#realtime-transcription)
@@ -225,9 +226,11 @@ async def transcribe(audio: Path) -> str:
 request is sent. The response keeps the provider payload in `raw` alongside the
 normalized `text`, `confidence`, `detected_language`, and `request_id`.
 
+### Flux realtime speech to text
+
 `StreamingSpeechToText` implements the `StreamingSpeechToText` port with
-Deepgram's Flux model and its conversational turn detection. It accepts an async stream of raw,
-mono audio and yields typed turn events:
+Deepgram's Flux models and their conversational turn detection. It accepts an
+async stream of raw, mono audio and yields typed turn events:
 
 ```python
 from collections.abc import AsyncIterator
@@ -249,11 +252,34 @@ async def transcribe(audio: AsyncIterator[bytes]) -> str:
 ```
 
 Flux emits `Connected`, `TurnStart`, `TurnUpdate`, `TurnEagerEnd`, `TurnResume`,
-and `TurnEnd` events; each turn event carries the running `transcript`, its
-`words` with confidences, and `end_of_turn_confidence`. `eager_eot_threshold`
-must not exceed `eot_threshold` (default `0.7`), which is validated up front. A
-`FatalError` from the socket is raised as `SpeechToTextError` with the provider
-error code.
+and `TurnEnd` events. Each turn event carries the running `transcript`, its
+`words` with confidences and timings, the `audio_window_start`/`audio_window_end`
+it covers, and `end_of_turn_confidence`. `eager_eot_threshold` must not exceed
+`eot_threshold` (default `0.7`), which is validated up front. A fatal error from
+the socket is raised as `SpeechToTextError` with the provider error code.
+
+`FluxModel` names the two models. `flux-general-multi` transcribes English,
+Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, and
+Dutch on a single connection and switches between them mid-turn. `language_hints`
+biases the detection; a single hint gives the best accuracy when the language is
+known, several hints narrow it down to a set, and no hint leaves it to
+auto-detection:
+
+```python
+from vocalbin.deepgram import FluxModel, StreamingRedaction, StreamingSpeechToText
+
+speech_to_text = StreamingSpeechToText(
+    model=FluxModel.FLUX_GENERAL_MULTI,
+    language_hints=["de", "en"],
+    numerals=True,
+    redact=StreamingRedaction.NUMBERS,
+)
+```
+
+Hints are validated against the supported languages (locale subtags such as
+`pt-BR` are accepted) and rejected for `flux-general-en`, which is English-only.
+Every turn event from the multilingual model reports the `languages` it heard and
+the `languages_hinted` it was given.
 
 ## Deepgram text to speech
 
@@ -422,9 +448,9 @@ detection. Input encodings are `pcm_s16le`, `pcm_s32le`, `pcm_f16le`,
 `pcm_f32le`, `pcm_mulaw`, and `pcm_alaw`; the model currently supports English.
 
 **Deepgram speech to text** — `nova-3`, `nova-3-general`, `nova-3-medical`, and
-`nova-2` over REST; `flux-general-en` and `flux-general-multi` over the realtime
-WebSocket with native turn detection. Streaming input encodings are `linear16`,
-`mulaw`, and `alaw`.
+`nova-2` over REST; the Flux models `flux-general-en` and `flux-general-multi`
+over the realtime WebSocket with native turn detection. Streaming input
+encodings are `linear16`, `linear32`, `mulaw`, `alaw`, `opus`, and `ogg-opus`.
 
 **Deepgram text to speech** — the Aura 2 voices (`aura-2-thalia-en` and the
 English and Spanish voices alongside it); encodings `linear16`, `mulaw`, `alaw`,

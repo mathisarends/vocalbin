@@ -8,11 +8,13 @@ import pytest
 from pydantic import BaseModel
 
 from vocalbin.deepgram import (
+    FluxModel,
     SpeechToText,
     SpeechToTextConfig,
     SpeechToTextEncoding,
     SpeechToTextError,
     SpeechToTextModel,
+    StreamingRedaction,
     StreamingSpeechToText,
     StreamingSpeechToTextConfig,
     StreamingSpeechToTextEncoding,
@@ -43,6 +45,8 @@ class TurnInfoMessage(BaseModel):
     transcript: str = ""
     words: list[Word] = []
     end_of_turn_confidence: float = 0.5
+    languages: list[str] | None = None
+    languages_hinted: list[str] | None = None
 
 
 class FatalErrorMessage(BaseModel):
@@ -293,7 +297,9 @@ async def test_deepgram_streaming_stt_yields_normalized_turn_events() -> None:
         deepgram_events.TurnResume,
         deepgram_events.TurnEnd,
     ]
-    assert events[-1].words == [deepgram_events.Word(word="Hi", confidence=0.9)]
+    assert events[-1].words == [
+        deepgram_events.Word(word="Hi", confidence=0.9, start=0.0)
+    ]
     assert connection.audio == [b"one", b"two"]
     assert connection.controls == [{"type": "CloseStream"}]
     assert connection.closed
@@ -502,3 +508,49 @@ async def test_deepgram_streaming_stt_accepts_flat_model_and_encoding() -> None:
     assert client.v2.calls[0]["model"] == "flux-general-multi"
     assert client.v2.calls[0]["encoding"] == "alaw"
     assert client.v2.calls[0]["sample_rate"] == "16000"
+
+
+async def test_deepgram_streaming_stt_sends_the_new_flux_options() -> None:
+    client = FakeStreamingClient(FakeConnection([]))
+    service = StreamingSpeechToText(client=cast(Any, client))
+
+    await collect(
+        service.stream(
+            audio_stream(b"audio"),
+            model=FluxModel.FLUX_GENERAL_MULTI,
+            language_hints=["de", "pt-BR"],
+            numerals=True,
+            profanity_filter=False,
+            redact=StreamingRedaction.AGGRESSIVE_NUMBERS,
+        )
+    )
+
+    assert client.v2.calls[0] == {
+        "model": "flux-general-multi",
+        "encoding": "linear16",
+        "sample_rate": "16000",
+        "language_hint": ["de", "pt-BR"],
+        "numerals": "true",
+        "profanity_filter": "false",
+        "redact": "aggressive_numbers",
+    }
+
+
+async def test_deepgram_streaming_stt_reports_detected_languages() -> None:
+    connection = FakeConnection(
+        [
+            TurnInfoMessage(
+                request_id="id",
+                event="EndOfTurn",
+                transcript="Hallo",
+                languages=["de"],
+                languages_hinted=["de", "en"],
+            )
+        ]
+    )
+    service = StreamingSpeechToText(client=cast(Any, FakeStreamingClient(connection)))
+
+    event = (await collect(service.stream(audio_stream(b"audio"))))[0]
+
+    assert event.languages == ["de"]
+    assert event.languages_hinted == ["de", "en"]
