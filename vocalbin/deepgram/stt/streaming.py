@@ -18,6 +18,7 @@ from vocalbin.deepgram.events import (
 )
 from vocalbin.deepgram.shared import DeepgramClientOwner
 from vocalbin.deepgram.stt.models import (
+    StreamingRedaction,
     StreamingSpeechToTextConfig,
     StreamingSpeechToTextEncoding,
     StreamingSpeechToTextModel,
@@ -61,9 +62,13 @@ class StreamingSpeechToText(
         ),
         sample_rate: int = 16000,
         keyterms: list[str] | None = None,
+        language_hints: list[str] | None = None,
         eot_threshold: float | None = None,
         eager_eot_threshold: float | None = None,
         eot_timeout_ms: int | None = None,
+        numerals: bool | None = None,
+        profanity_filter: bool | None = None,
+        redact: StreamingRedaction | None = None,
     ) -> None:
         super().__init__(api_key, client)
         self.default_config = StreamingSpeechToTextConfig(
@@ -71,9 +76,13 @@ class StreamingSpeechToText(
             encoding=encoding,
             sample_rate=sample_rate,
             keyterms=keyterms,
+            language_hints=language_hints,
             eot_threshold=eot_threshold,
             eager_eot_threshold=eager_eot_threshold,
             eot_timeout_ms=eot_timeout_ms,
+            numerals=numerals,
+            profanity_filter=profanity_filter,
+            redact=redact,
         )
 
     @overload
@@ -88,9 +97,13 @@ class StreamingSpeechToText(
         ),
         sample_rate: int = 16000,
         keyterms: list[str] | None = None,
+        language_hints: list[str] | None = None,
         eot_threshold: float | None = None,
         eager_eot_threshold: float | None = None,
         eot_timeout_ms: int | None = None,
+        numerals: bool | None = None,
+        profanity_filter: bool | None = None,
+        redact: StreamingRedaction | None = None,
     ) -> AsyncGenerator[Event]: ...
 
     @overload
@@ -109,9 +122,13 @@ class StreamingSpeechToText(
         encoding: StreamingSpeechToTextEncoding | None = None,
         sample_rate: int | None = None,
         keyterms: list[str] | None = None,
+        language_hints: list[str] | None = None,
         eot_threshold: float | None = None,
         eager_eot_threshold: float | None = None,
         eot_timeout_ms: int | None = None,
+        numerals: bool | None = None,
+        profanity_filter: bool | None = None,
+        redact: StreamingRedaction | None = None,
         config: StreamingSpeechToTextConfig | None = None,
     ) -> AsyncGenerator[Event]:
         resolved_config = _resolve_call_config(
@@ -121,9 +138,13 @@ class StreamingSpeechToText(
             encoding=encoding,
             sample_rate=sample_rate,
             keyterms=keyterms,
+            language_hints=language_hints,
             eot_threshold=eot_threshold,
             eager_eot_threshold=eager_eot_threshold,
             eot_timeout_ms=eot_timeout_ms,
+            numerals=numerals,
+            profanity_filter=profanity_filter,
+            redact=redact,
         )
         async with self.client.listen.v2.connect(
             **_connect_params(resolved_config)
@@ -172,22 +193,22 @@ class StreamingSpeechToText(
             raise ValueError(
                 "The audio stream must contain at least one non-empty chunk."
             )
-        await connection.send_control(_close_stream_message())
-
-
-def _close_stream_message() -> Any:
-    from deepgram.extensions.types.sockets import ListenV2ControlMessage
-
-    return ListenV2ControlMessage(type="CloseStream")
+        await connection.send_close_stream()
 
 
 def _connect_params(config: StreamingSpeechToTextConfig) -> dict[str, Any]:
     # Deepgram sends every websocket option as a query string parameter.
     params = config.model_dump(exclude_none=True, mode="json", by_alias=True)
-    return {
-        key: value if isinstance(value, list) else str(value)
-        for key, value in params.items()
-    }
+    return {key: _query_value(value) for key, value in params.items()}
+
+
+def _query_value(value: Any) -> Any:
+    if isinstance(value, list):
+        return value
+    # Deepgram expects the lowercase spelling, not Python's `True`/`False`.
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
 
 
 async def _stop_task(task: asyncio.Future[Any]) -> None:
@@ -204,7 +225,7 @@ def _normalize_event(message: V2SocketClientResponse) -> Event:
     match message.type:
         case "Connected":
             return Connected.model_validate(payload)
-        case "FatalError":
+        case "Error":
             raise SpeechToTextError(payload["description"], error_code=payload["code"])
         case "TurnInfo":
             event_name = payload.pop("event")
@@ -224,18 +245,26 @@ def _resolve_call_config(
     encoding: StreamingSpeechToTextEncoding | None,
     sample_rate: int | None,
     keyterms: list[str] | None,
+    language_hints: list[str] | None,
     eot_threshold: float | None,
     eager_eot_threshold: float | None,
     eot_timeout_ms: int | None,
+    numerals: bool | None,
+    profanity_filter: bool | None,
+    redact: StreamingRedaction | None,
 ) -> StreamingSpeechToTextConfig:
     flat_values = (
         model,
         encoding,
         sample_rate,
         keyterms,
+        language_hints,
         eot_threshold,
         eager_eot_threshold,
         eot_timeout_ms,
+        numerals,
+        profanity_filter,
+        redact,
     )
     has_flat_values = any(value is not None for value in flat_values)
     if config is not None:
@@ -247,9 +276,13 @@ def _resolve_call_config(
 
     values: dict[str, Any] = {
         "keyterms": keyterms,
+        "language_hints": language_hints,
         "eot_threshold": eot_threshold,
         "eager_eot_threshold": eager_eot_threshold,
         "eot_timeout_ms": eot_timeout_ms,
+        "numerals": numerals,
+        "profanity_filter": profanity_filter,
+        "redact": redact,
     }
     if model is not None:
         values["model"] = model

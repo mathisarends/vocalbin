@@ -2,12 +2,14 @@ from . import events
 from .credentials import Credentials
 from .shared import DeepgramClientOwner
 from .stt import (
+    FluxModel,
     SpeechToText,
     SpeechToTextConfig,
     SpeechToTextEncoding,
     SpeechToTextError,
     SpeechToTextModel,
     SpeechToTextResponse,
+    StreamingRedaction,
     StreamingSpeechToText,
     StreamingSpeechToTextConfig,
     StreamingSpeechToTextEncoding,
@@ -16,6 +18,7 @@ from .stt import (
 from .tts import (
     AudioContainer,
     AudioEncoding,
+    AuraVoice,
     TextToSpeech,
     TextToSpeechConfig,
     TextToSpeechError,
@@ -26,14 +29,17 @@ from .tts import (
 __all__ = [
     "AudioContainer",
     "AudioEncoding",
+    "AuraVoice",
     "Credentials",
     "DeepgramClientOwner",
+    "FluxModel",
     "SpeechToText",
     "SpeechToTextConfig",
     "SpeechToTextEncoding",
     "SpeechToTextError",
     "SpeechToTextModel",
     "SpeechToTextResponse",
+    "StreamingRedaction",
     "StreamingSpeechToText",
     "StreamingSpeechToTextConfig",
     "StreamingSpeechToTextEncoding",
