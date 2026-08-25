@@ -30,8 +30,8 @@ class ControlMessage(BaseModel):
 
 class WarningMessage(BaseModel):
     type: str = "Warning"
-    warn_msg: str
-    warn_code: str
+    description: str
+    code: str
 
 
 class FakeConnection:
@@ -49,8 +49,8 @@ class FakeConnection:
             raise self.send_error
         self.texts.append(message)
 
-    async def send_control(self, message: Any) -> None:
-        self.controls.append(message)
+    async def send_flush(self) -> None:
+        self.controls.append({"type": "Flush"})
 
     async def __aiter__(self) -> AsyncIterator[Any]:
         for message in self.messages:
@@ -107,9 +107,6 @@ def socket_messages(monkeypatch: pytest.MonkeyPatch) -> None:
         deepgram_tts_client,
         "_text_message",
         lambda text: {"type": "Speak", "text": text},
-    )
-    monkeypatch.setattr(
-        deepgram_tts_client, "_flush_message", lambda: {"type": "Flush"}
     )
 
 
@@ -259,7 +256,7 @@ async def test_deepgram_tts_stream_stops_when_the_socket_closes() -> None:
 
 async def test_deepgram_tts_stream_raises_typed_provider_error() -> None:
     connection = FakeConnection(
-        [WarningMessage(warn_msg="Text is too long", warn_code="TEXT_TOO_LONG")]
+        [WarningMessage(description="Text is too long", code="TEXT_TOO_LONG")]
     )
     service = TextToSpeech(client=cast(Any, FakeClient(connection)))
 
@@ -439,24 +436,14 @@ def test_deepgram_create_client_explains_the_missing_dependency(
         deepgram_shared._create_client("key")
 
 
-def test_deepgram_tts_socket_messages_use_the_official_sdk(
+def test_deepgram_tts_text_message_uses_the_official_sdk(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.undo()
-    original_import = builtins.__import__
 
-    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "deepgram.extensions.types.sockets":
-            return SimpleNamespace(
-                SpeakV1TextMessage=lambda *, type, text: (type, text),
-                SpeakV1ControlMessage=lambda *, type: type,
-            )
-        return original_import(name, *args, **kwargs)
+    message = deepgram_tts_client._text_message("Hallo")
 
-    monkeypatch.setattr(builtins, "__import__", fake_import)
-
-    assert deepgram_tts_client._text_message("Hallo") == ("Speak", "Hallo")
-    assert deepgram_tts_client._flush_message() == "Flush"
+    assert (message.type, message.text) == ("Speak", "Hallo")
 
 
 async def test_deepgram_tts_flat_parameters_keep_the_default_sample_rate() -> None:

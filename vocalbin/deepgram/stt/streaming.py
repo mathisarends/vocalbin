@@ -172,13 +172,7 @@ class StreamingSpeechToText(
             raise ValueError(
                 "The audio stream must contain at least one non-empty chunk."
             )
-        await connection.send_control(_close_stream_message())
-
-
-def _close_stream_message() -> Any:
-    from deepgram.extensions.types.sockets import ListenV2ControlMessage
-
-    return ListenV2ControlMessage(type="CloseStream")
+        await connection.send_close_stream()
 
 
 def _connect_params(config: StreamingSpeechToTextConfig) -> dict[str, Any]:
@@ -204,7 +198,7 @@ def _normalize_event(message: V2SocketClientResponse) -> Event:
     match message.type:
         case "Connected":
             return Connected.model_validate(payload)
-        case "FatalError":
+        case "Error":
             raise SpeechToTextError(payload["description"], error_code=payload["code"])
         case "TurnInfo":
             event_name = payload.pop("event")

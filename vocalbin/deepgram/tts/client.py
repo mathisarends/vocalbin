@@ -227,7 +227,7 @@ class TextToSpeech(
                         yield message
                     elif message.type == "Warning":
                         raise TextToSpeechError(
-                            message.warn_msg, error_code=message.warn_code
+                            message.description, error_code=message.code
                         )
                     elif message.type == "Flushed":
                         break
@@ -250,19 +250,13 @@ class TextToSpeech(
             raise ValueError(
                 "The text stream must contain at least one non-empty chunk."
             )
-        await connection.send_control(_flush_message())
+        await connection.send_flush()
 
 
 def _text_message(text: str) -> Any:
-    from deepgram.extensions.types.sockets import SpeakV1TextMessage
+    from deepgram.speak.v1.types import SpeakV1Text
 
-    return SpeakV1TextMessage(type="Speak", text=text)
-
-
-def _flush_message() -> Any:
-    from deepgram.extensions.types.sockets import SpeakV1ControlMessage
-
-    return SpeakV1ControlMessage(type="Flush")
+    return SpeakV1Text(text=text)
 
 
 def _connect_params(config: TextToSpeechConfig) -> dict[str, Any]:

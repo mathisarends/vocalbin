@@ -1,5 +1,4 @@
 import asyncio
-import builtins
 from collections.abc import AsyncIterator
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,7 +18,6 @@ from vocalbin.deepgram import (
     StreamingSpeechToTextEncoding,
 )
 from vocalbin.deepgram import events as deepgram_events
-from vocalbin.deepgram.stt import streaming as deepgram_streaming
 
 
 class Word(BaseModel):
@@ -48,7 +46,7 @@ class TurnInfoMessage(BaseModel):
 
 
 class FatalErrorMessage(BaseModel):
-    type: str = "FatalError"
+    type: str = "Error"
     sequence_id: int = 0
     code: str
     description: str
@@ -69,8 +67,8 @@ class FakeConnection:
             raise self.send_error
         self.audio.append(chunk)
 
-    async def send_control(self, message: Any) -> None:
-        self.controls.append(message)
+    async def send_close_stream(self) -> None:
+        self.controls.append({"type": "CloseStream"})
 
     async def __aiter__(self) -> AsyncIterator[Any]:
         for message in self.messages:
@@ -146,13 +144,6 @@ async def audio_stream(*chunks: bytes) -> AsyncIterator[bytes]:
 
 async def collect(stream: AsyncIterator[Any]) -> list[Any]:
     return [item async for item in stream]
-
-
-@pytest.fixture(autouse=True)
-def close_stream_message(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        deepgram_streaming, "_close_stream_message", lambda: {"type": "CloseStream"}
-    )
 
 
 async def test_deepgram_stt_transcribes_bytes_with_defaults() -> None:
@@ -485,22 +476,6 @@ async def test_deepgram_streaming_stt_consumer_can_stop_early() -> None:
     await stream.aclose()
 
     assert connection.closed
-
-
-def test_deepgram_streaming_stt_close_stream_message_uses_official_sdk(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.undo()
-    original_import = builtins.__import__
-
-    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "deepgram.extensions.types.sockets":
-            return SimpleNamespace(ListenV2ControlMessage=lambda *, type: type)
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fake_import)
-
-    assert deepgram_streaming._close_stream_message() == "CloseStream"
 
 
 async def test_deepgram_stt_flat_parameters_keep_the_default_model() -> None:
