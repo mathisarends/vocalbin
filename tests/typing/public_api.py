@@ -32,6 +32,8 @@ async def speech_calls(
         await openai_tts.generate("Hallo", instructions=RESET),
         openai.TextToSpeechResponse,
     )
+    async for chunk in openai_tts.stream("Hallo", instructions=RESET):
+        assert_type(chunk, bytes)
     assert_type(await piper_tts.generate("Hallo"), piper.TextToSpeechResponse)
 
 

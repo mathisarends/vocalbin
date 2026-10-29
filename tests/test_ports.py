@@ -14,6 +14,7 @@ def test_ports_are_abstract_and_openai_clients_implement_them() -> None:
     assert inspect.isabstract(ports.StreamingTextToSpeech)
     assert issubclass(openai.SpeechToText, ports.SpeechToText)
     assert issubclass(openai.TextToSpeech, ports.TextToSpeech)
+    assert issubclass(openai.TextToSpeech, ports.StreamingTextToSpeech)
     assert issubclass(cartesia.TextToSpeech, ports.TextToSpeech)
     assert issubclass(cartesia.TextToSpeech, ports.StreamingTextToSpeech)
     assert issubclass(cartesia.SpeechToText, ports.StreamingSpeechToText)

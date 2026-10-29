@@ -120,6 +120,19 @@ async def generate() -> bytes:
 
 `response.content_type` gives the matching MIME type (e.g. `audio/mpeg`).
 
+OpenAI `TextToSpeech` also implements `StreamingTextToSpeech`. `stream()` accepts
+the same options as `generate()` and yields audio as it arrives, without buffering
+the complete response. Use `aclosing` when playback may stop early:
+
+```python
+from contextlib import aclosing
+
+async with TextToSpeech() as tts:
+    async with aclosing(tts.stream("Hallo!", response_format=TextToSpeechFormat.PCM)) as audio:
+        async for chunk in audio:
+            await send_to_player(chunk)
+```
+
 ## Cartesia text to speech
 
 Cartesia is an alternative text-to-speech provider, grouped under

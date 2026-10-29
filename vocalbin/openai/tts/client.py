@@ -1,4 +1,5 @@
-from typing import Any, cast, overload
+from collections.abc import AsyncGenerator
+from typing import Any, overload
 
 from openai import AsyncOpenAI, omit
 
@@ -28,6 +29,7 @@ _CONTENT_TYPES = {
 class TextToSpeech(
     _OpenAIClientOwner,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
+    ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
 ):
     def __init__(
         self,
@@ -88,14 +90,7 @@ class TextToSpeech(
             speed=speed,
         )
         result = await self.client.audio.speech.create(
-            input=text,
-            model=resolved_config.model,
-            voice=resolved_config.voice,
-            instructions=resolved_config.instructions
-            if resolved_config.instructions is not None
-            else omit,
-            response_format=cast(Any, resolved_config.response_format),
-            speed=resolved_config.speed if resolved_config.speed is not None else omit,
+            **_request_params(text, resolved_config)
         )
 
         return TextToSpeechResponse(
@@ -105,6 +100,63 @@ class TextToSpeech(
             response_format=resolved_config.response_format,
             content_type=_CONTENT_TYPES[resolved_config.response_format],
         )
+
+    @overload
+    def stream(
+        self,
+        text: str,
+        *,
+        model: TextToSpeechModel | str | Reset = TextToSpeechModel.GPT_4O_MINI_TTS,
+        voice: TextToSpeechVoice | str | Reset = TextToSpeechVoice.MARIN,
+        response_format: TextToSpeechFormat | Reset = TextToSpeechFormat.MP3,
+        instructions: str | Reset | None = None,
+        speed: float | Reset | None = None,
+    ) -> AsyncGenerator[bytes]: ...
+
+    @overload
+    def stream(
+        self, text: str, *, config: TextToSpeechConfig | None = None
+    ) -> AsyncGenerator[bytes]: ...
+
+    async def stream(
+        self,
+        text: str,
+        *,
+        model: TextToSpeechModel | str | Reset | None = None,
+        voice: TextToSpeechVoice | str | Reset | None = None,
+        response_format: TextToSpeechFormat | Reset | None = None,
+        instructions: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        config: TextToSpeechConfig | None = None,
+    ) -> AsyncGenerator[bytes]:
+        text = _require_valid_text(text)
+        resolved_config = _resolve_tts_config(
+            config=config,
+            default_config=self.default_config,
+            model=model,
+            voice=voice,
+            response_format=response_format,
+            instructions=instructions,
+            speed=speed,
+        )
+        async with self.client.audio.speech.with_streaming_response.create(
+            **_request_params(text, resolved_config)
+        ) as response:
+            async for chunk in response.iter_bytes():
+                yield chunk
+
+
+def _request_params(text: str, config: TextToSpeechConfig) -> dict[str, Any]:
+    return {
+        "input": text,
+        "model": config.model,
+        "voice": config.voice,
+        "instructions": config.instructions
+        if config.instructions is not None
+        else omit,
+        "response_format": config.response_format,
+        "speed": config.speed if config.speed is not None else omit,
+    }
 
 
 def _require_valid_text(text: str) -> str:
