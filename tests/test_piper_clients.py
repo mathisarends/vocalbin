@@ -1,4 +1,6 @@
+import asyncio
 import builtins
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -277,3 +279,53 @@ async def test_piper_overrides_preserve_speaker_and_voice_defaults(
         "noise_scale": 0.5,
         "length_scale": 1.1,
     }
+
+
+@pytest.mark.parametrize("cancel", [False, True])
+async def test_stopping_piper_stream_keeps_event_loop_responsive(
+    monkeypatch: pytest.MonkeyPatch,
+    cancel: bool,
+) -> None:
+    stub_syn_config(monkeypatch)
+    release = threading.Event()
+    closed = threading.Event()
+    produced: list[bytes] = []
+
+    class SlowVoice(FakeVoice):
+        def synthesize(self, text: str, syn_config: Any = None):
+            try:
+                yield FakeAudioChunk(b"first")
+                release.wait(timeout=1)
+                produced.append(b"second")
+                yield FakeAudioChunk(b"second")
+                produced.append(b"third")
+                yield FakeAudioChunk(b"third")
+            finally:
+                closed.set()
+
+    stream = TextToSpeech(voice=cast(Any, SlowVoice())).stream("Hello")
+    assert await anext(stream) == b"first"
+    callback_ran = []
+
+    def unblock() -> None:
+        callback_ran.append(True)
+        release.set()
+
+    handle = asyncio.get_running_loop().call_later(0.01, unblock)
+    try:
+        if cancel:
+            task = asyncio.create_task(anext(stream))
+            await asyncio.sleep(0)
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        else:
+            await stream.aclose()
+        assert callback_ran
+        assert closed.is_set()
+        assert b"third" not in produced
+    finally:
+        handle.cancel()
+        release.set()
+        await asyncio.to_thread(closed.wait, 1)
+        await stream.aclose()

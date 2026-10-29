@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator, Generator, Iterator
 from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self, overload
@@ -139,8 +139,12 @@ class TextToSpeech(
         chunks = (
             chunk.audio_int16_bytes for chunk in self._synthesize(text, resolved_config)
         )
-        async for chunk in _stream_sync_generator(chunks):
-            yield chunk
+        stream = _stream_sync_generator(chunks)
+        try:
+            async for chunk in stream:
+                yield chunk
+        finally:
+            await stream.aclose()
 
     def _synthesize(
         self, text: str, config: TextToSpeechConfig
@@ -190,17 +194,21 @@ def _build_syn_config(params: dict[str, Any]) -> SynthesisConfig:
     return SynthesisConfig(**params)
 
 
-async def _stream_sync_generator(generator: Iterator[bytes]) -> AsyncGenerator[bytes]:
+async def _stream_sync_generator(generator: Generator[bytes]) -> AsyncGenerator[bytes]:
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[bytes | BaseException | None] = asyncio.Queue()
+    stopped = threading.Event()
 
     def worker() -> None:
         try:
             for chunk in generator:
+                if stopped.is_set():
+                    break
                 loop.call_soon_threadsafe(queue.put_nowait, chunk)
         except BaseException as exc:
             loop.call_soon_threadsafe(queue.put_nowait, exc)
         finally:
+            generator.close()
             loop.call_soon_threadsafe(queue.put_nowait, None)
 
     thread = threading.Thread(target=worker, daemon=True)
@@ -214,7 +222,8 @@ async def _stream_sync_generator(generator: Iterator[bytes]) -> AsyncGenerator[b
                 raise item
             yield item
     finally:
-        thread.join()
+        stopped.set()
+        await asyncio.to_thread(thread.join)
 
 
 def _resolve_call_config(
