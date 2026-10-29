@@ -74,3 +74,7 @@ async def preconnect(tts: Connectable) -> None:
 
 def cartesia_preconnect(tts: cartesia.TextToSpeech) -> Connectable:
     return tts
+
+
+def deepgram_preconnect(tts: deepgram.TextToSpeech) -> Connectable:
+    return tts

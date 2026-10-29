@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.deepgram.shared import DeepgramClientOwner
+from vocalbin.deepgram.tts._connection import _StreamingConnection
 from vocalbin.deepgram.tts.models import (
     AudioContainer,
     AudioEncoding,
@@ -36,6 +37,7 @@ class TextToSpeechError(RuntimeError):
 
 class TextToSpeech(
     DeepgramClientOwner,
+    ports.Connectable,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
     ports.IncrementalTextToSpeech[TextToSpeechConfig, bytes],
 ):
@@ -58,6 +60,7 @@ class TextToSpeech(
             bit_rate=bit_rate,
             **({"sample_rate": sample_rate} if sample_rate is not None else {}),
         )
+        self._streaming = _StreamingConnection(self.client)
 
     @overload
     async def generate(
@@ -192,16 +195,10 @@ class TextToSpeech(
             sample_rate=sample_rate,
             bit_rate=None,
         )
-        if resolved_config.encoding not in _STREAMING_ENCODINGS:
-            raise ValueError(
-                "Deepgram WebSocket streaming requires linear16, mulaw, or alaw."
-            )
-        if resolved_config.container not in (None, AudioContainer.NONE):
-            raise ValueError("Deepgram WebSocket streaming requires no container.")
+        _validate_streaming_config(resolved_config)
 
-        async with self.client.speak.v1.connect(
-            **_connect_params(resolved_config)
-        ) as connection:
+        async with self._streaming.acquire(_connect_params(resolved_config)) as lease:
+            connection = lease.connection
             sender = asyncio.create_task(self._send_text(connection, text))
             responses = connection.__aiter__()
             receiver = asyncio.ensure_future(anext(responses))
@@ -234,12 +231,23 @@ class TextToSpeech(
                             message.warn_msg, error_code=message.warn_code
                         )
                     elif message.type == "Flushed":
+                        lease.complete = True
                         break
 
                     receiver = asyncio.ensure_future(anext(responses))
             finally:
                 await _stop_task(receiver)
                 await _stop_task(sender)
+
+    async def connect(self) -> None:
+        _validate_streaming_config(self.default_config)
+        await self._streaming.connect(_connect_params(self.default_config))
+
+    async def aclose(self) -> None:
+        try:
+            await self._streaming.aclose()
+        finally:
+            await super().aclose()
 
     async def _send_text(
         self, connection: AsyncV1SocketClient, text: AsyncIterable[str]
@@ -257,6 +265,15 @@ class TextToSpeech(
         await connection.send_control(_flush_message())
 
 
+def _validate_streaming_config(config: TextToSpeechConfig) -> None:
+    if config.encoding not in _STREAMING_ENCODINGS:
+        raise ValueError(
+            "Deepgram WebSocket streaming requires linear16, mulaw, or alaw."
+        )
+    if config.container not in (None, AudioContainer.NONE):
+        raise ValueError("Deepgram WebSocket streaming requires no container.")
+
+
 def _text_message(text: str) -> Any:
     from deepgram.extensions.types.sockets import SpeakV1TextMessage
 
@@ -269,7 +286,7 @@ def _flush_message() -> Any:
     return SpeakV1ControlMessage(type="Flush")
 
 
-def _connect_params(config: TextToSpeechConfig) -> dict[str, Any]:
+def _connect_params(config: TextToSpeechConfig) -> dict[str, str]:
     # Deepgram sends every websocket option as a query string parameter.
     params = config.model_dump(
         include={"model", "encoding", "sample_rate"}, exclude_none=True, mode="json"

@@ -552,3 +552,134 @@ async def test_reset_sample_rate_selects_the_new_encoding_default() -> None:
     assert response.sample_rate == 8000
     assert client.v1.generate_calls[-1]["sample_rate"] == 8000
     assert service.default_config.sample_rate == 48000
+
+
+async def test_deepgram_connect_reuses_the_socket_across_requests() -> None:
+    connection = FakeConnection([b"audio", ControlMessage(type="Flushed")])
+    client = FakeClient(connection)
+    service = TextToSpeech(client=cast(Any, client))
+    await asyncio.gather(service.connect(), service.connect())
+    assert len(client.v1.calls) == 1
+    assert connection.texts == []
+    assert await collect(service.stream("First")) == [b"audio"]
+    assert await collect(service.stream("Second")) == [b"audio"]
+    assert len(client.v1.calls) == 1
+    assert not connection.closed
+    await service.aclose()
+    await service.aclose()
+    assert connection.closed
+    with pytest.raises(RuntimeError, match="closed"):
+        await service.connect()
+
+
+async def test_deepgram_reconnects_for_changed_stream_options() -> None:
+    client = FakeClient()
+    connections: list[FakeConnection] = []
+
+    def connect(**params: Any) -> FakeManager:
+        client.v1.calls.append(params)
+        connection = FakeConnection([b"audio", ControlMessage(type="Flushed")])
+        connections.append(connection)
+        return FakeManager(connection)
+
+    client.v1.connect = connect
+    service = TextToSpeech(client=cast(Any, client))
+    await service.connect()
+    await collect(service.stream("First", sample_rate=16000))
+    assert connections[0].closed
+    assert not connections[1].closed
+    assert len(client.v1.calls) == 2
+    await service.aclose()
+    assert connections[1].closed
+
+
+async def test_deepgram_discards_incomplete_reused_streams() -> None:
+    connection = FakeConnection([b"audio", b"more", ControlMessage(type="Flushed")])
+    client = FakeClient(connection)
+    service = TextToSpeech(client=cast(Any, client))
+    await service.connect()
+    stream = service.stream("First")
+    assert await anext(stream) == b"audio"
+    await stream.aclose()
+    assert connection.closed
+    await collect(service.stream("Second"))
+    assert len(client.v1.calls) == 2
+    await service.aclose()
+
+
+async def test_deepgram_close_during_connect_releases_the_late_socket() -> None:
+    client = FakeClient()
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    class SlowManager(FakeManager):
+        async def __aenter__(self) -> FakeConnection:
+            entered.set()
+            await release.wait()
+            return self.connection
+
+    client.v1.connect = lambda **params: SlowManager(client.v1.connection)
+    service = TextToSpeech(client=cast(Any, client))
+    opening = asyncio.create_task(service.connect())
+    await entered.wait()
+    closing = asyncio.create_task(service.aclose())
+    release.set()
+    await asyncio.gather(opening, closing)
+    assert client.v1.connection.closed
+
+
+async def test_deepgram_serializes_requests_without_mixing_audio() -> None:
+    class EchoConnection(FakeConnection):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.responses: asyncio.Queue[Any] = asyncio.Queue()
+            self.text = ""
+
+        async def send_text(self, message: Any) -> None:
+            self.text += message["text"]
+
+        async def send_control(self, message: Any) -> None:
+            self.responses.put_nowait(self.text.encode())
+            self.responses.put_nowait(ControlMessage(type="Flushed"))
+            self.text = ""
+
+        async def __aiter__(self) -> AsyncIterator[Any]:
+            while True:
+                yield await self.responses.get()
+
+    connection = EchoConnection()
+    client = FakeClient(connection)
+    async with TextToSpeech(client=cast(Any, client)) as service:
+        await service.connect()
+        first, second = await asyncio.gather(
+            collect(service.stream("first")), collect(service.stream("second"))
+        )
+        assert first == [b"first"]
+        assert second == [b"second"]
+        assert len(client.v1.calls) == 1
+    assert connection.closed
+
+
+async def test_deepgram_cancellation_during_text_input_invalidates_the_socket() -> None:
+    started = asyncio.Event()
+
+    async def text() -> AsyncIterator[str]:
+        yield "First"
+        started.set()
+        await asyncio.Event().wait()
+
+    class WaitingConnection(FakeConnection):
+        async def __aiter__(self) -> AsyncIterator[Any]:
+            await asyncio.Event().wait()
+            yield b"unreachable"
+
+    connection = WaitingConnection([])
+    service = TextToSpeech(client=cast(Any, FakeClient(connection)))
+    await service.connect()
+    task = asyncio.create_task(collect(service.stream_incremental(text())))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert connection.closed
+    await service.aclose()

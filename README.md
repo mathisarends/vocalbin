@@ -311,10 +311,23 @@ carries no container and supports `linear16`, `mulaw`, and `alaw` only, so
 compressed encodings are rejected before connecting. Deepgram signals problems on
 the socket as warnings, which are raised as `TextToSpeechError`.
 
-Both Deepgram clients open the WebSocket for the duration of a single stream and
-close it again when the stream ends, so the connection stays an implementation
-detail. `aclose()` (or the async context manager) releases the owned HTTP
-transport.
+Deepgram opens and closes a WebSocket for each stream by default. To prepare a
+persistent TTS connection before the first request, call `await tts.connect()`:
+
+```python
+async with TextToSpeech() as tts:
+    await tts.connect()
+    async for audio in tts.stream("Hello!"):
+        await send_to_player(audio)
+    async for audio in tts.stream("How can I help?"):
+        await send_to_player(audio)
+```
+
+TTS streams on a reused socket are serialized. Changing model, encoding or sample
+rate reconnects automatically. An error, cancellation or early stream close
+invalidates the socket so the next request starts cleanly. `aclose()` releases the
+WebSocket and owned HTTP transport; it never closes an injected SDK client's HTTP
+transport. Streaming STT continues to use a connection per stream.
 
 ## Piper text to speech
 

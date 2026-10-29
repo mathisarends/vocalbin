@@ -80,6 +80,7 @@ async def test_closable_port_and_incremental_capabilities() -> None:
 
 def test_connectable_port_is_optional_and_implemented_by_cartesia() -> None:
     assert issubclass(cartesia.TextToSpeech, ports.Connectable)
+    assert issubclass(deepgram.TextToSpeech, ports.Connectable)
     assert not issubclass(openai.TextToSpeech, ports.Connectable)
     with pytest.raises(TypeError):
         ports.Connectable()
