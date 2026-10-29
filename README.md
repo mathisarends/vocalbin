@@ -230,7 +230,8 @@ Deepgram is grouped under `vocalbin.deepgram`. Install it with
 `uv add "vocalbin[deepgram]"` and set `DEEPGRAM_API_KEY` in the environment.
 
 `SpeechToText` transcribes complete recordings with Nova 3 over the REST API and
-accepts raw bytes or a file path:
+accepts raw bytes or a file path. File uploads read bounded 64 KiB chunks off the
+event loop and close the file when the request finishes or is cancelled:
 
 ```python
 from pathlib import Path

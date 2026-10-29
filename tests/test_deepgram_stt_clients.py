@@ -105,6 +105,9 @@ class FakeMedia:
         self.calls: list[dict[str, Any]] = []
 
     async def transcribe_file(self, **kwargs: Any) -> Any:
+        request = kwargs["request"]
+        if not isinstance(request, bytes):
+            kwargs["request"] = b"".join([chunk async for chunk in request])
         self.calls.append(kwargs)
         return self.result
 
@@ -583,3 +586,128 @@ async def test_deepgram_can_reset_raw_audio_options_and_boolean_defaults() -> No
     )
     assert client.media.calls[-1] == {"request": b"wav", "model": "nova-3"}
     assert service.default_config.sample_rate == 48000
+
+
+async def test_deepgram_file_upload_reads_bounded_chunks_off_the_event_loop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import io
+    import threading
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.touch()
+    main_thread = threading.get_ident()
+    read_sizes: list[int] = []
+    data = b"a" * (64 * 1024 * 3 + 17)
+
+    class TrackingFile(io.BytesIO):
+        def read(self, size: int = -1) -> bytes:
+            assert threading.get_ident() != main_thread
+            read_sizes.append(size)
+            return super().read(size)
+
+    audio_file = TrackingFile(data)
+    monkeypatch.setattr(Path, "open", lambda self, mode: audio_file)
+    client = FakeRestClient(transcription())
+    await SpeechToText(client=cast(Any, client)).transcribe(audio_path)
+    assert client.media.calls[-1]["request"] == data
+    assert read_sizes == [64 * 1024] * 5
+    assert audio_file.closed
+
+
+@pytest.mark.parametrize("cancel", [False, True])
+async def test_deepgram_file_upload_closes_files_on_early_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, cancel: bool
+) -> None:
+    import io
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.touch()
+    audio_file = io.BytesIO(b"audio")
+    monkeypatch.setattr(Path, "open", lambda self, mode: audio_file)
+    started = asyncio.Event()
+
+    class InterruptedMedia(FakeMedia):
+        async def transcribe_file(self, **kwargs: Any) -> Any:
+            assert await anext(kwargs["request"]) == b"audio"
+            started.set()
+            if cancel:
+                await asyncio.Event().wait()
+            raise RuntimeError("upload failed")
+
+    client = FakeRestClient(transcription())
+    client.listen.v1.media = InterruptedMedia(None)
+    service = SpeechToText(client=cast(Any, client))
+    task = asyncio.create_task(service.transcribe(audio_path))
+    await started.wait()
+    if cancel:
+        task.cancel()
+    with pytest.raises(asyncio.CancelledError if cancel else RuntimeError):
+        await task
+    assert audio_file.closed
+
+
+async def test_cancelled_deepgram_file_open_closes_the_late_handle(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import io
+    import threading
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.touch()
+    audio_file = io.BytesIO(b"audio")
+    entered = threading.Event()
+    release = threading.Event()
+
+    def slow_open(self: Path, mode: str) -> Any:
+        entered.set()
+        assert release.wait(5)
+        return audio_file
+
+    monkeypatch.setattr(Path, "open", slow_open)
+    service = SpeechToText(client=cast(Any, FakeRestClient(transcription())))
+    task = asyncio.create_task(service.transcribe(audio_path))
+    try:
+        assert await asyncio.to_thread(entered.wait, 5)
+        task.cancel()
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert audio_file.closed
+    finally:
+        release.set()
+
+
+async def test_deepgram_sdk_accepts_the_streamed_file_body(tmp_path: Path) -> None:
+    import httpx
+
+    deepgram = pytest.importorskip("deepgram")
+    data = b"audio" * 30000
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(data)
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "metadata": {
+                    "request_id": "id",
+                    "sha256": "sha",
+                    "created": "2026-01-01T00:00:00Z",
+                    "duration": 1.0,
+                    "channels": 0,
+                    "models": [],
+                    "model_info": {},
+                },
+                "results": {"channels": []},
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
+        client = deepgram.AsyncDeepgramClient(api_key="test", httpx_client=http)
+        response = await SpeechToText(client=client).transcribe(audio_path)
+    assert requests[0].content == data
+    assert requests[0].headers["transfer-encoding"] == "chunked"
+    assert response.request_id == "id"

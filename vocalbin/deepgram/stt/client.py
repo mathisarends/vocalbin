@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, BinaryIO, cast, overload
 
 from vocalbin import ports
 from vocalbin.deepgram.shared import DeepgramClientOwner
@@ -134,21 +137,49 @@ class SpeechToText(
         params = resolved_config.model_dump(
             exclude_none=True, mode="json", by_alias=True
         )
-        result = await self.client.listen.v1.media.transcribe_file(
-            request=_read_audio(audio), **params
-        )
+        async with _audio_request(audio) as request:
+            result = await self.client.listen.v1.media.transcribe_file(
+                request=request, **params
+            )
         return _to_response(result, resolved_config.model)
 
 
-def _read_audio(audio: bytes | str | Path) -> bytes:
+_FILE_CHUNK_SIZE = 64 * 1024
+
+
+@asynccontextmanager
+async def _audio_request(
+    audio: bytes | str | Path,
+) -> AsyncIterator[bytes | AsyncIterator[bytes]]:
     if isinstance(audio, bytes):
         if not audio:
             raise ValueError("audio must not be empty")
-        return audio
+        yield audio
+        return
     audio_path = Path(audio)
-    if not audio_path.is_file():
+    if not await asyncio.to_thread(audio_path.is_file):
         raise ValueError(f"Audio file does not exist: {audio_path}")
-    return audio_path.read_bytes()
+    opening = asyncio.create_task(asyncio.to_thread(audio_path.open, "rb"))
+    try:
+        audio_file = await asyncio.shield(opening)
+    except asyncio.CancelledError:
+        # A cancelled thread await can still finish opening a file afterwards.
+        audio_file = await opening
+        await asyncio.to_thread(audio_file.close)
+        raise
+    chunks = _file_chunks(audio_file)
+    try:
+        yield chunks
+    finally:
+        try:
+            await chunks.aclose()
+        finally:
+            await asyncio.to_thread(audio_file.close)
+
+
+async def _file_chunks(audio_file: BinaryIO) -> AsyncGenerator[bytes]:
+    while chunk := await asyncio.to_thread(audio_file.read, _FILE_CHUNK_SIZE):
+        yield chunk
 
 
 def _to_response(
