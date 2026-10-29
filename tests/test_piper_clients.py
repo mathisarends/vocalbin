@@ -354,3 +354,15 @@ def test_explicit_piper_config_overrides_environment_with_environment_model(
 
     monkeypatch.setattr(piper_clients, "_create_voice", create_voice)
     assert TextToSpeech(config_path=config_path).voice is voice
+
+
+async def test_piper_can_reset_speaker_without_resetting_other_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from vocalbin import RESET
+
+    stub_syn_config(monkeypatch)
+    voice = FakeVoice()
+    service = TextToSpeech(voice=cast(Any, voice), speaker_id=2, noise_scale=0.5)
+    await service.generate("Hallo", speaker_id=RESET)
+    assert voice.calls[-1]["syn_config"] == {"noise_scale": 0.5}

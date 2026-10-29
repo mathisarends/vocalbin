@@ -508,3 +508,21 @@ async def test_cartesia_overrides_preserve_voice_and_generation_defaults() -> No
     assert client.connection.calls[0]["language"] == "de"
     assert client.connection.calls[0]["voice"]["id"] == "voice-id"
     assert service.default_config.generation_config.speed is None
+
+
+async def test_cartesia_can_reset_nested_generation_options() -> None:
+    from vocalbin import RESET
+
+    client = FakeClient()
+    service = TextToSpeech(
+        client=cast(Any, client),
+        voice_id="voice-id",
+        speed=1.2,
+        emotion="calm",
+        language="de",
+    )
+    await service.generate("Hallo", speed=RESET, language=RESET)
+    call = client.tts.generate_calls[-1]
+    assert call["generation_config"] == {"emotion": "calm"}
+    assert "language" not in call
+    assert service.default_config.generation_config.speed == 1.2

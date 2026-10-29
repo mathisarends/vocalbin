@@ -566,3 +566,20 @@ async def test_deepgram_raw_stt_preserves_sample_rate_with_call_overrides() -> N
     assert client.media.calls[0]["encoding"] == "linear16"
     await service.transcribe(b"raw pcm", sample_rate=16000)
     assert client.media.calls[1]["sample_rate"] == 16000
+
+
+async def test_deepgram_can_reset_raw_audio_options_and_boolean_defaults() -> None:
+    from vocalbin import RESET
+
+    client = FakeRestClient(transcription())
+    service = SpeechToText(
+        client=cast(Any, client),
+        encoding=SpeechToTextEncoding.LINEAR16,
+        sample_rate=48000,
+        smart_format=True,
+    )
+    await service.transcribe(
+        b"wav", encoding=RESET, sample_rate=RESET, smart_format=RESET
+    )
+    assert client.media.calls[-1] == {"request": b"wav", "model": "nova-3"}
+    assert service.default_config.sample_rate == 48000

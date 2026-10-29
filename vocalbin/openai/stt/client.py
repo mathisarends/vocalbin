@@ -13,7 +13,7 @@ from vocalbin.openai.stt.models import (
     SpeechToTextResponse,
     TimestampGranularity,
 )
-from vocalbin.ports import merge_config
+from vocalbin.ports import Reset, merge_config
 
 type TranscriptionResult = TranscriptionCreateResponse | str
 
@@ -60,15 +60,15 @@ class SpeechToText(
         audio: bytes | str | Path,
         *,
         filename: str = "utterance.wav",
-        model: SpeechToTextModel | str = SpeechToTextModel.GPT_4O_TRANSCRIBE,
-        response_format: SpeechToTextFormat = SpeechToTextFormat.JSON,
-        language: str | None = None,
-        prompt: str | None = None,
-        temperature: float | None = None,
-        timestamp_granularities: list[TimestampGranularity] | None = None,
-        include: list[Literal["logprobs"]] | None = None,
-        chunking_strategy: Literal["auto"] | dict[str, Any] | None = None,
-        extra_body: dict[str, Any] | None = None,
+        model: SpeechToTextModel | str | Reset = SpeechToTextModel.GPT_4O_TRANSCRIBE,
+        response_format: SpeechToTextFormat | Reset = SpeechToTextFormat.JSON,
+        language: str | None | Reset = None,
+        prompt: str | None | Reset = None,
+        temperature: float | None | Reset = None,
+        timestamp_granularities: list[TimestampGranularity] | None | Reset = None,
+        include: list[Literal["logprobs"]] | None | Reset = None,
+        chunking_strategy: Literal["auto"] | dict[str, Any] | None | Reset = None,
+        extra_body: dict[str, Any] | None | Reset = None,
     ) -> SpeechToTextResponse: ...
 
     @overload
@@ -85,15 +85,15 @@ class SpeechToText(
         audio: bytes | str | Path,
         *,
         filename: str = "utterance.wav",
-        model: SpeechToTextModel | str | None = None,
-        response_format: SpeechToTextFormat | None = None,
-        language: str | None = None,
-        prompt: str | None = None,
-        temperature: float | None = None,
-        timestamp_granularities: list[TimestampGranularity] | None = None,
-        include: list[Literal["logprobs"]] | None = None,
-        chunking_strategy: Literal["auto"] | dict[str, Any] | None = None,
-        extra_body: dict[str, Any] | None = None,
+        model: SpeechToTextModel | str | None | Reset = None,
+        response_format: SpeechToTextFormat | None | Reset = None,
+        language: str | None | Reset = None,
+        prompt: str | None | Reset = None,
+        temperature: float | None | Reset = None,
+        timestamp_granularities: list[TimestampGranularity] | None | Reset = None,
+        include: list[Literal["logprobs"]] | None | Reset = None,
+        chunking_strategy: Literal["auto"] | dict[str, Any] | None | Reset = None,
+        extra_body: dict[str, Any] | None | Reset = None,
         config: SpeechToTextConfig | None = None,
     ) -> SpeechToTextResponse:
         resolved_config = _resolve_call_config(
@@ -149,15 +149,15 @@ def _resolve_call_config(
     *,
     config: SpeechToTextConfig | None,
     default_config: SpeechToTextConfig | None,
-    model: SpeechToTextModel | str | None,
-    response_format: SpeechToTextFormat | None,
-    language: str | None,
-    prompt: str | None,
-    temperature: float | None,
-    timestamp_granularities: list[TimestampGranularity] | None,
-    include: list[Literal["logprobs"]] | None,
-    chunking_strategy: Literal["auto"] | dict[str, Any] | None,
-    extra_body: dict[str, Any] | None,
+    model: SpeechToTextModel | str | None | Reset,
+    response_format: SpeechToTextFormat | None | Reset,
+    language: str | None | Reset,
+    prompt: str | None | Reset,
+    temperature: float | None | Reset,
+    timestamp_granularities: list[TimestampGranularity] | None | Reset,
+    include: list[Literal["logprobs"]] | None | Reset,
+    chunking_strategy: Literal["auto"] | dict[str, Any] | None | Reset,
+    extra_body: dict[str, Any] | None | Reset,
 ) -> SpeechToTextConfig:
     flat_values = (
         model,

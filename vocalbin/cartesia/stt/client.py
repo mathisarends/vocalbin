@@ -22,7 +22,7 @@ from vocalbin.cartesia.stt.models import (
     SpeechToTextEncoding,
     SpeechToTextModel,
 )
-from vocalbin.ports import merge_config
+from vocalbin.ports import Reset, merge_config
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -92,14 +92,14 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         self,
         audio: AsyncIterable[bytes],
         *,
-        model: SpeechToTextModel | str = SpeechToTextModel.INK_2,
-        encoding: SpeechToTextEncoding = SpeechToTextEncoding.PCM_S16LE,
-        sample_rate: int = 16000,
-        keyterms: list[str] | None = None,
-        turn_start_threshold: float | None = None,
-        turn_eager_end_threshold: float | None = None,
-        turn_end_threshold: float | None = None,
-        turn_end_timeout_ms: float | None = None,
+        model: SpeechToTextModel | str | Reset = SpeechToTextModel.INK_2,
+        encoding: SpeechToTextEncoding | Reset = SpeechToTextEncoding.PCM_S16LE,
+        sample_rate: int | Reset = 16000,
+        keyterms: list[str] | None | Reset = None,
+        turn_start_threshold: float | None | Reset = None,
+        turn_eager_end_threshold: float | None | Reset = None,
+        turn_end_threshold: float | None | Reset = None,
+        turn_end_timeout_ms: float | None | Reset = None,
     ) -> AsyncGenerator[Event]: ...
 
     @overload
@@ -114,14 +114,14 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         self,
         audio: AsyncIterable[bytes],
         *,
-        model: SpeechToTextModel | str | None = None,
-        encoding: SpeechToTextEncoding | None = None,
-        sample_rate: int | None = None,
-        keyterms: list[str] | None = None,
-        turn_start_threshold: float | None = None,
-        turn_eager_end_threshold: float | None = None,
-        turn_end_threshold: float | None = None,
-        turn_end_timeout_ms: float | None = None,
+        model: SpeechToTextModel | str | None | Reset = None,
+        encoding: SpeechToTextEncoding | None | Reset = None,
+        sample_rate: int | None | Reset = None,
+        keyterms: list[str] | None | Reset = None,
+        turn_start_threshold: float | None | Reset = None,
+        turn_eager_end_threshold: float | None | Reset = None,
+        turn_end_threshold: float | None | Reset = None,
+        turn_end_timeout_ms: float | None | Reset = None,
         config: SpeechToTextConfig | None = None,
     ) -> AsyncGenerator[Event]:
         resolved_config = _resolve_call_config(
@@ -229,14 +229,14 @@ def _resolve_call_config(
     *,
     config: SpeechToTextConfig | None,
     default_config: SpeechToTextConfig,
-    model: SpeechToTextModel | str | None,
-    encoding: SpeechToTextEncoding | None,
-    sample_rate: int | None,
-    keyterms: list[str] | None,
-    turn_start_threshold: float | None,
-    turn_eager_end_threshold: float | None,
-    turn_end_threshold: float | None,
-    turn_end_timeout_ms: float | None,
+    model: SpeechToTextModel | str | None | Reset,
+    encoding: SpeechToTextEncoding | None | Reset,
+    sample_rate: int | None | Reset,
+    keyterms: list[str] | None | Reset,
+    turn_start_threshold: float | None | Reset,
+    turn_eager_end_threshold: float | None | Reset,
+    turn_end_threshold: float | None | Reset,
+    turn_end_timeout_ms: float | None | Reset,
 ) -> SpeechToTextConfig:
     flat_values = (
         model,

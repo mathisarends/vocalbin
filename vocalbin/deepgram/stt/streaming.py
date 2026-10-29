@@ -22,7 +22,7 @@ from vocalbin.deepgram.stt.models import (
     StreamingSpeechToTextEncoding,
     StreamingSpeechToTextModel,
 )
-from vocalbin.ports import merge_config
+from vocalbin.ports import Reset, merge_config
 
 if TYPE_CHECKING:
     from deepgram import AsyncDeepgramClient
@@ -83,15 +83,16 @@ class StreamingSpeechToText(
         audio: AsyncIterable[bytes],
         *,
         model: StreamingSpeechToTextModel
-        | str = StreamingSpeechToTextModel.FLUX_GENERAL_EN,
-        encoding: StreamingSpeechToTextEncoding = (
+        | str
+        | Reset = StreamingSpeechToTextModel.FLUX_GENERAL_EN,
+        encoding: StreamingSpeechToTextEncoding | Reset = (
             StreamingSpeechToTextEncoding.LINEAR16
         ),
-        sample_rate: int = 16000,
-        keyterms: list[str] | None = None,
-        eot_threshold: float | None = None,
-        eager_eot_threshold: float | None = None,
-        eot_timeout_ms: int | None = None,
+        sample_rate: int | Reset = 16000,
+        keyterms: list[str] | None | Reset = None,
+        eot_threshold: float | None | Reset = None,
+        eager_eot_threshold: float | None | Reset = None,
+        eot_timeout_ms: int | None | Reset = None,
     ) -> AsyncGenerator[Event]: ...
 
     @overload
@@ -106,13 +107,13 @@ class StreamingSpeechToText(
         self,
         audio: AsyncIterable[bytes],
         *,
-        model: StreamingSpeechToTextModel | str | None = None,
-        encoding: StreamingSpeechToTextEncoding | None = None,
-        sample_rate: int | None = None,
-        keyterms: list[str] | None = None,
-        eot_threshold: float | None = None,
-        eager_eot_threshold: float | None = None,
-        eot_timeout_ms: int | None = None,
+        model: StreamingSpeechToTextModel | str | None | Reset = None,
+        encoding: StreamingSpeechToTextEncoding | None | Reset = None,
+        sample_rate: int | None | Reset = None,
+        keyterms: list[str] | None | Reset = None,
+        eot_threshold: float | None | Reset = None,
+        eager_eot_threshold: float | None | Reset = None,
+        eot_timeout_ms: int | None | Reset = None,
         config: StreamingSpeechToTextConfig | None = None,
     ) -> AsyncGenerator[Event]:
         resolved_config = _resolve_call_config(
@@ -222,13 +223,13 @@ def _resolve_call_config(
     *,
     config: StreamingSpeechToTextConfig | None,
     default_config: StreamingSpeechToTextConfig,
-    model: StreamingSpeechToTextModel | str | None,
-    encoding: StreamingSpeechToTextEncoding | None,
-    sample_rate: int | None,
-    keyterms: list[str] | None,
-    eot_threshold: float | None,
-    eager_eot_threshold: float | None,
-    eot_timeout_ms: int | None,
+    model: StreamingSpeechToTextModel | str | None | Reset,
+    encoding: StreamingSpeechToTextEncoding | None | Reset,
+    sample_rate: int | None | Reset,
+    keyterms: list[str] | None | Reset,
+    eot_threshold: float | None | Reset,
+    eager_eot_threshold: float | None | Reset,
+    eot_timeout_ms: int | None | Reset,
 ) -> StreamingSpeechToTextConfig:
     flat_values = (
         model,

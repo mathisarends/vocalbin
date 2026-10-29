@@ -317,3 +317,28 @@ async def test_generate_preserves_constructor_defaults_with_overrides() -> None:
     assert service.default_config.speed is None
     replacement = await service.generate("Hallo", config=TextToSpeechConfig())
     assert replacement.voice == "marin"
+
+
+async def test_generate_can_reset_instructions_without_changing_defaults() -> None:
+    from vocalbin import RESET
+
+    client = FakeClient(speech=SimpleNamespace(content=b"audio"))
+    service = TextToSpeech(client=cast(Any, client), instructions="Calm", speed=1.2)
+    await service.generate("Hallo", instructions=None)
+    assert client.speech.calls[-1]["instructions"] == "Calm"
+    await service.generate("Hallo", model="tts-1", voice="alloy", instructions=RESET)
+    assert client.speech.calls[-1]["instructions"] is omit
+    assert client.speech.calls[-1]["speed"] == 1.2
+    assert service.default_config.instructions == "Calm"
+
+
+async def test_transcribe_can_reset_language_and_list_options() -> None:
+    from vocalbin import RESET
+
+    client = FakeClient(transcription=Transcription(text="Hallo"))
+    service = SpeechToText(
+        client=cast(Any, client), language="de", include=["logprobs"]
+    )
+    await service.transcribe(b"audio", language=RESET, include=RESET)
+    assert "language" not in client.transcriptions.calls[-1]
+    assert "include" not in client.transcriptions.calls[-1]

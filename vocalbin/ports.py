@@ -1,8 +1,16 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable, AsyncIterator
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
+
+
+class Reset(Enum):
+    DEFAULT = "default"
+
+
+RESET = Reset.DEFAULT
 
 
 class SpeechToText[AudioT, ConfigT, ResponseT](ABC):
@@ -55,5 +63,9 @@ def merge_config[ConfigT: BaseModel](
         if default_config is not None
         else {}
     )
-    values.update({key: value for key, value in overrides.items() if value is not None})
+    for key, value in overrides.items():
+        if value is RESET:
+            values.pop(key, None)
+        elif value is not None:
+            values[key] = value
     return config_type(**values)

@@ -14,7 +14,7 @@ from vocalbin.deepgram.tts.models import (
     TextToSpeechModel,
     TextToSpeechResponse,
 )
-from vocalbin.ports import merge_config
+from vocalbin.ports import Reset, merge_config
 
 if TYPE_CHECKING:
     from deepgram import AsyncDeepgramClient
@@ -64,11 +64,11 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str = TextToSpeechModel.AURA_2_THALIA_EN,
-        encoding: AudioEncoding = AudioEncoding.LINEAR16,
-        container: AudioContainer | None = None,
-        sample_rate: int | None = None,
-        bit_rate: int | None = None,
+        model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
+        encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
+        container: AudioContainer | None | Reset = None,
+        sample_rate: int | None | Reset = None,
+        bit_rate: int | None | Reset = None,
     ) -> TextToSpeechResponse: ...
 
     @overload
@@ -80,11 +80,11 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str | None = None,
-        encoding: AudioEncoding | None = None,
-        container: AudioContainer | None = None,
-        sample_rate: int | None = None,
-        bit_rate: int | None = None,
+        model: TextToSpeechModel | str | None | Reset = None,
+        encoding: AudioEncoding | None | Reset = None,
+        container: AudioContainer | None | Reset = None,
+        sample_rate: int | None | Reset = None,
+        bit_rate: int | None | Reset = None,
         config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_valid_text(text)
@@ -116,9 +116,9 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str = TextToSpeechModel.AURA_2_THALIA_EN,
-        encoding: AudioEncoding = AudioEncoding.LINEAR16,
-        sample_rate: int | None = None,
+        model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
+        encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
+        sample_rate: int | None | Reset = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -130,9 +130,9 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str | None = None,
-        encoding: AudioEncoding | None = None,
-        sample_rate: int | None = None,
+        model: TextToSpeechModel | str | None | Reset = None,
+        encoding: AudioEncoding | None | Reset = None,
+        sample_rate: int | None | Reset = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         text = _require_valid_text(text)
@@ -161,9 +161,9 @@ class TextToSpeech(
         self,
         text: AsyncIterable[str],
         *,
-        model: TextToSpeechModel | str = TextToSpeechModel.AURA_2_THALIA_EN,
-        encoding: AudioEncoding = AudioEncoding.LINEAR16,
-        sample_rate: int | None = None,
+        model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
+        encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
+        sample_rate: int | None | Reset = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -178,9 +178,9 @@ class TextToSpeech(
         self,
         text: AsyncIterable[str],
         *,
-        model: TextToSpeechModel | str | None = None,
-        encoding: AudioEncoding | None = None,
-        sample_rate: int | None = None,
+        model: TextToSpeechModel | str | None | Reset = None,
+        encoding: AudioEncoding | None | Reset = None,
+        sample_rate: int | None | Reset = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         resolved_config = _resolve_call_config(
@@ -296,11 +296,11 @@ def _resolve_call_config(
     *,
     config: TextToSpeechConfig | None,
     default_config: TextToSpeechConfig,
-    model: TextToSpeechModel | str | None,
-    encoding: AudioEncoding | None,
-    container: AudioContainer | None,
-    sample_rate: int | None,
-    bit_rate: int | None,
+    model: TextToSpeechModel | str | None | Reset,
+    encoding: AudioEncoding | None | Reset,
+    container: AudioContainer | None | Reset,
+    sample_rate: int | None | Reset,
+    bit_rate: int | None | Reset,
 ) -> TextToSpeechConfig:
     flat_values = (model, encoding, container, sample_rate, bit_rate)
     has_flat_values = any(value is not None for value in flat_values)

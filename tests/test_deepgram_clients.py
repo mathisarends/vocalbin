@@ -539,3 +539,16 @@ async def test_deepgram_rest_metadata_preserves_explicit_raw_output() -> None:
     assert response.container == AudioContainer.NONE
     assert response.content_type == "audio/pcm"
     assert client.v1.generate_calls[0]["container"] == "none"
+
+
+async def test_reset_sample_rate_selects_the_new_encoding_default() -> None:
+    from vocalbin import RESET
+
+    client = FakeClient()
+    service = TextToSpeech(client=cast(Any, client), sample_rate=48000)
+    response = await service.generate(
+        "Hallo", encoding=AudioEncoding.MULAW, sample_rate=RESET
+    )
+    assert response.sample_rate == 8000
+    assert client.v1.generate_calls[-1]["sample_rate"] == 8000
+    assert service.default_config.sample_rate == 48000

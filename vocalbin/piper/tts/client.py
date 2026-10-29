@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Self, overload
 from vocalbin import ports
 from vocalbin.piper.config import Config
 from vocalbin.piper.tts.models import TextToSpeechConfig, TextToSpeechResponse
-from vocalbin.ports import merge_config
+from vocalbin.ports import Reset, merge_config
 
 if TYPE_CHECKING:
     from piper import PiperVoice
@@ -61,10 +61,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None = None,
-        length_scale: float | None = None,
-        noise_scale: float | None = None,
-        noise_w_scale: float | None = None,
+        speaker_id: int | None | Reset = None,
+        length_scale: float | None | Reset = None,
+        noise_scale: float | None | Reset = None,
+        noise_w_scale: float | None | Reset = None,
     ) -> TextToSpeechResponse: ...
 
     @overload
@@ -76,10 +76,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None = None,
-        length_scale: float | None = None,
-        noise_scale: float | None = None,
-        noise_w_scale: float | None = None,
+        speaker_id: int | None | Reset = None,
+        length_scale: float | None | Reset = None,
+        noise_scale: float | None | Reset = None,
+        noise_w_scale: float | None | Reset = None,
         config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_non_blank_text(text)
@@ -108,10 +108,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None = None,
-        length_scale: float | None = None,
-        noise_scale: float | None = None,
-        noise_w_scale: float | None = None,
+        speaker_id: int | None | Reset = None,
+        length_scale: float | None | Reset = None,
+        noise_scale: float | None | Reset = None,
+        noise_w_scale: float | None | Reset = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -123,10 +123,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None = None,
-        length_scale: float | None = None,
-        noise_scale: float | None = None,
-        noise_w_scale: float | None = None,
+        speaker_id: int | None | Reset = None,
+        length_scale: float | None | Reset = None,
+        noise_scale: float | None | Reset = None,
+        noise_w_scale: float | None | Reset = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         text = _require_non_blank_text(text)
@@ -234,10 +234,10 @@ def _resolve_call_config(
     *,
     config: TextToSpeechConfig | None,
     default_config: TextToSpeechConfig | None,
-    speaker_id: int | None,
-    length_scale: float | None,
-    noise_scale: float | None,
-    noise_w_scale: float | None,
+    speaker_id: int | None | Reset,
+    length_scale: float | None | Reset,
+    noise_scale: float | None | Reset,
+    noise_w_scale: float | None | Reset,
 ) -> TextToSpeechConfig:
     flat_values = (speaker_id, length_scale, noise_scale, noise_w_scale)
     has_flat_values = any(value is not None for value in flat_values)

@@ -87,6 +87,16 @@ payload on `response.raw` (a `dict` for JSON-like formats, a `str` for `text`,
 constructor, for example `SpeechToText(language="de")`. A complete
 `SpeechToTextConfig` can still be supplied per call with `config=`.
 
+Use `RESET` to restore a provider's built-in default for one option while keeping
+other constructor defaults. Passing `None` continues to inherit the constructor
+value; `config=` replaces the complete configuration.
+
+```python
+from vocalbin import RESET
+
+response = await speech_to_text.transcribe(audio_bytes, language=RESET)
+```
+
 ## Text to speech
 
 ```python

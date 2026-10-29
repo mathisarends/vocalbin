@@ -1,4 +1,6 @@
 from .ports import (
+    RESET,
+    Reset,
     SpeechToText,
     StreamingSpeechToText,
     StreamingTextToSpeech,
@@ -6,6 +8,8 @@ from .ports import (
 )
 
 __all__ = [
+    "RESET",
+    "Reset",
     "SpeechToText",
     "StreamingSpeechToText",
     "StreamingTextToSpeech",
