@@ -683,3 +683,127 @@ async def test_deepgram_cancellation_during_text_input_invalidates_the_socket() 
         await task
     assert connection.closed
     await service.aclose()
+
+
+class FlushingConnection(FakeConnection):
+    def __init__(self) -> None:
+        super().__init__([])
+        self.responses: asyncio.Queue[Any] = asyncio.Queue()
+        self.text = ""
+
+    async def send_text(self, message: Any) -> None:
+        self.text += message["text"]
+
+    async def send_control(self, message: Any) -> None:
+        self.controls.append(message)
+        self.responses.put_nowait(self.text.encode())
+        self.responses.put_nowait(ControlMessage(type="Flushed"))
+        self.text = ""
+        await asyncio.sleep(0)
+
+    async def __aiter__(self) -> AsyncIterator[Any]:
+        while True:
+            yield await self.responses.get()
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected"),
+    [
+        ("end", [b"onetwothree"]),
+        ("first_chunk", [b"one", b"twothree"]),
+        ("chunk", [b"one", b"two", b"three"]),
+    ],
+)
+async def test_deepgram_flush_modes_drain_all_acknowledgements(
+    mode: str, expected: list[bytes]
+) -> None:
+    connection = FlushingConnection()
+    service = TextToSpeech(
+        client=cast(Any, FakeClient(connection)), flush_on=cast(Any, mode)
+    )
+    assert (
+        await collect(
+            service.stream_incremental(text_stream("one", "", "two", "three"))
+        )
+        == expected
+    )
+    assert len(connection.controls) == len(expected)
+    assert connection.closed
+
+
+@pytest.mark.parametrize("mode", ["first_chunk", "chunk"])
+async def test_deepgram_flushes_first_audio_before_text_input_finishes(
+    mode: str,
+) -> None:
+    connection = FlushingConnection()
+    client = FakeClient(connection)
+    release = asyncio.Event()
+
+    async def phrases() -> AsyncIterator[str]:
+        yield "First."
+        await release.wait()
+        yield "Second."
+
+    async with TextToSpeech(client=cast(Any, client)) as service:
+        await service.connect()
+        stream = service.stream_incremental(phrases(), flush_on=cast(Any, mode))
+        try:
+            assert await asyncio.wait_for(anext(stream), 2) == b"First."
+            assert not release.is_set()
+            release.set()
+            assert [chunk async for chunk in stream] == [b"Second."]
+            assert not connection.closed
+            assert await collect(service.stream("Next.")) == [b"Next."]
+            assert len(client.v1.calls) == 1
+        finally:
+            release.set()
+            await stream.aclose()
+
+
+async def test_deepgram_flush_mode_can_be_overridden_without_an_empty_final_flush() -> (
+    None
+):
+    connection = FlushingConnection()
+    service = TextToSpeech(client=cast(Any, FakeClient(connection)), flush_on="chunk")
+    await collect(
+        service.stream_incremental(
+            text_stream("one", "two"), config=TextToSpeechConfig(), flush_on="end"
+        )
+    )
+    assert len(connection.controls) == 1
+    assert service.flush_on == "chunk"
+    await collect(service.stream("single", flush_on="first_chunk"))
+    assert len(connection.controls) == 2
+
+
+async def test_deepgram_rejects_invalid_flush_modes_before_connecting() -> None:
+    client = FakeClient()
+    with pytest.raises(ValueError, match="flush_on"):
+        TextToSpeech(client=cast(Any, client), flush_on=cast(Any, "unknown"))
+    service = TextToSpeech(client=cast(Any, client))
+    with pytest.raises(ValueError, match="flush_on"):
+        await collect(service.stream("Hi", flush_on=cast(Any, "unknown")))
+    assert not client.v1.calls
+
+
+async def test_deepgram_flushes_respect_the_rolling_provider_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from vocalbin.deepgram.tts import _connection
+
+    now = [10.0]
+    waits: list[float] = []
+
+    async def sleep(delay: float) -> None:
+        waits.append(delay)
+        now[0] += delay
+        await asyncio.sleep(0)
+
+    monkeypatch.setattr(_connection, "monotonic", lambda: now[0])
+    monkeypatch.setattr(_connection, "sleep", sleep)
+    connection = FlushingConnection()
+    service = TextToSpeech(client=cast(Any, FakeClient(connection)), flush_on="chunk")
+    result = await collect(service.stream_incremental(text_stream(*["phrase"] * 21)))
+    assert result == [b"phrase"] * 21
+    assert waits == [60.0]
+    assert len(connection.controls) == 21

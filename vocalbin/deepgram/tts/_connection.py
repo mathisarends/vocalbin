@@ -1,20 +1,46 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import sleep
+from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from time import monotonic
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from deepgram import AsyncDeepgramClient
     from deepgram.speak.v1.socket_client import AsyncV1SocketClient
 
 
+class _FlushLimiter:
+    def __init__(self) -> None:
+        self._sent: deque[float] = deque()
+
+    async def acquire(self) -> None:
+        while True:
+            now = monotonic()
+            while self._sent and now - self._sent[0] >= 60:
+                self._sent.popleft()
+            if len(self._sent) < 20:
+                self._sent.append(now)
+                return
+            await sleep(60 - (now - self._sent[0]))
+
+
 @dataclass
 class _Lease:
     connection: AsyncV1SocketClient
+    limiter: _FlushLimiter
     complete: bool = False
+    pending_flushes: int = 0
+
+    async def flush(self, message: Any) -> None:
+        await self.limiter.acquire()
+        # A response can arrive while send_control() is still awaiting the socket.
+        self.pending_flushes += 1
+        await self.connection.send_control(message)
 
 
 class _StreamingConnection:
@@ -26,6 +52,7 @@ class _StreamingConnection:
         self._stream_lock = asyncio.Lock()
         self._lifecycle_lock = asyncio.Lock()
         self._reuse = False
+        self._flush_limiter = _FlushLimiter()
         self._closed = False
 
     async def connect(self, params: dict[str, str]) -> None:
@@ -37,7 +64,7 @@ class _StreamingConnection:
     async def acquire(self, params: dict[str, str]) -> AsyncIterator[_Lease]:
         # Speak v1 has no context IDs, so one socket carries one request at a time.
         async with self._stream_lock:
-            lease = _Lease(await self._get(params))
+            lease = _Lease(await self._get(params), self._flush_limiter)
             try:
                 yield lease
             finally:

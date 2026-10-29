@@ -78,3 +78,15 @@ def cartesia_preconnect(tts: cartesia.TextToSpeech) -> Connectable:
 
 def deepgram_preconnect(tts: deepgram.TextToSpeech) -> Connectable:
     return tts
+
+
+async def deepgram_flush_calls(
+    tts: deepgram.TextToSpeech, text: AsyncIterable[str]
+) -> None:
+    mode: deepgram.FlushMode = "first_chunk"
+    async for chunk in tts.stream_incremental(text, flush_on=mode):
+        assert_type(chunk, bytes)
+    async for chunk in tts.stream(
+        "Hello", config=deepgram.TextToSpeechConfig(), flush_on="end"
+    ):
+        assert_type(chunk, bytes)

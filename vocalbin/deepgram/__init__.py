@@ -16,6 +16,7 @@ from .stt import (
 from .tts import (
     AudioContainer,
     AudioEncoding,
+    FlushMode,
     TextToSpeech,
     TextToSpeechConfig,
     TextToSpeechError,
@@ -28,6 +29,7 @@ __all__ = [
     "AudioEncoding",
     "Credentials",
     "DeepgramClientOwner",
+    "FlushMode",
     "SpeechToText",
     "SpeechToTextConfig",
     "SpeechToTextEncoding",

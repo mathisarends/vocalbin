@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.deepgram.shared import DeepgramClientOwner
-from vocalbin.deepgram.tts._connection import _StreamingConnection
+from vocalbin.deepgram.tts._connection import _Lease, _StreamingConnection
 from vocalbin.deepgram.tts.models import (
     AudioContainer,
     AudioEncoding,
+    FlushMode,
     TextToSpeechConfig,
     TextToSpeechModel,
     TextToSpeechResponse,
@@ -19,7 +20,6 @@ from vocalbin.ports import Reset, merge_config
 
 if TYPE_CHECKING:
     from deepgram import AsyncDeepgramClient
-    from deepgram.speak.v1.socket_client import AsyncV1SocketClient
 
 _MAX_TEXT_LENGTH = 2000
 _STREAMING_ENCODINGS = {
@@ -51,7 +51,9 @@ class TextToSpeech(
         container: AudioContainer | None = None,
         sample_rate: int | None = None,
         bit_rate: int | None = None,
+        flush_on: FlushMode = "end",
     ) -> None:
+        self.flush_on = _require_flush_mode(flush_on)
         super().__init__(api_key, client)
         self.default_config = TextToSpeechConfig(
             model=model,
@@ -122,11 +124,16 @@ class TextToSpeech(
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
         sample_rate: int | Reset | None = None,
+        flush_on: FlushMode | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
     def stream(
-        self, text: str, *, config: TextToSpeechConfig | None = None
+        self,
+        text: str,
+        *,
+        config: TextToSpeechConfig | None = None,
+        flush_on: FlushMode | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     async def stream(
@@ -137,6 +144,7 @@ class TextToSpeech(
         encoding: AudioEncoding | Reset | None = None,
         sample_rate: int | Reset | None = None,
         config: TextToSpeechConfig | None = None,
+        flush_on: FlushMode | None = None,
     ) -> AsyncGenerator[bytes]:
         text = _require_valid_text(text)
 
@@ -152,7 +160,9 @@ class TextToSpeech(
             sample_rate=sample_rate,
             bit_rate=None,
         )
-        stream = self.stream_incremental(text_chunks(), config=resolved_config)
+        stream = self.stream_incremental(
+            text_chunks(), config=resolved_config, flush_on=flush_on
+        )
         try:
             async for audio in stream:
                 yield audio
@@ -167,6 +177,7 @@ class TextToSpeech(
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
         sample_rate: int | Reset | None = None,
+        flush_on: FlushMode | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -175,6 +186,7 @@ class TextToSpeech(
         text: AsyncIterable[str],
         *,
         config: TextToSpeechConfig | None = None,
+        flush_on: FlushMode | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     async def stream_incremental(
@@ -185,6 +197,7 @@ class TextToSpeech(
         encoding: AudioEncoding | Reset | None = None,
         sample_rate: int | Reset | None = None,
         config: TextToSpeechConfig | None = None,
+        flush_on: FlushMode | None = None,
     ) -> AsyncGenerator[bytes]:
         resolved_config = _resolve_call_config(
             config=config,
@@ -196,16 +209,20 @@ class TextToSpeech(
             bit_rate=None,
         )
         _validate_streaming_config(resolved_config)
+        mode = _require_flush_mode(flush_on if flush_on is not None else self.flush_on)
 
         async with self._streaming.acquire(_connect_params(resolved_config)) as lease:
             connection = lease.connection
-            sender = asyncio.create_task(self._send_text(connection, text))
+            sender = asyncio.create_task(self._send_text(lease, text, mode))
             responses = connection.__aiter__()
             receiver = asyncio.ensure_future(anext(responses))
             sender_pending = True
 
             try:
                 while True:
+                    if not sender_pending and lease.pending_flushes == 0:
+                        lease.complete = True
+                        break
                     pending: set[asyncio.Future[Any]] = {receiver}
                     if sender_pending:
                         pending.add(sender)
@@ -230,9 +247,8 @@ class TextToSpeech(
                         raise TextToSpeechError(
                             message.warn_msg, error_code=message.warn_code
                         )
-                    elif message.type == "Flushed":
-                        lease.complete = True
-                        break
+                    elif message.type == "Flushed" and lease.pending_flushes:
+                        lease.pending_flushes -= 1
 
                     receiver = asyncio.ensure_future(anext(responses))
             finally:
@@ -250,19 +266,31 @@ class TextToSpeech(
             await super().aclose()
 
     async def _send_text(
-        self, connection: AsyncV1SocketClient, text: AsyncIterable[str]
+        self, lease: _Lease, text: AsyncIterable[str], flush_on: FlushMode
     ) -> None:
         sent_text = False
+        unflushed_text = False
         async for chunk in text:
             if not chunk:
                 continue
-            await connection.send_text(_text_message(chunk))
+            await lease.connection.send_text(_text_message(chunk))
+            unflushed_text = True
+            if flush_on == "chunk" or (flush_on == "first_chunk" and not sent_text):
+                await lease.flush(_flush_message())
+                unflushed_text = False
             sent_text = True
         if not sent_text:
             raise ValueError(
                 "The text stream must contain at least one non-empty chunk."
             )
-        await connection.send_control(_flush_message())
+        if unflushed_text:
+            await lease.flush(_flush_message())
+
+
+def _require_flush_mode(value: FlushMode) -> FlushMode:
+    if value not in ("end", "first_chunk", "chunk"):
+        raise ValueError("flush_on must be 'end', 'first_chunk', or 'chunk'")
+    return value
 
 
 def _validate_streaming_config(config: TextToSpeechConfig) -> None:

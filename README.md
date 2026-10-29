@@ -329,6 +329,25 @@ invalidates the socket so the next request starts cleanly. `aclose()` releases t
 WebSocket and owned HTTP transport; it never closes an injected SDK client's HTTP
 transport. Streaming STT continues to use a connection per stream.
 
+For incremental text, `flush_on="first_chunk"` forces the first non-empty text
+chunk to synthesize immediately, then flushes the remaining text at the end. Use
+short complete phrases as input chunks to balance first-audio latency and prosody.
+`flush_on="chunk"` flushes every non-empty input chunk; `"end"` preserves the
+existing behavior. Set the policy on the constructor or override it per stream.
+The receiver drains every flush acknowledgement before reusing the connection.
+
+```python
+async with TextToSpeech(flush_on="first_chunk") as tts:
+    await tts.connect()
+    async for audio in tts.stream_incremental(phrase_stream):
+        await send_to_player(audio)
+```
+
+[Deepgram limits flushes to 20 per 60 seconds](https://developers.deepgram.com/docs/tts-ws-flush).
+Vocalbin waits when that budget is exhausted across streams on one service. Feed
+phrases rather than individual LLM tokens, especially with `flush_on="chunk"`.
+Frequent flushes can affect speech naturalness.
+
 ## Piper text to speech
 
 [Piper](https://github.com/OHF-Voice/piper1-gpl) is a local, offline

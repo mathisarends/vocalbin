@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -9,6 +9,8 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+type FlushMode = Literal["end", "first_chunk", "chunk"]
 
 
 class TextToSpeechModel(StrEnum):
