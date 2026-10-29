@@ -44,7 +44,9 @@ class TextToSpeech(
             else:
                 config = Config()
                 resolved_model_path = config.model_path
-                resolved_config_path = config.config_path
+                resolved_config_path = (
+                    Path(config_path) if config_path is not None else config.config_path
+                )
             voice = _create_voice(resolved_model_path, resolved_config_path)
         self.voice = voice
         self.default_config = TextToSpeechConfig(

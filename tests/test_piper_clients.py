@@ -329,3 +329,28 @@ async def test_stopping_piper_stream_keeps_event_loop_responsive(
         release.set()
         await asyncio.to_thread(closed.wait, 1)
         await stream.aclose()
+
+
+@pytest.mark.parametrize("config_path", ["explicit.json", Path("explicit.json")])
+@pytest.mark.parametrize("environment_config", [None, "environment.json"])
+def test_explicit_piper_config_overrides_environment_with_environment_model(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    config_path: str | Path,
+    environment_config: str | None,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PIPER_MODEL_PATH", "environment.onnx")
+    if environment_config is None:
+        monkeypatch.delenv("PIPER_CONFIG_PATH", raising=False)
+    else:
+        monkeypatch.setenv("PIPER_CONFIG_PATH", environment_config)
+    voice = FakeVoice()
+
+    def create_voice(model_path: Path, resolved_config: Path | None) -> Any:
+        assert model_path == Path("environment.onnx")
+        assert resolved_config == Path("explicit.json")
+        return voice
+
+    monkeypatch.setattr(piper_clients, "_create_voice", create_voice)
+    assert TextToSpeech(config_path=config_path).voice is voice
