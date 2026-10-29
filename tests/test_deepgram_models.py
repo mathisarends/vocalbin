@@ -82,7 +82,7 @@ def test_deepgram_tts_config_defaults_to_aura_2() -> None:
 
     assert config.model == TextToSpeechModel.AURA_2_THALIA_EN
     assert config.encoding == AudioEncoding.LINEAR16
-    assert config.content_type == "audio/pcm"
+    assert config.content_type == "audio/wav"
 
 
 def test_deepgram_tts_config_reports_container_content_types() -> None:

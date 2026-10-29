@@ -122,9 +122,9 @@ async def test_deepgram_tts_generates_audio_with_defaults() -> None:
     assert response.audio == b"audio"
     assert response.model == TextToSpeechModel.AURA_2_THALIA_EN
     assert response.encoding == AudioEncoding.LINEAR16
-    assert response.container is None
+    assert response.container == AudioContainer.WAV
     assert response.sample_rate == 24000
-    assert response.content_type == "audio/pcm"
+    assert response.content_type == "audio/wav"
     assert client.v1.generate_calls == [
         {
             "text": "Hallo aus vocalbin!",
@@ -502,3 +502,40 @@ async def test_deepgram_tts_sends_codec_specific_sample_rates(
     )
     await configured.generate("Hello")
     assert client.v1.generate_calls[1].get("sample_rate") == rate
+
+
+@pytest.mark.parametrize(
+    ("encoding", "container", "content_type", "sample_rate"),
+    [
+        ("linear16", "wav", "audio/wav", 24000),
+        ("mulaw", "wav", "audio/wav", 8000),
+        ("alaw", "wav", "audio/wav", 8000),
+        ("opus", "ogg", "audio/ogg", 48000),
+        ("mp3", None, "audio/mpeg", 22050),
+        ("aac", None, "audio/aac", 22050),
+        ("flac", None, "audio/flac", 48000),
+    ],
+)
+async def test_deepgram_rest_metadata_matches_provider_defaults(
+    encoding: str,
+    container: str | None,
+    content_type: str,
+    sample_rate: int,
+) -> None:
+    client = FakeClient()
+    response = await TextToSpeech(
+        client=cast(Any, client), encoding=AudioEncoding(encoding)
+    ).generate("Hello")
+    assert response.container == container
+    assert response.content_type == content_type
+    assert response.sample_rate == sample_rate
+
+
+async def test_deepgram_rest_metadata_preserves_explicit_raw_output() -> None:
+    client = FakeClient()
+    response = await TextToSpeech(
+        client=cast(Any, client), container=AudioContainer.NONE
+    ).generate("Hello")
+    assert response.container == AudioContainer.NONE
+    assert response.content_type == "audio/pcm"
+    assert client.v1.generate_calls[0]["container"] == "none"

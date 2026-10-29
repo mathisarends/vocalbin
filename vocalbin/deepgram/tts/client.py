@@ -106,8 +106,8 @@ class TextToSpeech(
             audio=bytes(audio),
             model=resolved_config.model,
             encoding=resolved_config.encoding,
-            container=resolved_config.container,
-            sample_rate=resolved_config.sample_rate,
+            container=resolved_config.effective_container,
+            sample_rate=resolved_config.effective_sample_rate,
             content_type=resolved_config.content_type,
         )
 

@@ -170,10 +170,30 @@ class TextToSpeechConfig(BaseModel):
         return self
 
     @property
+    def effective_container(self) -> AudioContainer | None:
+        if self.container is not None:
+            return self.container
+        if self.encoding in _WAV_ENCODINGS:
+            return AudioContainer.WAV
+        if self.encoding == AudioEncoding.OPUS:
+            return AudioContainer.OGG
+        return None
+
+    @property
+    def effective_sample_rate(self) -> int | None:
+        if self.sample_rate is not None:
+            return self.sample_rate
+        return {
+            AudioEncoding.MP3: 22050,
+            AudioEncoding.AAC: 22050,
+            AudioEncoding.OPUS: 48000,
+        }.get(self.encoding)
+
+    @property
     def content_type(self) -> str:
-        if self.container == AudioContainer.WAV:
+        if self.effective_container == AudioContainer.WAV:
             return "audio/wav"
-        if self.container == AudioContainer.OGG:
+        if self.effective_container == AudioContainer.OGG:
             return "audio/ogg"
         return CONTENT_TYPES[AudioEncoding(self.encoding)]
 
