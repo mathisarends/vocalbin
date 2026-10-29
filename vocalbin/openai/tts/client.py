@@ -11,6 +11,7 @@ from vocalbin.openai.tts.models import (
     TextToSpeechResponse,
     TextToSpeechVoice,
 )
+from vocalbin.ports import merge_config
 
 _MAX_TEXT_LENGTH = 4096
 
@@ -143,4 +144,4 @@ def _resolve_tts_config(
         values["voice"] = voice
     if response_format is not None:
         values["response_format"] = response_format
-    return TextToSpeechConfig(**values)
+    return merge_config(default_config, TextToSpeechConfig, values)

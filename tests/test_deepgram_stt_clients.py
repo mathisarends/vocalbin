@@ -527,3 +527,26 @@ async def test_deepgram_streaming_stt_accepts_flat_model_and_encoding() -> None:
     assert client.v2.calls[0]["model"] == "flux-general-multi"
     assert client.v2.calls[0]["encoding"] == "alaw"
     assert client.v2.calls[0]["sample_rate"] == "16000"
+
+
+async def test_deepgram_stt_overrides_preserve_constructor_defaults() -> None:
+    client = FakeRestClient(transcription())
+    service = SpeechToText(client=cast(Any, client), smart_format=True, language="de")
+    await service.transcribe(b"audio", keyterms=["vocalbin"])
+    assert client.media.calls[0]["smart_format"] is True
+    assert client.media.calls[0]["language"] == "de"
+    await service.transcribe(b"audio", smart_format=False)
+    assert client.media.calls[1]["smart_format"] is False
+    assert client.media.calls[1]["language"] == "de"
+
+
+async def test_deepgram_streaming_overrides_preserve_audio_format() -> None:
+    client = FakeStreamingClient(FakeConnection([]))
+    service = StreamingSpeechToText(
+        client=cast(Any, client),
+        model="flux-general-multi",
+        sample_rate=48000,
+    )
+    await collect(service.stream(audio_stream(b"audio"), keyterms=["vocalbin"]))
+    assert client.v2.calls[0]["sample_rate"] == "48000"
+    assert client.v2.calls[0]["model"] == "flux-general-multi"

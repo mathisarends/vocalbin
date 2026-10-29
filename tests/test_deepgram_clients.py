@@ -467,3 +467,14 @@ async def test_deepgram_tts_flat_parameters_keep_the_default_sample_rate() -> No
 
     assert client.v1.generate_calls[0]["sample_rate"] == 24000
     assert client.v1.generate_calls[0]["model"] == "aura-2-thalia-en"
+
+
+async def test_deepgram_tts_overrides_preserve_constructor_defaults() -> None:
+    client = FakeClient()
+    service = TextToSpeech(
+        client=cast(Any, client), model="aura-2-hera-en", sample_rate=16000
+    )
+    response = await service.generate("Hallo", container=AudioContainer.WAV)
+    assert response.model == "aura-2-hera-en"
+    assert response.sample_rate == 16000
+    assert client.v1.generate_calls[0]["sample_rate"] == 16000

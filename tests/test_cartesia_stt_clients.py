@@ -383,3 +383,11 @@ async def test_cartesia_stt_stop_task_cancels_pending_task() -> None:
 def test_cartesia_stt_rejects_unknown_provider_event() -> None:
     with pytest.raises(ValueError, match="Unsupported Cartesia STT event type"):
         cartesia_stt_clients._normalize_event(cast(Any, event("future.event")))
+
+
+async def test_cartesia_stt_overrides_preserve_audio_format() -> None:
+    client = FakeClient(FakeConnection([]))
+    service = SpeechToText(client=cast(Any, client), sample_rate=48000)
+    await collect(service.stream(audio_stream(b"audio"), keyterms=["vocalbin"]))
+    assert client.auto_finalize.calls[0]["sample_rate"] == 48000
+    assert client.auto_finalize.calls[0]["keyterm"] == ["vocalbin"]

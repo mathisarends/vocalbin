@@ -14,6 +14,7 @@ from vocalbin.deepgram.tts.models import (
     TextToSpeechModel,
     TextToSpeechResponse,
 )
+from vocalbin.ports import merge_config
 
 if TYPE_CHECKING:
     from deepgram import AsyncDeepgramClient
@@ -314,4 +315,4 @@ def _resolve_call_config(
         values["encoding"] = encoding
     if sample_rate is not None:
         values["sample_rate"] = sample_rate
-    return TextToSpeechConfig(**values)
+    return merge_config(default_config, TextToSpeechConfig, values)

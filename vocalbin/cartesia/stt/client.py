@@ -22,6 +22,7 @@ from vocalbin.cartesia.stt.models import (
     SpeechToTextEncoding,
     SpeechToTextModel,
 )
+from vocalbin.ports import merge_config
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -268,7 +269,7 @@ def _resolve_call_config(
         values["encoding"] = encoding
     if sample_rate is not None:
         values["sample_rate"] = sample_rate
-    return SpeechToTextConfig(**values)
+    return merge_config(default_config, SpeechToTextConfig, values)
 
 
 async def _stop_task(task: asyncio.Future[Any]) -> None:

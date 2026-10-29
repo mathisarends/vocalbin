@@ -282,3 +282,38 @@ async def test_injected_client_is_not_closed() -> None:
     await service.aclose()
 
     assert fake_client.closed is False
+
+
+async def test_transcribe_preserves_constructor_defaults_with_overrides() -> None:
+    client = FakeClient(transcription=Transcription(text="Hallo"))
+    service = SpeechToText(
+        client=cast(Any, client),
+        model="whisper-1",
+        response_format=SpeechToTextFormat.VERBOSE_JSON,
+        language="de",
+    )
+    await service.transcribe(b"audio", prompt="vocalbin")
+    call = client.transcriptions.calls[0]
+    assert call["model"] == "whisper-1"
+    assert call["response_format"] == "verbose_json"
+    assert call["language"] == "de"
+    assert call["prompt"] == "vocalbin"
+    assert service.default_config.prompt is None
+
+
+async def test_generate_preserves_constructor_defaults_with_overrides() -> None:
+    client = FakeClient(speech=SimpleNamespace(content=b"audio"))
+    service = TextToSpeech(
+        client=cast(Any, client),
+        model="tts-1",
+        voice="alloy",
+        response_format=TextToSpeechFormat.WAV,
+    )
+    response = await service.generate("Hallo", speed=1.2)
+    assert response.model == "tts-1"
+    assert response.voice == "alloy"
+    assert response.content_type == "audio/wav"
+    assert client.speech.calls[0]["speed"] == 1.2
+    assert service.default_config.speed is None
+    replacement = await service.generate("Hallo", config=TextToSpeechConfig())
+    assert replacement.voice == "marin"

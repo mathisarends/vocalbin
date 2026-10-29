@@ -488,3 +488,23 @@ async def test_stop_task_cancels_pending_task() -> None:
     await cartesia_clients._stop_task(task)
 
     assert task.cancelled()
+
+
+async def test_cartesia_overrides_preserve_voice_and_generation_defaults() -> None:
+    client = FakeClient([FakeContext([event("done")])])
+    service = TextToSpeech(
+        client=cast(Any, client),
+        voice_id="voice-id",
+        language="de",
+        emotion="calm",
+        volume=1.2,
+    )
+    await service.generate("Hallo", speed=1.1)
+    call = client.tts.generate_calls[0]
+    assert call["voice"]["id"] == "voice-id"
+    assert call["language"] == "de"
+    assert call["generation_config"] == {"emotion": "calm", "speed": 1.1, "volume": 1.2}
+    await collect(service.stream("Hallo", timeout=2.0))
+    assert client.connection.calls[0]["language"] == "de"
+    assert client.connection.calls[0]["voice"]["id"] == "voice-id"
+    assert service.default_config.generation_config.speed is None

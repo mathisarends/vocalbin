@@ -11,6 +11,7 @@ from vocalbin.deepgram.stt.models import (
     SpeechToTextModel,
     SpeechToTextResponse,
 )
+from vocalbin.ports import merge_config
 
 if TYPE_CHECKING:
     from deepgram import AsyncDeepgramClient
@@ -224,4 +225,4 @@ def _resolve_call_config(
     }
     if model is not None:
         values["model"] = model
-    return SpeechToTextConfig(**values)
+    return merge_config(default_config, SpeechToTextConfig, values)

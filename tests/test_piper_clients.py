@@ -263,3 +263,17 @@ async def test_explicit_model_path_takes_precedence(
     )
 
     assert service.voice is voice
+
+
+async def test_piper_overrides_preserve_speaker_and_voice_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_syn_config(monkeypatch)
+    voice = FakeVoice()
+    service = TextToSpeech(voice=cast(Any, voice), speaker_id=2, noise_scale=0.5)
+    await service.generate("Hallo", length_scale=1.1)
+    assert voice.calls[0]["syn_config"] == {
+        "speaker_id": 2,
+        "noise_scale": 0.5,
+        "length_scale": 1.1,
+    }

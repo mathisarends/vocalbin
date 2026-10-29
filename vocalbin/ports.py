@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable, AsyncIterator
+from typing import Any
+
+from pydantic import BaseModel
 
 
 class SpeechToText[AudioT, ConfigT, ResponseT](ABC):
@@ -40,3 +43,13 @@ def resolve_config[ConfigT](
     if resolved is None:
         raise ValueError("Provide configuration at construction time or per call.")
     return resolved
+
+
+def merge_config[ConfigT: BaseModel](
+    default_config: ConfigT | None,
+    config_type: type[ConfigT],
+    overrides: dict[str, Any],
+) -> ConfigT:
+    values = default_config.model_dump() if default_config is not None else {}
+    values.update({key: value for key, value in overrides.items() if value is not None})
+    return config_type(**values)

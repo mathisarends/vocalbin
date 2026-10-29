@@ -13,6 +13,7 @@ from vocalbin.openai.stt.models import (
     SpeechToTextResponse,
     TimestampGranularity,
 )
+from vocalbin.ports import merge_config
 
 type TranscriptionResult = TranscriptionCreateResponse | str
 
@@ -190,7 +191,7 @@ def _resolve_call_config(
         values["model"] = model
     if response_format is not None:
         values["response_format"] = response_format
-    return SpeechToTextConfig(**values)
+    return merge_config(default_config, SpeechToTextConfig, values)
 
 
 def _extract_text(result: TranscriptionResult) -> str:

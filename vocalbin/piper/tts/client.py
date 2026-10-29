@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Self, overload
 from vocalbin import ports
 from vocalbin.piper.config import Config
 from vocalbin.piper.tts.models import TextToSpeechConfig, TextToSpeechResponse
+from vocalbin.ports import merge_config
 
 if TYPE_CHECKING:
     from piper import PiperVoice
@@ -233,9 +234,13 @@ def _resolve_call_config(
         return config
     if not has_flat_values and default_config is not None:
         return default_config
-    return TextToSpeechConfig(
-        speaker_id=speaker_id,
-        length_scale=length_scale,
-        noise_scale=noise_scale,
-        noise_w_scale=noise_w_scale,
+    return merge_config(
+        default_config,
+        TextToSpeechConfig,
+        {
+            "speaker_id": speaker_id,
+            "length_scale": length_scale,
+            "noise_scale": noise_scale,
+            "noise_w_scale": noise_w_scale,
+        },
     )

@@ -16,7 +16,7 @@ from vocalbin.cartesia.tts.models import (
     TextToSpeechModel,
     TextToSpeechResponse,
 )
-from vocalbin.ports import resolve_config
+from vocalbin.ports import merge_config, resolve_config
 
 if TYPE_CHECKING:
     from cartesia import AsyncCartesia
@@ -461,15 +461,15 @@ def _resolve_call_config(
         return config
     if not has_flat_values:
         return resolve_config(None, default_config)
-    if voice_id is None:
+    if voice_id is None and default_config is None:
         raise ValueError("'voice_id' is required when using flat parameters.")
 
     generation_config = None
     if any(value is not None for value in (emotion, speed, volume)):
-        generation_config = GenerationConfig(
-            emotion=emotion,
-            speed=speed,
-            volume=volume,
+        generation_config = merge_config(
+            default_config.generation_config if default_config is not None else None,
+            GenerationConfig,
+            {"emotion": emotion, "speed": speed, "volume": volume},
         )
 
     values: dict[str, Any] = {
@@ -484,4 +484,4 @@ def _resolve_call_config(
         values["model"] = model
     if output_format is not None:
         values["output_format"] = output_format
-    return TextToSpeechConfig(**values)
+    return merge_config(default_config, TextToSpeechConfig, values)
