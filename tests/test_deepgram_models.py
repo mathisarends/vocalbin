@@ -110,3 +110,51 @@ def test_deepgram_tts_config_rejects_ogg_container_without_opus() -> None:
         TextToSpeechConfig(
             encoding=AudioEncoding.LINEAR16, container=AudioContainer.OGG
         )
+
+
+@pytest.mark.parametrize(
+    ("encoding", "sample_rate"),
+    [
+        ("mp3", 24000),
+        ("opus", 48000),
+        ("aac", 22050),
+        ("mulaw", 24000),
+        ("alaw", 48000),
+        ("flac", 24000),
+    ],
+)
+def test_deepgram_tts_rejects_unsupported_sample_rates(
+    encoding: str, sample_rate: int
+) -> None:
+    with pytest.raises(ValueError, match="sample_rate is not supported"):
+        TextToSpeechConfig(encoding=encoding, sample_rate=sample_rate)
+
+
+@pytest.mark.parametrize("encoding", ["mp3", "aac", "flac", "opus"])
+def test_deepgram_tts_rejects_unsupported_none_container(encoding: str) -> None:
+    with pytest.raises(ValueError, match="container"):
+        TextToSpeechConfig(encoding=encoding, container=AudioContainer.NONE)
+
+
+@pytest.mark.parametrize(
+    ("encoding", "bit_rate"),
+    [("mp3", 64000), ("opus", 3000), ("opus", 650001), ("aac", 3000), ("aac", 192001)],
+)
+def test_deepgram_tts_rejects_unsupported_bit_rates(
+    encoding: str, bit_rate: int
+) -> None:
+    with pytest.raises(ValueError, match="bit_rate must"):
+        TextToSpeechConfig(encoding=encoding, bit_rate=bit_rate)
+
+
+@pytest.mark.parametrize(
+    ("encoding", "bit_rate"),
+    [("mp3", 32000), ("opus", 4000), ("opus", 650000), ("aac", 4000), ("aac", 192000)],
+)
+def test_deepgram_tts_accepts_supported_bit_rates(encoding: str, bit_rate: int) -> None:
+    assert TextToSpeechConfig(encoding=encoding, bit_rate=bit_rate).bit_rate == bit_rate
+
+
+def test_deepgram_tts_rejects_unknown_encoding() -> None:
+    with pytest.raises(ValueError, match="encoding"):
+        TextToSpeechConfig(encoding="unknown")

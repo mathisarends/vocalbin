@@ -47,7 +47,7 @@ class TextToSpeech(
         model: TextToSpeechModel | str = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding = AudioEncoding.LINEAR16,
         container: AudioContainer | None = None,
-        sample_rate: int | None = 24000,
+        sample_rate: int | None = None,
         bit_rate: int | None = None,
     ) -> None:
         super().__init__(api_key, client)
@@ -55,8 +55,8 @@ class TextToSpeech(
             model=model,
             encoding=encoding,
             container=container,
-            sample_rate=sample_rate,
             bit_rate=bit_rate,
+            **({"sample_rate": sample_rate} if sample_rate is not None else {}),
         )
 
     @overload

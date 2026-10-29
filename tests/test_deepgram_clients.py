@@ -144,7 +144,6 @@ async def test_deepgram_tts_generate_accepts_flat_parameters() -> None:
         model="aura-2-hera-en",
         encoding=AudioEncoding.MP3,
         bit_rate=48000,
-        sample_rate=48000,
     )
 
     assert response.content_type == "audio/mpeg"
@@ -152,7 +151,6 @@ async def test_deepgram_tts_generate_accepts_flat_parameters() -> None:
         "text": "Hallo",
         "model": "aura-2-hera-en",
         "encoding": "mp3",
-        "sample_rate": 48000,
         "bit_rate": 48000,
     }
 
@@ -184,6 +182,7 @@ async def test_deepgram_tts_generate_uses_call_config() -> None:
         "text": "Hallo",
         "model": "aura-2-luna-en",
         "encoding": "linear16",
+        "sample_rate": 24000,
     }
 
 
@@ -459,13 +458,13 @@ def test_deepgram_tts_socket_messages_use_the_official_sdk(
     assert deepgram_tts_client._flush_message() == "Flush"
 
 
-async def test_deepgram_tts_flat_parameters_keep_the_default_sample_rate() -> None:
+async def test_deepgram_tts_flat_parameters_use_the_codec_sample_rate() -> None:
     client = FakeClient()
     service = TextToSpeech(client=cast(Any, client))
 
     await service.generate("Hallo", encoding=AudioEncoding.FLAC)
 
-    assert client.v1.generate_calls[0]["sample_rate"] == 24000
+    assert client.v1.generate_calls[0]["sample_rate"] == 48000
     assert client.v1.generate_calls[0]["model"] == "aura-2-thalia-en"
 
 
@@ -478,3 +477,28 @@ async def test_deepgram_tts_overrides_preserve_constructor_defaults() -> None:
     assert response.model == "aura-2-hera-en"
     assert response.sample_rate == 16000
     assert client.v1.generate_calls[0]["sample_rate"] == 16000
+
+
+@pytest.mark.parametrize(
+    ("encoding", "rate"),
+    [
+        ("mp3", None),
+        ("opus", None),
+        ("aac", None),
+        ("mulaw", 8000),
+        ("alaw", 8000),
+        ("flac", 48000),
+    ],
+)
+async def test_deepgram_tts_sends_codec_specific_sample_rates(
+    encoding: str, rate: int | None
+) -> None:
+    client = FakeClient()
+    service = TextToSpeech(client=cast(Any, client))
+    await service.generate("Hello", encoding=AudioEncoding(encoding))
+    assert client.v1.generate_calls[0].get("sample_rate") == rate
+    configured = TextToSpeech(
+        client=cast(Any, client), encoding=AudioEncoding(encoding)
+    )
+    await configured.generate("Hello")
+    assert client.v1.generate_calls[1].get("sample_rate") == rate

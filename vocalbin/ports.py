@@ -50,6 +50,10 @@ def merge_config[ConfigT: BaseModel](
     config_type: type[ConfigT],
     overrides: dict[str, Any],
 ) -> ConfigT:
-    values = default_config.model_dump() if default_config is not None else {}
+    values = (
+        default_config.model_dump(exclude_unset=True)
+        if default_config is not None
+        else {}
+    )
     values.update({key: value for key, value in overrides.items() if value is not None})
     return config_type(**values)

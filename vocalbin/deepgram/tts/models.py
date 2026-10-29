@@ -1,7 +1,14 @@
 from enum import StrEnum
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 
 class TextToSpeechModel(StrEnum):
@@ -77,6 +84,19 @@ class AudioContainer(StrEnum):
 _BIT_RATE_ENCODINGS = {AudioEncoding.MP3, AudioEncoding.AAC, AudioEncoding.OPUS}
 _WAV_ENCODINGS = {AudioEncoding.LINEAR16, AudioEncoding.MULAW, AudioEncoding.ALAW}
 
+_SAMPLE_RATES = {
+    AudioEncoding.LINEAR16: {8000, 16000, 24000, 32000, 48000},
+    AudioEncoding.MULAW: {8000, 16000},
+    AudioEncoding.ALAW: {8000, 16000},
+    AudioEncoding.FLAC: {8000, 16000, 22050, 32000, 48000},
+}
+_DEFAULT_SAMPLE_RATES = {
+    AudioEncoding.LINEAR16: 24000,
+    AudioEncoding.MULAW: 8000,
+    AudioEncoding.ALAW: 8000,
+    AudioEncoding.FLAC: 48000,
+}
+
 CONTENT_TYPES = {
     AudioEncoding.LINEAR16: "audio/pcm",
     AudioEncoding.MULAW: "audio/basic",
@@ -94,8 +114,15 @@ class TextToSpeechConfig(BaseModel):
     model: TextToSpeechModel | str = TextToSpeechModel.AURA_2_THALIA_EN
     encoding: AudioEncoding = AudioEncoding.LINEAR16
     container: AudioContainer | None = None
-    sample_rate: int | None = Field(default=24000, gt=0)
+    sample_rate: int | None = Field(default=None, gt=0, validate_default=True)
     bit_rate: int | None = Field(default=None, gt=0)
+
+    @field_validator("sample_rate")
+    @classmethod
+    def default_sample_rate(cls, value: int | None, info: ValidationInfo) -> int | None:
+        if value is not None:
+            return value
+        return _DEFAULT_SAMPLE_RATES.get(info.data.get("encoding"))
 
     @model_validator(mode="after")
     def encoding_must_support_options(self) -> Self:
@@ -107,6 +134,39 @@ class TextToSpeechConfig(BaseModel):
             )
         if self.container == AudioContainer.OGG and self.encoding != AudioEncoding.OPUS:
             raise ValueError("container 'ogg' requires encoding 'opus'")
+        if self.container is not None and self.encoding in {
+            AudioEncoding.MP3,
+            AudioEncoding.FLAC,
+            AudioEncoding.AAC,
+        }:
+            raise ValueError(f"container is not supported by encoding {self.encoding}")
+        if (
+            self.container == AudioContainer.NONE
+            and self.encoding == AudioEncoding.OPUS
+        ):
+            raise ValueError("encoding opus requires container ogg")
+        if self.sample_rate is not None:
+            rates = _SAMPLE_RATES.get(self.encoding, set())
+            if self.sample_rate not in rates:
+                raise ValueError(
+                    f"sample_rate is not supported by encoding {self.encoding}"
+                )
+        if self.bit_rate is not None:
+            if self.encoding == AudioEncoding.MP3 and self.bit_rate not in {
+                32000,
+                48000,
+            }:
+                raise ValueError("mp3 bit_rate must be 32000 or 48000")
+            if (
+                self.encoding == AudioEncoding.OPUS
+                and not 4000 <= self.bit_rate <= 650000
+            ):
+                raise ValueError("opus bit_rate must be between 4000 and 650000")
+            if (
+                self.encoding == AudioEncoding.AAC
+                and not 4000 <= self.bit_rate <= 192000
+            ):
+                raise ValueError("aac bit_rate must be between 4000 and 192000")
         return self
 
     @property
