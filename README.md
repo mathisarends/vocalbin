@@ -612,6 +612,9 @@ phrase output. [The latency guide](docs/latency.md) explains the tradeoffs and
 includes a reproducible benchmark with cold/warm runs, median, p95 and simulated
 streaming-text input.
 
+[Initial live measurements](docs/benchmarks/2026-10-29-ttfa.md) include 120 samples
+and show why connection reuse and flush policies should be measured separately.
+
 ## Development
 
 ```bash

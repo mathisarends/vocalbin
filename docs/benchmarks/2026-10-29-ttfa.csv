@@ -1,0 +1,121 @@
+provider,model,profile,phase,sample,first_audio_ms,first_text_ms,text_to_first_audio_ms,total_ms,audio_bytes,setup_ms,git_revision
+openai,gpt-4o-mini-tts / marin,baseline,cold,1,1581.47,0.0,1581.47,2220.4327,175200,1225.6564,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,2,853.1558,0.0,853.1558,1442.1227,192000,10.2876,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,3,882.7948,0.0,882.7948,1734.6581,189600,17.2622,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,4,891.29,0.0,891.29,1480.0292,180000,18.8198,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,5,569.4719,0.0,569.4719,1050.9354,156000,15.8125,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,6,523.8809,0.0,523.8809,1213.5069,170400,13.6116,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,7,597.4782,0.0,597.4782,1135.3247,182400,12.7911,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,8,596.9844,0.0,596.9844,2111.4436,180000,10.9138,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,9,1010.0278,0.0,1010.0278,1377.484,160800,9.4987,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,cold,10,551.859,0.0,551.859,1215.8991,189600,10.8529,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,1,539.6268,0.0,539.6268,1135.7367,168000,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,2,507.6599,0.0,507.6599,1103.0385,192000,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,3,506.5865,0.0,506.5865,1145.5154,182400,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,4,528.7541,0.0,528.7541,1082.9352,175200,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,5,519.1637,0.0,519.1637,1096.254,196800,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,6,500.2365,0.0,500.2365,1135.8527,172800,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,7,450.545,0.0,450.545,1152.1603,206400,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,8,440.6012,0.0,440.6012,1090.3468,172800,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,9,659.5191,0.0,659.5191,1207.3351,175200,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+openai,gpt-4o-mini-tts / marin,baseline,warm,10,592.2906,0.0,592.2906,1154.6556,158400,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,1,321.5452,0.0,321.5452,584.7888,142080,160.9353,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,2,169.7195,0.0,169.7195,481.3683,161280,9.2176,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,3,169.0477,0.0,169.0477,474.3287,157440,9.269,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,4,172.2071,0.0,172.2071,477.0694,149760,12.3585,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,5,167.1233,0.0,167.1233,461.9593,145920,10.3751,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,6,182.7461,0.0,182.7461,515.6056,157440,12.4306,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,7,182.5675,0.0,182.5675,510.1395,153600,15.8877,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,8,216.0392,0.0,216.0392,537.0886,153600,25.8988,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,9,187.0575,0.0,187.0575,494.2668,149760,16.7933,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,cold,10,218.1797,0.0,218.1797,528.6391,153600,13.3485,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,1,69.2882,0.0,69.2882,371.2291,161280,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,2,67.8188,0.0,67.8188,361.7449,153600,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,3,75.3849,0.0,75.3849,347.9506,145920,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,4,67.8082,0.0,67.8082,380.2851,157440,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,5,72.527,0.0,72.527,379.4612,142080,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,6,70.4001,0.0,70.4001,369.0286,153600,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,7,69.2414,0.0,69.2414,358.9437,138240,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,8,71.1325,0.0,71.1325,417.2681,153600,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,9,75.0302,0.0,75.0302,397.29,149760,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+cartesia,sonic-3.5 / configured voice,baseline,warm,10,70.3085,0.0,70.3085,400.4162,153600,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,1,721.0059,0.0,721.0059,1796.5891,153600,295.1683,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,2,1167.644,0.0,1167.644,2712.4008,142080,16.7775,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,3,659.93,0.0,659.93,1759.9381,163200,16.9696,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,4,463.6632,0.0,463.6632,1421.9362,140160,19.8269,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,5,685.4556,0.0,685.4556,1632.4,142080,15.8033,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,6,479.5435,0.0,479.5435,1501.9843,145920,26.0317,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,7,491.2169,0.0,491.2169,1549.5593,151680,44.4513,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,8,465.6776,0.0,465.6776,1533.7293,161280,30.0903,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,9,460.8127,0.0,460.8127,1425.3282,138240,29.0151,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,cold,10,473.5046,0.0,473.5046,1529.7574,142080,34.3103,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,1,146.939,0.0,146.939,1011.6321,145920,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,2,151.2717,0.0,151.2717,1111.8529,163200,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,3,152.0328,0.0,152.0328,1036.1085,149760,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,4,164.7054,0.0,164.7054,1148.3288,155520,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,5,141.1423,0.0,141.1423,1067.1692,144000,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,6,143.3619,0.0,143.3619,951.6878,128640,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,7,155.1444,0.0,155.1444,1076.8945,151680,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,8,142.0284,0.0,142.0284,1066.4584,151680,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,9,142.9975,0.0,142.9975,998.6156,144000,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+deepgram,aura-2-thalia-en,baseline,warm,10,148.258,0.0,148.258,1234.9022,178560,,3f60ba56d3aca58360524382c5c8aef5cae1230d
+piper,de_DE-thorsten-medium.onnx,baseline,cold,1,153.8022,0.0,153.8022,400.822,132608,2964.8385,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,2,72.7932,0.0,72.7932,355.2392,132608,2255.8711,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,3,77.3519,0.0,77.3519,297.2088,132608,2332.4875,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,4,65.7306,0.0,65.7306,243.1425,132608,1873.7563,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,5,46.6284,0.0,46.6284,177.5369,132608,1951.9667,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,6,40.1131,0.0,40.1131,155.9494,132608,1823.93,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,7,89.2556,0.0,89.2556,601.9306,132608,3483.4332,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,8,199.3838,0.0,199.3838,1021.4141,132608,4697.9379,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,9,193.1185,0.0,193.1185,643.9448,132608,4189.2267,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,cold,10,186.7977,0.0,186.7977,572.0499,132608,2920.0228,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,1,43.4716,0.0,43.4716,308.0804,138240,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,2,63.2269,0.0,63.2269,278.8141,148480,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,3,88.961,0.0,88.961,289.4566,135680,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,4,57.0941,0.0,57.0941,202.779,151552,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,5,65.8435,0.0,65.8435,256.0993,138752,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,6,100.6179,0.0,100.6179,443.8818,152064,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,7,42.655,0.0,42.655,259.3713,142336,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,8,70.4939,0.0,70.4939,312.1593,137216,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,9,92.852,0.0,92.852,332.544,143872,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+piper,de_DE-thorsten-medium.onnx,baseline,warm,10,56.0125,0.0,56.0125,161.407,147968,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,1,145.0415,0.2045,144.837,1300.7889,182400,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,2,148.0628,0.15,147.9128,1233.9655,163200,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,3,140.3862,0.1368,140.2494,1265.3489,167040,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,4,144.5455,0.2131,144.3324,1230.0516,153600,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,5,141.7315,0.2436,141.4879,1080.9883,138240,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,6,144.7126,0.1297,144.5829,1168.6549,159360,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,7,142.9122,0.1311,142.7811,1263.3118,178560,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,8,139.1916,0.1326,139.059,1066.9041,142080,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,9,150.2653,0.1995,150.0658,1219.5974,157440,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-end,warm,10,146.2097,0.13,146.0797,1210.9878,167040,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,1,183.846,0.3417,183.5043,1802.222,165122,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,2,182.1474,0.1488,181.9986,1600.8369,144002,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,3,190.3921,0.1932,190.1989,1613.83,134402,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,4,190.164,0.1591,190.0049,1992.1706,172802,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,5,207.858,0.4649,207.3931,1821.5235,153602,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,6,187.8307,0.2481,187.5826,1722.7207,155522,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,7,189.138,0.1556,188.9824,1786.9485,163202,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,8,207.573,0.1227,207.4503,1915.2248,172802,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,9,187.6715,0.2274,187.4441,1752.7335,159362,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+deepgram,aura-2-thalia-en,incremental-first,warm,10,203.5228,0.1667,203.3561,1871.103,153602,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,1,73.1466,0.146,73.0006,658.0052,157440,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,2,68.9765,0.0983,68.8782,594.2896,153600,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,3,88.8605,0.0907,88.7698,668.5895,168960,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,4,71.9464,0.0962,71.8502,618.65,165120,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,5,65.5367,0.0915,65.4452,589.4389,153600,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,6,110.9751,0.1103,110.8648,644.4689,157440,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,7,72.6158,0.0985,72.5173,632.0771,157440,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,8,69.9946,0.089,69.9056,629.8334,157440,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,9,70.7252,0.0904,70.6348,629.6486,153600,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer0,warm,10,65.2929,0.091,65.2019,665.2567,165120,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,1,67.5881,0.119,67.4691,641.361,161280,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,2,70.521,0.1055,70.4155,598.3134,134400,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,3,71.2068,0.1053,71.1015,622.6993,161280,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,4,70.0782,0.1073,69.9709,614.5716,161280,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,5,65.7875,0.1122,65.6753,619.5006,168960,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,6,70.9198,0.1065,70.8133,623.2966,165120,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,7,67.8267,0.1007,67.726,665.4062,161280,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,8,66.2822,0.1073,66.1749,649.4414,161280,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,9,68.2778,0.1076,68.1702,633.9176,165120,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a
+cartesia,sonic-3.5 / configured voice,incremental-buffer100,warm,10,65.161,0.1117,65.0493,622.6018,149760,,9f3086e3063b03ae348937ac8ea3ef39cb176d3a

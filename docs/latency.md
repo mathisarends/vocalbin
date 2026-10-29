@@ -47,6 +47,11 @@ every non-empty input chunk. A single-chunk request sends only one flush in ever
 mode. Set the policy on the constructor or override it on either stream method.
 The policy is a local control and can be combined with `config=`.
 
+An earlier flush does not guarantee lower TTFA: complete phrases can already
+trigger audio before EOF. In the [first live measurements](benchmarks/2026-10-29-ttfa.md),
+`end` was faster than `first_chunk` for the tested phrase stream. Compare the
+policies with your actual input instead of assuming the early-flush mode wins.
+
 Feed complete phrases to the early-flush modes. Sending one token at a time can
 hurt prosody and exhaust [Deepgram's 20-flush/60-second budget](https://developers.deepgram.com/docs/tts-ws-flush).
 The limiter is shared by all streams on one service, including reconnects, and
