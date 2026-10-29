@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from vocalbin import ports
 from vocalbin.deepgram.shared import DeepgramClientOwner
@@ -14,7 +14,7 @@ from vocalbin.deepgram.stt.models import (
 from vocalbin.ports import merge_config
 
 if TYPE_CHECKING:
-    from deepgram import AsyncDeepgramClient
+    from deepgram import AsyncDeepgramClient, ListenV1Response
     from deepgram.listen.v1.media import MediaTranscribeResponse
 
 
@@ -160,6 +160,7 @@ def _to_response(
         raise ValueError(
             "Deepgram returned an asynchronous callback response without a transcript."
         )
+    result = cast("ListenV1Response", result)
     channels = results.channels
     alternatives = channels[0].alternatives if channels else None
     alternative = alternatives[0] if alternatives else None

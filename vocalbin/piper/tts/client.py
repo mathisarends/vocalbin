@@ -151,9 +151,11 @@ class TextToSpeech(
     def _synthesize(
         self, text: str, config: TextToSpeechConfig
     ) -> Iterator[AudioChunk]:
-        return self.voice.synthesize(
-            text,
-            syn_config=_build_syn_config(config.model_dump(exclude_none=True)),
+        return iter(
+            self.voice.synthesize(
+                text,
+                syn_config=_build_syn_config(config.model_dump(exclude_none=True)),
+            )
         )
 
     async def aclose(self) -> None:

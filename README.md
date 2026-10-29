@@ -529,5 +529,6 @@ rather than the OpenAI implementation.
 
 ```bash
 uv sync
+uv run mypy
 uv run pytest
 ```

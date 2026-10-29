@@ -147,7 +147,7 @@ class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
         provider: ports.Provider,
         model: str,
     ) -> None:
-        self._spec = spec
+        self._spec: RealtimeSessionSpec[EventT] = spec
         self._session_update = session_update
         self._audio_input = audio_input
         self._connection = _RealtimeWebSocket(provider, spec.session_type, model)

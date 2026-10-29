@@ -136,7 +136,7 @@ class StreamingSpeechToText(
 
             try:
                 while True:
-                    pending = {receiver}
+                    pending: set[asyncio.Future[Any]] = {receiver}
                     if sender_pending:
                         pending.add(sender)
                     done, _ = await asyncio.wait(
@@ -167,7 +167,8 @@ class StreamingSpeechToText(
         async for chunk in audio:
             if not chunk:
                 continue
-            await connection.send_media(chunk)
+            # The SDK annotates a model here but sends raw binary on the wire.
+            await connection.send_media(chunk)  # type: ignore[arg-type]
             sent_audio = True
         if not sent_audio:
             raise ValueError(

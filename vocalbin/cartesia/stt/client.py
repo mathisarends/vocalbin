@@ -152,7 +152,7 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
 
             try:
                 while True:
-                    pending = {receiver}
+                    pending: set[asyncio.Future[Any]] = {receiver}
                     if sender_pending:
                         pending.add(sender)
                     done, _ = await asyncio.wait(

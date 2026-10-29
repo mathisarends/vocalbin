@@ -140,13 +140,16 @@ class TextToSpeech(
         async def text_chunks() -> AsyncIterator[str]:
             yield text
 
-        stream = self.stream_incremental(
-            text_chunks(),
+        resolved_config = _resolve_call_config(
+            config=config,
+            default_config=self.default_config,
             model=model,
             encoding=encoding,
+            container=None,
             sample_rate=sample_rate,
-            config=config,
+            bit_rate=None,
         )
+        stream = self.stream_incremental(text_chunks(), config=resolved_config)
         try:
             async for audio in stream:
                 yield audio
@@ -206,7 +209,7 @@ class TextToSpeech(
 
             try:
                 while True:
-                    pending = {receiver}
+                    pending: set[asyncio.Future[Any]] = {receiver}
                     if sender_pending:
                         pending.add(sender)
                     done, _ = await asyncio.wait(

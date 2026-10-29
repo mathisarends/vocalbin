@@ -122,7 +122,8 @@ class TextToSpeechConfig(BaseModel):
     def default_sample_rate(cls, value: int | None, info: ValidationInfo) -> int | None:
         if value is not None:
             return value
-        return _DEFAULT_SAMPLE_RATES.get(info.data.get("encoding"))
+        encoding = info.data.get("encoding")
+        return _DEFAULT_SAMPLE_RATES.get(encoding) if encoding is not None else None
 
     @model_validator(mode="after")
     def encoding_must_support_options(self) -> Self:
