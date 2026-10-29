@@ -181,22 +181,25 @@ class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
         if self._stop_called:
             return
         self._stop_called = True
-        await self._audio_input.stop()
-        if self._sender_task is not None and not self._sender_task.done():
-            self._sender_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self._sender_task
-        self._sender_task = None
-        await self._connection.close()
+        try:
+            await self._audio_input.stop()
+        finally:
+            try:
+                if self._sender_task is not None and not self._sender_task.done():
+                    self._sender_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await self._sender_task
+            finally:
+                self._sender_task = None
+                await self._connection.close()
 
     async def _stream_events(self) -> AsyncIterator[EventT]:
-        await self._connection.connect()
-        await self._connection.send(self._session_update)
-        self._session_started = True
-        await self._audio_input.start()
-        self._sender_task = asyncio.create_task(self._send_audio())
-
         try:
+            await self._connection.connect()
+            await self._connection.send(self._session_update)
+            self._session_started = True
+            await self._audio_input.start()
+            self._sender_task = asyncio.create_task(self._send_audio())
             yield cast(EventT, SessionConnected())
             if self._stop_called:
                 return

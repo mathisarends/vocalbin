@@ -770,3 +770,74 @@ async def test_transcriber_raises_for_failed_committed_transcription(
         async for _ in service.stream():
             pass
     assert connection.closed
+
+
+@pytest.mark.parametrize("phase", ["connect", "update", "audio"])
+async def test_realtime_startup_failure_releases_resources(
+    monkeypatch: pytest.MonkeyPatch,
+    phase: str,
+) -> None:
+    connection = FakeConnection()
+    audio_input = BlockingAudioInput()
+    install_connection(monkeypatch, connection)
+
+    async def fail(*args: Any) -> None:
+        raise RuntimeError("startup failed")
+
+    if phase == "connect":
+        monkeypatch.setattr(realtime_module, "_connect_websocket", fail)
+    elif phase == "update":
+        monkeypatch.setattr(connection, "send", fail)
+    else:
+        monkeypatch.setattr(audio_input, "start", fail)
+    service = Transcriber(audio_input=audio_input, provider=DummyProvider())
+    with pytest.raises(RuntimeError, match="startup failed"):
+        await anext(service.stream())
+    assert audio_input.stop_calls == 1
+    assert not service._connection.is_connected
+    assert connection.closed == (phase != "connect")
+
+
+async def test_realtime_cancelled_startup_closes_connection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection()
+    install_connection(monkeypatch, connection)
+    audio_input = BlockingAudioInput()
+    started = asyncio.Event()
+
+    async def start() -> None:
+        started.set()
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(audio_input, "start", start)
+    service = Transcriber(audio_input=audio_input, provider=DummyProvider())
+    task = asyncio.create_task(anext(service.stream()))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert connection.closed
+    assert audio_input.stop_calls == 1
+
+
+async def test_realtime_cleanup_closes_socket_when_audio_stop_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection(wait_until_closed=True)
+    install_connection(monkeypatch, connection)
+    audio_input = BlockingAudioInput()
+
+    async def stop() -> None:
+        raise RuntimeError("audio stop failed")
+
+    monkeypatch.setattr(audio_input, "stop", stop)
+    service = Transcriber(audio_input=audio_input, provider=DummyProvider())
+    stream = service.stream()
+    await anext(stream)
+    sender = service._sender_task
+    with pytest.raises(RuntimeError, match="audio stop failed"):
+        await service.stop()
+    assert connection.closed
+    assert sender.done()
+    await stream.aclose()
