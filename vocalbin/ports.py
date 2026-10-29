@@ -14,6 +14,11 @@ class Reset(Enum):
 RESET = Reset.DEFAULT
 
 
+class Connectable(ABC):
+    @abstractmethod
+    async def connect(self) -> None: ...
+
+
 class AsyncClosable(ABC):
     @abstractmethod
     async def aclose(self) -> None: ...

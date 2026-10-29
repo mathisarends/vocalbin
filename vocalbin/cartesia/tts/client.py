@@ -41,6 +41,7 @@ class TextToSpeechError(RuntimeError):
 
 class TextToSpeech(
     ports.AsyncClosable,
+    ports.Connectable,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
     ports.IncrementalTextToSpeech[TextToSpeechConfig, bytes],
 ):
@@ -105,6 +106,7 @@ class TextToSpeech(
         self._connection: AsyncTTSResourceConnection | None = None
         self._connection_manager: AsyncTTSResourceConnectionManager | None = None
         self._connection_lock = asyncio.Lock()
+        self._closed = False
 
     @overload
     async def generate(
@@ -367,23 +369,31 @@ class TextToSpeech(
             )
         await context.no_more_inputs()
 
+    async def connect(self) -> None:
+        await self._get_connection()
+
     async def _get_connection(self) -> AsyncTTSResourceConnection:
-        if self._connection is not None:
-            return self._connection
         async with self._connection_lock:
+            if self._closed:
+                raise RuntimeError("TextToSpeech has been closed.")
             if self._connection is None:
                 manager = self.client.tts.websocket_connect()
                 self._connection = await manager.__aenter__()
                 self._connection_manager = manager
-        return self._connection
+            return self._connection
 
     async def aclose(self) -> None:
-        if self._connection_manager is not None:
-            await self._connection_manager.__aexit__(None, None, None)
-            self._connection = None
-            self._connection_manager = None
-        if self._owns_client:
-            await self.client.close()
+        try:
+            async with self._connection_lock:
+                self._closed = True
+                manager = self._connection_manager
+                self._connection = None
+                self._connection_manager = None
+                if manager is not None:
+                    await manager.__aexit__(None, None, None)
+        finally:
+            if self._owns_client:
+                await self.client.close()
 
 
 def _create_client(api_key: str) -> AsyncCartesia:

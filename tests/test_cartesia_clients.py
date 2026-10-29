@@ -526,3 +526,38 @@ async def test_cartesia_can_reset_nested_generation_options() -> None:
     assert call["generation_config"] == {"emotion": "calm"}
     assert "language" not in call
     assert service.default_config.generation_config.speed == 1.2
+
+
+async def test_cartesia_connect_prepares_and_reuses_the_socket_without_speech() -> None:
+    client = FakeClient([FakeContext([event("chunk", audio=b"audio"), event("done")])])
+    service = TextToSpeech(client=cast(Any, client), voice_id="voice-id")
+    await asyncio.gather(service.connect(), service.connect())
+    assert client.tts.websocket_calls == 1
+    assert client.connection.calls == []
+    assert await collect(service.stream("Hallo")) == [b"audio"]
+    assert client.tts.websocket_calls == 1
+    await service.aclose()
+    assert client.tts.manager.exited == 1
+    with pytest.raises(RuntimeError, match="closed"):
+        await service.connect()
+
+
+async def test_cartesia_close_during_connect_releases_the_late_socket() -> None:
+    client = FakeClient()
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    class SlowManager(FakeConnectionManager):
+        async def __aenter__(self) -> FakeConnection:
+            entered.set()
+            await release.wait()
+            return await super().__aenter__()
+
+    client.tts.manager = SlowManager(client.connection)
+    service = TextToSpeech(client=cast(Any, client))
+    opening = asyncio.create_task(service.connect())
+    await entered.wait()
+    closing = asyncio.create_task(service.aclose())
+    release.set()
+    await asyncio.gather(opening, closing)
+    assert client.tts.manager.exited == 1

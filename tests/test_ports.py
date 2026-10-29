@@ -76,3 +76,10 @@ async def test_closable_port_and_incremental_capabilities() -> None:
         ports.AsyncClosable()
     with pytest.raises(TypeError):
         ports.IncrementalTextToSpeech()
+
+
+def test_connectable_port_is_optional_and_implemented_by_cartesia() -> None:
+    assert issubclass(cartesia.TextToSpeech, ports.Connectable)
+    assert not issubclass(openai.TextToSpeech, ports.Connectable)
+    with pytest.raises(TypeError):
+        ports.Connectable()

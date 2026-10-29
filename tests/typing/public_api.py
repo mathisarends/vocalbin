@@ -4,6 +4,7 @@ from typing import assert_type
 from vocalbin import (
     RESET,
     AsyncClosable,
+    Connectable,
     IncrementalTextToSpeech,
     cartesia,
     deepgram,
@@ -65,3 +66,11 @@ def microphone_calls() -> None:
     microphone = realtime.MicrophoneInput(chunk_duration_ms=40)
     assert_type(microphone.chunk_size, int)
     assert_type(microphone.chunk_duration_ms, float)
+
+
+async def preconnect(tts: Connectable) -> None:
+    await tts.connect()
+
+
+def cartesia_preconnect(tts: cartesia.TextToSpeech) -> Connectable:
+    return tts

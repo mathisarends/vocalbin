@@ -191,6 +191,10 @@ async def stream_incremental(
     return bytes(audio)
 ```
 
+To move connection setup before the first request, call `await text_to_speech.connect()`
+once during application startup. The same socket is reused by later streams;
+`aclose()` releases it. Connecting does not synthesize speech.
+
 WebSocket streaming requires `output_format=RawOutputFormat()` (the
 default), which returns raw 16-bit PCM audio.
 
