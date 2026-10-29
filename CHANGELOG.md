@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.8.0 - 2026-10-29
+## [Unreleased]
+
+## [0.8.0] - 2026-10-29
 
 ### Added
 
@@ -37,4 +39,7 @@
 - The release workflow uses locked release dependencies and smoke-tests the
   current realtime exports from the built wheel.
 
-[Changes since v0.7.0](https://github.com/mathisarends/vocalbin/compare/v0.7.0...main).
+[Changes since v0.7.0](https://github.com/mathisarends/vocalbin/compare/v0.7.0...v0.8.0).
+
+[Unreleased]: https://github.com/mathisarends/vocalbin/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/mathisarends/vocalbin/releases/tag/v0.8.0
