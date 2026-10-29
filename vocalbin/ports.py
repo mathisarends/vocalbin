@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable, AsyncIterator
 from enum import Enum
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 from pydantic import BaseModel
 
@@ -11,6 +12,22 @@ class Reset(Enum):
 
 
 RESET = Reset.DEFAULT
+
+
+class AsyncClosable(ABC):
+    @abstractmethod
+    async def aclose(self) -> None: ...
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.aclose()
 
 
 class SpeechToText[AudioT, ConfigT, ResponseT](ABC):
@@ -41,6 +58,13 @@ class StreamingTextToSpeech[ConfigT, EventT](ABC):
     @abstractmethod
     def stream(
         self, text: str, *, config: ConfigT | None = None
+    ) -> AsyncIterator[EventT]: ...
+
+
+class IncrementalTextToSpeech[ConfigT, EventT](StreamingTextToSpeech[ConfigT, EventT]):
+    @abstractmethod
+    def stream_incremental(
+        self, text: AsyncIterable[str], *, config: ConfigT | None = None
     ) -> AsyncIterator[EventT]: ...
 
 

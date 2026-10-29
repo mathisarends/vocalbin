@@ -57,8 +57,8 @@ class TextToSpeech(
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.GPT_4O_MINI_TTS,
         voice: TextToSpeechVoice | str | Reset = TextToSpeechVoice.MARIN,
         response_format: TextToSpeechFormat | Reset = TextToSpeechFormat.MP3,
-        instructions: str | None | Reset = None,
-        speed: float | None | Reset = None,
+        instructions: str | Reset | None = None,
+        speed: float | Reset | None = None,
     ) -> TextToSpeechResponse: ...
 
     @overload
@@ -70,11 +70,11 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str | None | Reset = None,
-        voice: TextToSpeechVoice | str | None | Reset = None,
-        response_format: TextToSpeechFormat | None | Reset = None,
-        instructions: str | None | Reset = None,
-        speed: float | None | Reset = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        voice: TextToSpeechVoice | str | Reset | None = None,
+        response_format: TextToSpeechFormat | Reset | None = None,
+        instructions: str | Reset | None = None,
+        speed: float | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_valid_text(text)
@@ -119,11 +119,11 @@ def _resolve_tts_config(
     *,
     config: TextToSpeechConfig | None,
     default_config: TextToSpeechConfig | None,
-    model: TextToSpeechModel | str | None | Reset,
-    voice: TextToSpeechVoice | str | None | Reset,
-    response_format: TextToSpeechFormat | None | Reset,
-    instructions: str | None | Reset,
-    speed: float | None | Reset,
+    model: TextToSpeechModel | str | Reset | None,
+    voice: TextToSpeechVoice | str | Reset | None,
+    response_format: TextToSpeechFormat | Reset | None,
+    instructions: str | Reset | None,
+    speed: float | Reset | None,
 ) -> TextToSpeechConfig:
     flat_values = (model, voice, response_format, instructions, speed)
     has_flat_values = any(value is not None for value in flat_values)

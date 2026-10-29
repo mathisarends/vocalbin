@@ -3,7 +3,7 @@ import inspect
 import pytest
 
 import vocalbin
-from vocalbin import cartesia, openai, piper, ports
+from vocalbin import cartesia, deepgram, openai, piper, ports
 from vocalbin.openai import realtime
 
 
@@ -54,3 +54,24 @@ def test_root_api_does_not_flatten_realtime_namespaces() -> None:
     assert not hasattr(vocalbin, "Transcriber")
     assert not hasattr(vocalbin, "Translator")
     assert not hasattr(vocalbin, "TranslationConfig")
+
+
+async def test_closable_port_and_incremental_capabilities() -> None:
+    for service in (
+        openai.TextToSpeech,
+        openai.SpeechToText,
+        cartesia.TextToSpeech,
+        cartesia.SpeechToText,
+        deepgram.TextToSpeech,
+        deepgram.SpeechToText,
+        deepgram.StreamingSpeechToText,
+        piper.TextToSpeech,
+    ):
+        assert issubclass(service, ports.AsyncClosable)
+    for service in (cartesia.TextToSpeech, deepgram.TextToSpeech):
+        assert issubclass(service, ports.IncrementalTextToSpeech)
+        assert issubclass(service, ports.StreamingTextToSpeech)
+    with pytest.raises(TypeError):
+        ports.AsyncClosable()
+    with pytest.raises(TypeError):
+        ports.IncrementalTextToSpeech()

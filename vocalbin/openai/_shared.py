@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from types import TracebackType
-from typing import Self
-
 from openai import AsyncOpenAI
 
 from vocalbin.openai.credentials import Credentials
+from vocalbin.ports import AsyncClosable
 
 
-class _OpenAIClientOwner:
+class _OpenAIClientOwner(AsyncClosable):
     def __init__(self, api_key: str | None, client: AsyncOpenAI | None) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -26,14 +24,3 @@ class _OpenAIClientOwner:
     async def aclose(self) -> None:
         if self._owns_client:
             await self.client.close()
-
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.aclose()

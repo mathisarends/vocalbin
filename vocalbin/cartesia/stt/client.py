@@ -3,8 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable
 from contextlib import suppress
-from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.cartesia.credentials import Credentials
@@ -49,7 +48,9 @@ class SpeechToTextError(RuntimeError):
         self.doc_url = doc_url
 
 
-class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
+class SpeechToText(
+    ports.AsyncClosable, ports.StreamingSpeechToText[SpeechToTextConfig, Event]
+):
     def __init__(
         self,
         api_key: str | None = None,
@@ -95,11 +96,11 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         model: SpeechToTextModel | str | Reset = SpeechToTextModel.INK_2,
         encoding: SpeechToTextEncoding | Reset = SpeechToTextEncoding.PCM_S16LE,
         sample_rate: int | Reset = 16000,
-        keyterms: list[str] | None | Reset = None,
-        turn_start_threshold: float | None | Reset = None,
-        turn_eager_end_threshold: float | None | Reset = None,
-        turn_end_threshold: float | None | Reset = None,
-        turn_end_timeout_ms: float | None | Reset = None,
+        keyterms: list[str] | Reset | None = None,
+        turn_start_threshold: float | Reset | None = None,
+        turn_eager_end_threshold: float | Reset | None = None,
+        turn_end_threshold: float | Reset | None = None,
+        turn_end_timeout_ms: float | Reset | None = None,
     ) -> AsyncGenerator[Event]: ...
 
     @overload
@@ -114,14 +115,14 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         self,
         audio: AsyncIterable[bytes],
         *,
-        model: SpeechToTextModel | str | None | Reset = None,
-        encoding: SpeechToTextEncoding | None | Reset = None,
-        sample_rate: int | None | Reset = None,
-        keyterms: list[str] | None | Reset = None,
-        turn_start_threshold: float | None | Reset = None,
-        turn_eager_end_threshold: float | None | Reset = None,
-        turn_end_threshold: float | None | Reset = None,
-        turn_end_timeout_ms: float | None | Reset = None,
+        model: SpeechToTextModel | str | Reset | None = None,
+        encoding: SpeechToTextEncoding | Reset | None = None,
+        sample_rate: int | Reset | None = None,
+        keyterms: list[str] | Reset | None = None,
+        turn_start_threshold: float | Reset | None = None,
+        turn_eager_end_threshold: float | Reset | None = None,
+        turn_end_threshold: float | Reset | None = None,
+        turn_end_timeout_ms: float | Reset | None = None,
         config: SpeechToTextConfig | None = None,
     ) -> AsyncGenerator[Event]:
         resolved_config = _resolve_call_config(
@@ -205,17 +206,6 @@ class SpeechToText(ports.StreamingSpeechToText[SpeechToTextConfig, Event]):
         if self._owns_client:
             await self.client.close()
 
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.aclose()
-
 
 def _create_client(api_key: str) -> AsyncCartesia:
     try:
@@ -229,14 +219,14 @@ def _resolve_call_config(
     *,
     config: SpeechToTextConfig | None,
     default_config: SpeechToTextConfig,
-    model: SpeechToTextModel | str | None | Reset,
-    encoding: SpeechToTextEncoding | None | Reset,
-    sample_rate: int | None | Reset,
-    keyterms: list[str] | None | Reset,
-    turn_start_threshold: float | None | Reset,
-    turn_eager_end_threshold: float | None | Reset,
-    turn_end_threshold: float | None | Reset,
-    turn_end_timeout_ms: float | None | Reset,
+    model: SpeechToTextModel | str | Reset | None,
+    encoding: SpeechToTextEncoding | Reset | None,
+    sample_rate: int | Reset | None,
+    keyterms: list[str] | Reset | None,
+    turn_start_threshold: float | Reset | None,
+    turn_eager_end_threshold: float | Reset | None,
+    turn_end_threshold: float | Reset | None,
+    turn_end_timeout_ms: float | Reset | None,
 ) -> SpeechToTextConfig:
     flat_values = (
         model,

@@ -1,7 +1,15 @@
 from collections.abc import AsyncIterable, AsyncIterator
 from typing import assert_type
 
-from vocalbin import RESET, cartesia, deepgram, openai, piper
+from vocalbin import (
+    RESET,
+    AsyncClosable,
+    IncrementalTextToSpeech,
+    cartesia,
+    deepgram,
+    openai,
+    piper,
+)
 from vocalbin.openai import realtime
 
 
@@ -29,3 +37,23 @@ async def speech_calls(
 
 def realtime_calls(transcriber: realtime.Transcriber) -> None:
     assert_type(transcriber.stream(), AsyncIterator[realtime.events.TranscriptionEvent])
+
+
+async def capability_calls(
+    tts: IncrementalTextToSpeech[cartesia.TextToSpeechConfig, bytes],
+    owned: AsyncClosable,
+    text: AsyncIterable[str],
+) -> None:
+    async for chunk in tts.stream_incremental(text):
+        assert_type(chunk, bytes)
+    async with owned:
+        await owned.aclose()
+
+
+def provider_capabilities(tts: cartesia.TextToSpeech) -> None:
+    incremental: IncrementalTextToSpeech[cartesia.TextToSpeechConfig, bytes] = tts
+    closable: AsyncClosable = tts
+    assert_type(
+        incremental, IncrementalTextToSpeech[cartesia.TextToSpeechConfig, bytes]
+    )
+    assert_type(closable, AsyncClosable)

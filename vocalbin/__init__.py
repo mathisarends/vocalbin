@@ -1,5 +1,7 @@
 from .ports import (
     RESET,
+    AsyncClosable,
+    IncrementalTextToSpeech,
     Reset,
     SpeechToText,
     StreamingSpeechToText,
@@ -9,6 +11,8 @@ from .ports import (
 
 __all__ = [
     "RESET",
+    "AsyncClosable",
+    "IncrementalTextToSpeech",
     "Reset",
     "SpeechToText",
     "StreamingSpeechToText",

@@ -4,8 +4,7 @@ import asyncio
 import threading
 from collections.abc import AsyncGenerator, Generator, Iterator
 from pathlib import Path
-from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.piper.config import Config
@@ -19,6 +18,7 @@ if TYPE_CHECKING:
 
 
 class TextToSpeech(
+    ports.AsyncClosable,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
     ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
 ):
@@ -61,10 +61,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None | Reset = None,
-        length_scale: float | None | Reset = None,
-        noise_scale: float | None | Reset = None,
-        noise_w_scale: float | None | Reset = None,
+        speaker_id: int | Reset | None = None,
+        length_scale: float | Reset | None = None,
+        noise_scale: float | Reset | None = None,
+        noise_w_scale: float | Reset | None = None,
     ) -> TextToSpeechResponse: ...
 
     @overload
@@ -76,10 +76,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None | Reset = None,
-        length_scale: float | None | Reset = None,
-        noise_scale: float | None | Reset = None,
-        noise_w_scale: float | None | Reset = None,
+        speaker_id: int | Reset | None = None,
+        length_scale: float | Reset | None = None,
+        noise_scale: float | Reset | None = None,
+        noise_w_scale: float | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_non_blank_text(text)
@@ -108,10 +108,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None | Reset = None,
-        length_scale: float | None | Reset = None,
-        noise_scale: float | None | Reset = None,
-        noise_w_scale: float | None | Reset = None,
+        speaker_id: int | Reset | None = None,
+        length_scale: float | Reset | None = None,
+        noise_scale: float | Reset | None = None,
+        noise_w_scale: float | Reset | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -123,10 +123,10 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        speaker_id: int | None | Reset = None,
-        length_scale: float | None | Reset = None,
-        noise_scale: float | None | Reset = None,
-        noise_w_scale: float | None | Reset = None,
+        speaker_id: int | Reset | None = None,
+        length_scale: float | Reset | None = None,
+        noise_scale: float | Reset | None = None,
+        noise_w_scale: float | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         text = _require_non_blank_text(text)
@@ -160,17 +160,6 @@ class TextToSpeech(
 
     async def aclose(self) -> None:
         return None
-
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.aclose()
 
 
 def _create_voice(model_path: Path, config_path: Path | None) -> PiperVoice:
@@ -234,10 +223,10 @@ def _resolve_call_config(
     *,
     config: TextToSpeechConfig | None,
     default_config: TextToSpeechConfig | None,
-    speaker_id: int | None | Reset,
-    length_scale: float | None | Reset,
-    noise_scale: float | None | Reset,
-    noise_w_scale: float | None | Reset,
+    speaker_id: int | Reset | None,
+    length_scale: float | Reset | None,
+    noise_scale: float | Reset | None,
+    noise_w_scale: float | Reset | None,
 ) -> TextToSpeechConfig:
     flat_values = (speaker_id, length_scale, noise_scale, noise_w_scale)
     has_flat_values = any(value is not None for value in flat_values)

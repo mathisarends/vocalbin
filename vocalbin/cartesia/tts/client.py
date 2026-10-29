@@ -3,8 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable, AsyncIterator
 from contextlib import suppress
-from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from vocalbin import ports
 from vocalbin.cartesia.credentials import Credentials
@@ -41,8 +40,9 @@ class TextToSpeechError(RuntimeError):
 
 
 class TextToSpeech(
+    ports.AsyncClosable,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
-    ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
+    ports.IncrementalTextToSpeech[TextToSpeechConfig, bytes],
 ):
     def __init__(
         self,
@@ -111,14 +111,14 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        voice_id: Voice | str | None | Reset = None,
+        voice_id: Voice | str | Reset | None = None,
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.SONIC_3_5,
-        output_format: OutputFormat | None | Reset = None,
-        language: str | None | Reset = None,
-        emotion: str | None | Reset = None,
-        speed: float | None | Reset = None,
-        volume: float | None | Reset = None,
-        pronunciation_dict_id: str | None | Reset = None,
+        output_format: OutputFormat | Reset | None = None,
+        language: str | Reset | None = None,
+        emotion: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        volume: float | Reset | None = None,
+        pronunciation_dict_id: str | Reset | None = None,
     ) -> TextToSpeechResponse: ...
 
     @overload
@@ -130,14 +130,14 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        voice_id: Voice | str | None | Reset = None,
-        model: TextToSpeechModel | str | None | Reset = None,
-        output_format: OutputFormat | None | Reset = None,
-        language: str | None | Reset = None,
-        emotion: str | None | Reset = None,
-        speed: float | None | Reset = None,
-        volume: float | None | Reset = None,
-        pronunciation_dict_id: str | None | Reset = None,
+        voice_id: Voice | str | Reset | None = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        output_format: OutputFormat | Reset | None = None,
+        language: str | Reset | None = None,
+        emotion: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        volume: float | Reset | None = None,
+        pronunciation_dict_id: str | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_non_blank_text(text)
@@ -176,16 +176,16 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        voice_id: Voice | str | None | Reset = None,
+        voice_id: Voice | str | Reset | None = None,
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.SONIC_3_5,
-        output_format: OutputFormat | None | Reset = None,
-        language: str | None | Reset = None,
-        emotion: str | None | Reset = None,
-        speed: float | None | Reset = None,
-        volume: float | None | Reset = None,
-        pronunciation_dict_id: str | None | Reset = None,
-        max_buffer_delay_ms: int | None | Reset = None,
-        timeout: float | None | Reset = None,
+        output_format: OutputFormat | Reset | None = None,
+        language: str | Reset | None = None,
+        emotion: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        volume: float | Reset | None = None,
+        pronunciation_dict_id: str | Reset | None = None,
+        max_buffer_delay_ms: int | Reset | None = None,
+        timeout: float | Reset | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -197,16 +197,16 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        voice_id: Voice | str | None | Reset = None,
-        model: TextToSpeechModel | str | None | Reset = None,
-        output_format: OutputFormat | None | Reset = None,
-        language: str | None | Reset = None,
-        emotion: str | None | Reset = None,
-        speed: float | None | Reset = None,
-        volume: float | None | Reset = None,
-        pronunciation_dict_id: str | None | Reset = None,
-        max_buffer_delay_ms: int | None | Reset = None,
-        timeout: float | None | Reset = None,
+        voice_id: Voice | str | Reset | None = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        output_format: OutputFormat | Reset | None = None,
+        language: str | Reset | None = None,
+        emotion: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        volume: float | Reset | None = None,
+        pronunciation_dict_id: str | Reset | None = None,
+        max_buffer_delay_ms: int | Reset | None = None,
+        timeout: float | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         resolved_config = _resolve_call_config(
@@ -239,16 +239,16 @@ class TextToSpeech(
         self,
         text: AsyncIterable[str],
         *,
-        voice_id: Voice | str | None | Reset = None,
+        voice_id: Voice | str | Reset | None = None,
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.SONIC_3_5,
-        output_format: OutputFormat | None | Reset = None,
-        language: str | None | Reset = None,
-        emotion: str | None | Reset = None,
-        speed: float | None | Reset = None,
-        volume: float | None | Reset = None,
-        pronunciation_dict_id: str | None | Reset = None,
-        max_buffer_delay_ms: int | None | Reset = None,
-        timeout: float | None | Reset = None,
+        output_format: OutputFormat | Reset | None = None,
+        language: str | Reset | None = None,
+        emotion: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        volume: float | Reset | None = None,
+        pronunciation_dict_id: str | Reset | None = None,
+        max_buffer_delay_ms: int | Reset | None = None,
+        timeout: float | Reset | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -263,16 +263,16 @@ class TextToSpeech(
         self,
         text: AsyncIterable[str],
         *,
-        voice_id: Voice | str | None | Reset = None,
-        model: TextToSpeechModel | str | None | Reset = None,
-        output_format: OutputFormat | None | Reset = None,
-        language: str | None | Reset = None,
-        emotion: str | None | Reset = None,
-        speed: float | None | Reset = None,
-        volume: float | None | Reset = None,
-        pronunciation_dict_id: str | None | Reset = None,
-        max_buffer_delay_ms: int | None | Reset = None,
-        timeout: float | None | Reset = None,
+        voice_id: Voice | str | Reset | None = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        output_format: OutputFormat | Reset | None = None,
+        language: str | Reset | None = None,
+        emotion: str | Reset | None = None,
+        speed: float | Reset | None = None,
+        volume: float | Reset | None = None,
+        pronunciation_dict_id: str | Reset | None = None,
+        max_buffer_delay_ms: int | Reset | None = None,
+        timeout: float | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         resolved_config = _resolve_call_config(
@@ -385,17 +385,6 @@ class TextToSpeech(
         if self._owns_client:
             await self.client.close()
 
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.aclose()
-
 
 def _create_client(api_key: str) -> AsyncCartesia:
     try:
@@ -431,16 +420,16 @@ def _resolve_call_config(
     *,
     config: TextToSpeechConfig | None,
     default_config: TextToSpeechConfig | None,
-    voice_id: Voice | str | None | Reset,
-    model: TextToSpeechModel | str | None | Reset,
-    output_format: OutputFormat | None | Reset,
-    language: str | None | Reset,
-    emotion: str | None | Reset,
-    speed: float | None | Reset,
-    volume: float | None | Reset,
-    pronunciation_dict_id: str | None | Reset,
-    max_buffer_delay_ms: int | None | Reset = None,
-    timeout: float | None | Reset = None,
+    voice_id: Voice | str | Reset | None,
+    model: TextToSpeechModel | str | Reset | None,
+    output_format: OutputFormat | Reset | None,
+    language: str | Reset | None,
+    emotion: str | Reset | None,
+    speed: float | Reset | None,
+    volume: float | Reset | None,
+    pronunciation_dict_id: str | Reset | None,
+    max_buffer_delay_ms: int | Reset | None = None,
+    timeout: float | Reset | None = None,
 ) -> TextToSpeechConfig:
     flat_values = (
         voice_id,

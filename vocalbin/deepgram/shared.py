@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from types import TracebackType
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 
 from vocalbin.deepgram.credentials import Credentials
+from vocalbin.ports import AsyncClosable
 
 if TYPE_CHECKING:
     import httpx
     from deepgram import AsyncDeepgramClient
 
 
-class DeepgramClientOwner:
+class DeepgramClientOwner(AsyncClosable):
     def __init__(self, api_key: str | None, client: AsyncDeepgramClient | None) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -30,17 +30,6 @@ class DeepgramClientOwner:
         if self._http_client is not None:
             await self._http_client.aclose()
             self._http_client = None
-
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.aclose()
 
 
 def _create_client(api_key: str) -> tuple[AsyncDeepgramClient, httpx.AsyncClient]:

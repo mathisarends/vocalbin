@@ -89,10 +89,10 @@ class StreamingSpeechToText(
             StreamingSpeechToTextEncoding.LINEAR16
         ),
         sample_rate: int | Reset = 16000,
-        keyterms: list[str] | None | Reset = None,
-        eot_threshold: float | None | Reset = None,
-        eager_eot_threshold: float | None | Reset = None,
-        eot_timeout_ms: int | None | Reset = None,
+        keyterms: list[str] | Reset | None = None,
+        eot_threshold: float | Reset | None = None,
+        eager_eot_threshold: float | Reset | None = None,
+        eot_timeout_ms: int | Reset | None = None,
     ) -> AsyncGenerator[Event]: ...
 
     @overload
@@ -107,13 +107,13 @@ class StreamingSpeechToText(
         self,
         audio: AsyncIterable[bytes],
         *,
-        model: StreamingSpeechToTextModel | str | None | Reset = None,
-        encoding: StreamingSpeechToTextEncoding | None | Reset = None,
-        sample_rate: int | None | Reset = None,
-        keyterms: list[str] | None | Reset = None,
-        eot_threshold: float | None | Reset = None,
-        eager_eot_threshold: float | None | Reset = None,
-        eot_timeout_ms: int | None | Reset = None,
+        model: StreamingSpeechToTextModel | str | Reset | None = None,
+        encoding: StreamingSpeechToTextEncoding | Reset | None = None,
+        sample_rate: int | Reset | None = None,
+        keyterms: list[str] | Reset | None = None,
+        eot_threshold: float | Reset | None = None,
+        eager_eot_threshold: float | Reset | None = None,
+        eot_timeout_ms: int | Reset | None = None,
         config: StreamingSpeechToTextConfig | None = None,
     ) -> AsyncGenerator[Event]:
         resolved_config = _resolve_call_config(
@@ -223,13 +223,13 @@ def _resolve_call_config(
     *,
     config: StreamingSpeechToTextConfig | None,
     default_config: StreamingSpeechToTextConfig,
-    model: StreamingSpeechToTextModel | str | None | Reset,
-    encoding: StreamingSpeechToTextEncoding | None | Reset,
-    sample_rate: int | None | Reset,
-    keyterms: list[str] | None | Reset,
-    eot_threshold: float | None | Reset,
-    eager_eot_threshold: float | None | Reset,
-    eot_timeout_ms: int | None | Reset,
+    model: StreamingSpeechToTextModel | str | Reset | None,
+    encoding: StreamingSpeechToTextEncoding | Reset | None,
+    sample_rate: int | Reset | None,
+    keyterms: list[str] | Reset | None,
+    eot_threshold: float | Reset | None,
+    eager_eot_threshold: float | Reset | None,
+    eot_timeout_ms: int | Reset | None,
 ) -> StreamingSpeechToTextConfig:
     flat_values = (
         model,

@@ -37,7 +37,7 @@ class TextToSpeechError(RuntimeError):
 class TextToSpeech(
     DeepgramClientOwner,
     ports.TextToSpeech[TextToSpeechConfig, TextToSpeechResponse],
-    ports.StreamingTextToSpeech[TextToSpeechConfig, bytes],
+    ports.IncrementalTextToSpeech[TextToSpeechConfig, bytes],
 ):
     def __init__(
         self,
@@ -66,9 +66,9 @@ class TextToSpeech(
         *,
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
-        container: AudioContainer | None | Reset = None,
-        sample_rate: int | None | Reset = None,
-        bit_rate: int | None | Reset = None,
+        container: AudioContainer | Reset | None = None,
+        sample_rate: int | Reset | None = None,
+        bit_rate: int | Reset | None = None,
     ) -> TextToSpeechResponse: ...
 
     @overload
@@ -80,11 +80,11 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str | None | Reset = None,
-        encoding: AudioEncoding | None | Reset = None,
-        container: AudioContainer | None | Reset = None,
-        sample_rate: int | None | Reset = None,
-        bit_rate: int | None | Reset = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        encoding: AudioEncoding | Reset | None = None,
+        container: AudioContainer | Reset | None = None,
+        sample_rate: int | Reset | None = None,
+        bit_rate: int | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> TextToSpeechResponse:
         text = _require_valid_text(text)
@@ -118,7 +118,7 @@ class TextToSpeech(
         *,
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
-        sample_rate: int | None | Reset = None,
+        sample_rate: int | Reset | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -130,9 +130,9 @@ class TextToSpeech(
         self,
         text: str,
         *,
-        model: TextToSpeechModel | str | None | Reset = None,
-        encoding: AudioEncoding | None | Reset = None,
-        sample_rate: int | None | Reset = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        encoding: AudioEncoding | Reset | None = None,
+        sample_rate: int | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         text = _require_valid_text(text)
@@ -163,7 +163,7 @@ class TextToSpeech(
         *,
         model: TextToSpeechModel | str | Reset = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding | Reset = AudioEncoding.LINEAR16,
-        sample_rate: int | None | Reset = None,
+        sample_rate: int | Reset | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -178,9 +178,9 @@ class TextToSpeech(
         self,
         text: AsyncIterable[str],
         *,
-        model: TextToSpeechModel | str | None | Reset = None,
-        encoding: AudioEncoding | None | Reset = None,
-        sample_rate: int | None | Reset = None,
+        model: TextToSpeechModel | str | Reset | None = None,
+        encoding: AudioEncoding | Reset | None = None,
+        sample_rate: int | Reset | None = None,
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         resolved_config = _resolve_call_config(
@@ -296,11 +296,11 @@ def _resolve_call_config(
     *,
     config: TextToSpeechConfig | None,
     default_config: TextToSpeechConfig,
-    model: TextToSpeechModel | str | None | Reset,
-    encoding: AudioEncoding | None | Reset,
-    container: AudioContainer | None | Reset,
-    sample_rate: int | None | Reset,
-    bit_rate: int | None | Reset,
+    model: TextToSpeechModel | str | Reset | None,
+    encoding: AudioEncoding | Reset | None,
+    container: AudioContainer | Reset | None,
+    sample_rate: int | Reset | None,
+    bit_rate: int | Reset | None,
 ) -> TextToSpeechConfig:
     flat_values = (model, encoding, container, sample_rate, bit_rate)
     has_flat_values = any(value is not None for value in flat_values)

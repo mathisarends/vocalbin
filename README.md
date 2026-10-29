@@ -535,6 +535,12 @@ classes (`vocalbin/ports.py`); the realtime ports `ports.AudioInput`, `ports.Pro
 They mark the boundary of the library, so callers can depend on the interface
 rather than the OpenAI implementation.
 
+`IncrementalTextToSpeech` extends the streaming TTS port with
+`stream_incremental()` for async text sources. Cartesia and Deepgram implement it.
+`AsyncClosable` provides `aclose()` and the async context manager for all speech
+clients; injected clients remain owned by the caller. These capabilities can be
+imported directly from `vocalbin`.
+
 ## Development
 
 ```bash
