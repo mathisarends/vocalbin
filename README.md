@@ -25,6 +25,7 @@ code.
 - [Bring your own client](#bring-your-own-client)
 - [Ports](#ports)
 - [Development](#development)
+- [Releasing](#releasing)
 
 ## Installation
 
@@ -622,3 +623,25 @@ uv sync
 uv run mypy
 uv run pytest
 ```
+
+## Releasing
+
+Release changes are recorded in [the changelog](CHANGELOG.md). Before merging a
+release PR, keep the version in `pyproject.toml` and `uv.lock` in sync, set the
+release date in the changelog, and wait for CI to pass.
+
+After merging the v0.8.0 release PR, tag its commit on `main` and push the tag:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git tag v0.8.0 <release-merge-commit>
+git push origin v0.8.0
+```
+
+Replace `<release-merge-commit>` with the merged release commit's SHA. The
+[Release workflow](.github/workflows/release.yml) verifies the version and that the
+tagged commit belongs to `main`, runs the tests, builds and checks both
+distributions, and smoke-tests the wheel. It then publishes to PyPI and creates a
+GitHub release with the distributions attached. Check that the workflow succeeds
+and that v0.8.0 appears on both PyPI and GitHub.
