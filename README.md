@@ -384,6 +384,14 @@ service, and both builders can be initialized from an existing config.
 The default `MicrophoneInput` sends raw 24 kHz mono PCM16 chunks. Pass an
 `ports.AudioInput` implementation or wrap an async byte source with `AudioStreamInput`
 from `vocalbin.openai.realtime` when audio already comes from a media pipeline.
+The existing microphone default is 4,800 samples (200 ms at 24 kHz). Set
+`MicrophoneInput(chunk_duration_ms=40)` for smaller input batches, or use 20 ms
+when the device and application can keep up. Shorter batches increase scheduling
+and network-message overhead; measure end-to-end latency with the actual device.
+`chunk_duration_ms` and `chunk_size` are mutually exclusive. The read-only
+`sample_rate`, `chunk_size`, and `chunk_duration_ms` properties describe the
+resolved settings, including rounding to whole samples.
+
 With semantic VAD enabled, OpenAI automatically detects completed turns and
 commits their transcription buffers. Leave `turn_detection` as `None` and call
 `flush()` to commit a buffer manually. `gpt-realtime-whisper` does not support

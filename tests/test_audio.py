@@ -116,3 +116,71 @@ async def test_microphone_stream_stops_when_read_returns_none(
     microphone._stream = None
     assert [chunk async for chunk in microphone.stream_chunks()] == []
     await microphone.stop()
+
+
+@pytest.mark.parametrize(
+    ("sample_rate", "duration", "frames"),
+    [
+        (24000, 20, 480),
+        (24000, 40, 960),
+        (16000, 40, 640),
+        (22050, 20, 441),
+        (24000, 20.01, 480),
+    ],
+)
+async def test_microphone_duration_configures_the_actual_read_size(
+    monkeypatch: pytest.MonkeyPatch, sample_rate: int, duration: float, frames: int
+) -> None:
+    streams: list[FakeRawInputStream] = []
+
+    def create_stream(**kwargs: Any) -> FakeRawInputStream:
+        stream = FakeRawInputStream(**kwargs)
+        streams.append(stream)
+        return stream
+
+    monkeypatch.setitem(
+        sys.modules, "sounddevice", SimpleNamespace(RawInputStream=create_stream)
+    )
+    microphone = MicrophoneInput(sample_rate=sample_rate, chunk_duration_ms=duration)
+    assert microphone.sample_rate == sample_rate
+    assert microphone.chunk_size == frames
+    assert microphone.chunk_duration_ms == frames * 1000 / sample_rate
+    await microphone.start()
+    iterator = microphone.stream_chunks()
+    try:
+        assert await anext(iterator) == b"pcm"
+        assert streams[0].kwargs["blocksize"] == frames
+    finally:
+        await microphone.stop()
+        await iterator.aclose()
+
+
+def test_microphone_preserves_the_existing_default_and_positional_arguments() -> None:
+    assert MicrophoneInput().chunk_size == 4800
+    assert MicrophoneInput().chunk_duration_ms == 200
+    assert MicrophoneInput(None, 16000).chunk_size == 4800
+    assert MicrophoneInput(None, 16000, 1600).chunk_duration_ms == 100
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"sample_rate": 0},
+        {"sample_rate": -1},
+        {"sample_rate": 16000.5},
+        {"chunk_size": 0},
+        {"chunk_size": -1},
+        {"chunk_size": 2.5},
+        {"chunk_duration_ms": 0},
+        {"chunk_duration_ms": -1},
+        {"chunk_duration_ms": float("nan")},
+        {"chunk_duration_ms": float("inf")},
+        {"chunk_duration_ms": 0.001},
+        {"chunk_size": 480, "chunk_duration_ms": 20},
+    ],
+)
+def test_microphone_rejects_invalid_or_conflicting_chunk_settings(
+    kwargs: dict[str, Any],
+) -> None:
+    with pytest.raises(ValueError):
+        MicrophoneInput(**kwargs)

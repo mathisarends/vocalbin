@@ -59,3 +59,9 @@ def provider_capabilities(tts: cartesia.TextToSpeech) -> None:
         incremental, IncrementalTextToSpeech[cartesia.TextToSpeechConfig, bytes]
     )
     assert_type(closable, AsyncClosable)
+
+
+def microphone_calls() -> None:
+    microphone = realtime.MicrophoneInput(chunk_duration_ms=40)
+    assert_type(microphone.chunk_size, int)
+    assert_type(microphone.chunk_duration_ms, float)
