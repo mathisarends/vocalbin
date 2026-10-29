@@ -366,3 +366,43 @@ async def test_piper_can_reset_speaker_without_resetting_other_options(
     service = TextToSpeech(voice=cast(Any, voice), speaker_id=2, noise_scale=0.5)
     await service.generate("Hallo", speaker_id=RESET)
     assert voice.calls[-1]["syn_config"] == {"noise_scale": 0.5}
+
+
+@pytest.mark.parametrize("buffer_chunks", [1, 3])
+async def test_piper_backpressure_bounds_synthesis_and_close_unblocks_producer(
+    monkeypatch: pytest.MonkeyPatch, buffer_chunks: int
+) -> None:
+    stub_syn_config(monkeypatch)
+    produced: list[int] = []
+    blocked = threading.Event()
+    closed = threading.Event()
+
+    class FastVoice(FakeVoice):
+        def synthesize(self, text: str, syn_config: Any = None):
+            try:
+                for index in range(100):
+                    produced.append(index)
+                    if len(produced) == buffer_chunks + 2:
+                        blocked.set()
+                    yield FakeAudioChunk(b"audio")
+            finally:
+                closed.set()
+
+    stream = TextToSpeech(
+        voice=cast(Any, FastVoice()), max_buffer_chunks=buffer_chunks
+    ).stream("Hallo")
+    try:
+        assert await anext(stream) == b"audio"
+        assert await asyncio.to_thread(blocked.wait, 5)
+        assert len(produced) == buffer_chunks + 2
+        await asyncio.wait_for(stream.aclose(), 5)
+        assert closed.is_set()
+        assert len(produced) == buffer_chunks + 2
+    finally:
+        await stream.aclose()
+
+
+def test_piper_rejects_invalid_buffer_sizes() -> None:
+    for size in (0, -1, 1.5):
+        with pytest.raises(ValueError, match="max_buffer_chunks"):
+            TextToSpeech(voice=cast(Any, FakeVoice()), max_buffer_chunks=size)

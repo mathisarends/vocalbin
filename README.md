@@ -343,6 +343,11 @@ async def stream() -> bytes:
     return bytes(audio)
 ```
 
+Streaming keeps at most `max_buffer_chunks` pending audio chunks (default `2`).
+The synthesis thread waits when this buffer is full; closing or cancelling the
+stream wakes the thread and releases queued audio. A chunk already being
+synthesized must finish before teardown completes.
+
 Pass an existing `PiperVoice` via `voice=` to reuse an already-loaded model
 across requests instead of loading it from `model_path`/credentials each time.
 

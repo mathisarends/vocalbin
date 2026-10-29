@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import queue
 import threading
 from collections.abc import AsyncGenerator, Generator, Iterator
+from contextlib import closing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, overload
 
@@ -32,7 +34,11 @@ class TextToSpeech(
         length_scale: float | None = None,
         noise_scale: float | None = None,
         noise_w_scale: float | None = None,
+        max_buffer_chunks: int = 2,
     ) -> None:
+        if not isinstance(max_buffer_chunks, int) or max_buffer_chunks < 1:
+            raise ValueError("max_buffer_chunks must be positive")
+        self._max_buffer_chunks = max_buffer_chunks
         if model_path is not None and voice is not None:
             raise ValueError("Pass either 'model_path' or 'voice', not both.")
         if voice is None:
@@ -141,7 +147,9 @@ class TextToSpeech(
         chunks = (
             chunk.audio_int16_bytes for chunk in self._synthesize(text, resolved_config)
         )
-        stream = _stream_sync_generator(chunks)
+        stream = _stream_sync_generator(
+            chunks, max_buffer_chunks=self._max_buffer_chunks
+        )
         try:
             async for chunk in stream:
                 yield chunk
@@ -187,28 +195,42 @@ def _build_syn_config(params: dict[str, Any]) -> SynthesisConfig:
     return SynthesisConfig(**params)
 
 
-async def _stream_sync_generator(generator: Generator[bytes]) -> AsyncGenerator[bytes]:
+async def _stream_sync_generator(
+    generator: Generator[bytes], *, max_buffer_chunks: int = 2
+) -> AsyncGenerator[bytes]:
     loop = asyncio.get_running_loop()
-    queue: asyncio.Queue[bytes | BaseException | None] = asyncio.Queue()
+    buffer: queue.Queue[bytes | BaseException | None] = queue.Queue(max_buffer_chunks)
+    ready = asyncio.Event()
     stopped = threading.Event()
+
+    def publish(item: bytes | BaseException | None) -> None:
+        buffer.put(item)
+        loop.call_soon_threadsafe(ready.set)
 
     def worker() -> None:
         try:
-            for chunk in generator:
-                if stopped.is_set():
-                    break
-                loop.call_soon_threadsafe(queue.put_nowait, chunk)
-        except BaseException as exc:
-            loop.call_soon_threadsafe(queue.put_nowait, exc)
-        finally:
-            generator.close()
-            loop.call_soon_threadsafe(queue.put_nowait, None)
+            try:
+                with closing(generator):
+                    for chunk in generator:
+                        if stopped.is_set():
+                            break
+                        publish(chunk)
+            except BaseException as exc:
+                publish(exc)
+            publish(None)
+        except queue.ShutDown:
+            pass
 
     thread = threading.Thread(target=worker, daemon=True)
     thread.start()
     try:
         while True:
-            item = await queue.get()
+            try:
+                item = buffer.get_nowait()
+            except queue.Empty:
+                await ready.wait()
+                ready.clear()
+                continue
             if item is None:
                 return
             if isinstance(item, BaseException):
@@ -216,6 +238,8 @@ async def _stream_sync_generator(generator: Generator[bytes]) -> AsyncGenerator[
             yield item
     finally:
         stopped.set()
+        # Wake a producer blocked on a full buffer before joining its thread.
+        buffer.shutdown(immediate=True)
         await asyncio.to_thread(thread.join)
 
 
