@@ -23,6 +23,7 @@ from vocalbin.openai.realtime.events import (
 from vocalbin.openai.realtime.messages import (
     RealtimeClientMessage,
     RealtimeSessionUpdate,
+    RealtimeTranscriptionAudioClear,
     RealtimeTranscriptionSessionUpdate,
     RealtimeTranslationSessionUpdate,
 )
@@ -200,18 +201,26 @@ class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
             if self._stop_called:
                 return
             async for payload in self._connection.events():
-                event = self._spec.parse_event(payload)
-                if event is None:
-                    continue
-                yield event
-                if self._spec.is_final_event(
-                    event, input_finished=self._input_finished
-                ):
+                event = self._parse_event(payload)
+                if event is not None:
+                    yield event
+                if self._is_final_event(event):
                     break
             if self._sender_error is not None:
                 raise self._sender_error
         finally:
             await self.stop()
+
+    def _parse_event(self, payload: dict[str, Any]) -> EventT | None:
+        return self._spec.parse_event(payload)
+
+    def _is_final_event(self, event: EventT | None) -> bool:
+        return event is not None and self._spec.is_final_event(
+            event, input_finished=self._input_finished
+        )
+
+    async def _finish_input(self) -> None:
+        await self._connection.send(self._spec.input_finished())
 
     async def _send_audio(self) -> None:
         try:
@@ -223,7 +232,7 @@ class _RealtimeStreamer[EventT: (TranscriptionEvent, TranslationEvent)]:
                 await self._connection.send(self._spec.audio_append.from_audio(chunk))
             self._input_finished = True
             if not self._stop_called and self._connection.is_connected:
-                await self._connection.send(self._spec.input_finished())
+                await self._finish_input()
         except asyncio.CancelledError:
             raise
         except Exception as exc:
@@ -246,6 +255,8 @@ class Transcriber(
     ) -> None:
         resolved_provider = _resolve_provider(provider, api_key, safety_identifier)
         self.config = config or TranscriptionConfig()
+        self._pending_transcriptions: set[str] = set()
+        self._input_cleared = False
         super().__init__(
             spec=TRANSCRIPTION_SPEC,
             session_update=RealtimeTranscriptionSessionUpdate.from_config(self.config),
@@ -253,6 +264,31 @@ class Transcriber(
             provider=resolved_provider,
             model=self.config.model,
         )
+
+    def _parse_event(self, payload: dict[str, Any]) -> TranscriptionEvent | None:
+        match payload.get("type"):
+            case "input_audio_buffer.committed":
+                self._pending_transcriptions.add(payload["item_id"])
+            case "input_audio_buffer.cleared":
+                self._input_cleared = True
+            case "conversation.item.input_audio_transcription.completed":
+                self._pending_transcriptions.discard(payload["item_id"])
+            case "conversation.item.input_audio_transcription.failed":
+                raise RuntimeError(payload["error"]["message"])
+        return self._spec.parse_event(payload)
+
+    def _is_final_event(self, event: TranscriptionEvent | None) -> bool:
+        return (
+            self._input_finished
+            and self._input_cleared
+            and not self._pending_transcriptions
+        )
+
+    async def _finish_input(self) -> None:
+        await super()._finish_input()
+        # The clear acknowledgement is a barrier after the final commit. Drain
+        # every committed item, whose transcription may complete out of order.
+        await self._connection.send(RealtimeTranscriptionAudioClear())
 
     async def flush(self) -> None:
         if not self._session_started:

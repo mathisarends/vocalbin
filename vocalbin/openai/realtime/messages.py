@@ -37,6 +37,7 @@ class RealtimeMessageType(StrEnum):
     SESSION_UPDATE = "session.update"
     TRANSCRIPTION_AUDIO_APPEND = "input_audio_buffer.append"
     TRANSCRIPTION_AUDIO_COMMIT = "input_audio_buffer.commit"
+    TRANSCRIPTION_AUDIO_CLEAR = "input_audio_buffer.clear"
     TRANSLATION_AUDIO_APPEND = "session.input_audio_buffer.append"
     TRANSLATION_SESSION_CLOSE = "session.close"
     TRANSCRIPT_DELTA = "conversation.item.input_audio_transcription.delta"
@@ -213,6 +214,12 @@ class RealtimeInputFinished(RealtimeClientMessage):
 class RealtimeTranscriptionAudioCommit(RealtimeInputFinished):
     type: Literal[RealtimeMessageType.TRANSCRIPTION_AUDIO_COMMIT] = (
         RealtimeMessageType.TRANSCRIPTION_AUDIO_COMMIT
+    )
+
+
+class RealtimeTranscriptionAudioClear(RealtimeClientMessage):
+    type: Literal[RealtimeMessageType.TRANSCRIPTION_AUDIO_CLEAR] = (
+        RealtimeMessageType.TRANSCRIPTION_AUDIO_CLEAR
     )
 
 

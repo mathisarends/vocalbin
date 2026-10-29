@@ -57,8 +57,7 @@ TRANSCRIPTION_SPEC = RealtimeSessionSpec[TranscriptionEvent](
     audio_append=RealtimeTranscriptionAudioAppend,
     input_finished=RealtimeTranscriptionAudioCommit,
     final_event=TranscriptCompleted,
-    # Transcripts complete per utterance, so only the one that follows the
-    # final commit ends the stream.
+    # The transcriber additionally waits for every committed item to drain.
     final_event_requires_finished_input=True,
     event_types=frozenset(
         {

@@ -394,6 +394,7 @@ async def test_realtime_transcriber_streams_and_maps_events(
             "audio": base64.b64encode(b"pcm").decode("ascii"),
         },
         {"type": "input_audio_buffer.commit"},
+        {"type": "input_audio_buffer.clear"},
     ]
     assert connection.closed is True
 
@@ -669,3 +670,103 @@ def test_event_mappers_preserve_defaults_and_ignore_unknown_events() -> None:
                 "delta": "missing item id",
             }
         )
+
+
+@pytest.mark.parametrize("completion_order", [("first", "second"), ("second", "first")])
+@pytest.mark.parametrize("barrier_position", [0, 1, 2])
+async def test_transcriber_drains_all_committed_turns(
+    monkeypatch: pytest.MonkeyPatch,
+    completion_order: tuple[str, str],
+    barrier_position: int,
+) -> None:
+    completed = [
+        {
+            "type": "conversation.item.input_audio_transcription.completed",
+            "item_id": item,
+            "transcript": item,
+        }
+        for item in completion_order
+    ]
+    completed.insert(barrier_position, {"type": "input_audio_buffer.cleared"})
+    connection = FakeConnection(
+        [
+            {"type": "input_audio_buffer.committed", "item_id": "first"},
+            {"type": "input_audio_buffer.committed", "item_id": "second"},
+            *completed,
+        ],
+        wait_until_closed=True,
+    )
+    install_connection(monkeypatch, connection)
+    service = Transcriber(
+        audio_input=AudioStreamInput(chunks(b"audio")), provider=DummyProvider()
+    )
+
+    async def collect():
+        return [event async for event in service.stream()]
+
+    received = await asyncio.wait_for(collect(), timeout=1)
+    assert [
+        event.transcript
+        for event in received
+        if isinstance(event, events.TranscriptCompleted)
+    ] == list(completion_order)
+    assert connection.closed
+
+
+async def test_transcriber_waits_for_final_commit_after_an_earlier_completion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection(
+        [
+            {"type": "input_audio_buffer.committed", "item_id": "first"},
+            {
+                "type": "conversation.item.input_audio_transcription.completed",
+                "item_id": "first",
+                "transcript": "first",
+            },
+            {"type": "input_audio_buffer.committed", "item_id": "second"},
+            {"type": "input_audio_buffer.cleared"},
+            {
+                "type": "conversation.item.input_audio_transcription.completed",
+                "item_id": "second",
+                "transcript": "second",
+            },
+        ],
+        wait_until_closed=True,
+    )
+    install_connection(monkeypatch, connection)
+    service = Transcriber(
+        audio_input=AudioStreamInput(chunks(b"audio")), provider=DummyProvider()
+    )
+
+    async def collect():
+        return [event async for event in service.stream()]
+
+    received = await asyncio.wait_for(collect(), timeout=1)
+    assert [
+        event.transcript
+        for event in received
+        if isinstance(event, events.TranscriptCompleted)
+    ] == ["first", "second"]
+
+
+async def test_transcriber_raises_for_failed_committed_transcription(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection(
+        [
+            {
+                "type": "conversation.item.input_audio_transcription.failed",
+                "item_id": "first",
+                "error": {"message": "transcription failed"},
+            },
+        ]
+    )
+    install_connection(monkeypatch, connection)
+    service = Transcriber(
+        audio_input=AudioStreamInput(chunks(b"audio")), provider=DummyProvider()
+    )
+    with pytest.raises(RuntimeError, match="transcription failed"):
+        async for _ in service.stream():
+            pass
+    assert connection.closed
