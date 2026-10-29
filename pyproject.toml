@@ -36,6 +36,9 @@ dev = [
     "python-dotenv>=1.1.0",
     "ruff>=0.12.0",
 ]
+release = [
+    "twine>=7.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]
