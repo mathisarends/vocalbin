@@ -211,7 +211,10 @@ async def benchmark(
                     if mode == "cold" and service is not None:
                         closing = service
                         service = None
-                        await closing.aclose()
+                        try:
+                            await closing.aclose()
+                        finally:
+                            del closing
         finally:
             if service is not None:
                 await service.aclose()

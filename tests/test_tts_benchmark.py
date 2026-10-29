@@ -243,3 +243,18 @@ def test_benchmark_pacing_can_be_disabled_for_burst_measurements() -> None:
         )
         == 9300
     )
+
+
+async def test_benchmark_releases_cold_services_before_constructing_the_next() -> None:
+    import weakref
+
+    references: list[weakref.ReferenceType[FakeService]] = []
+
+    def build() -> FakeService:
+        assert all(reference() is None for reference in references)
+        service = FakeService()
+        references.append(weakref.ref(service))
+        return service
+
+    await bench.benchmark(bench.Options("fake", runs=2, mode="both"), build)
+    assert all(reference() is None for reference in references)
