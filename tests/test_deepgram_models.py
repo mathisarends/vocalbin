@@ -158,3 +158,14 @@ def test_deepgram_tts_accepts_supported_bit_rates(encoding: str, bit_rate: int) 
 def test_deepgram_tts_rejects_unknown_encoding() -> None:
     with pytest.raises(ValueError, match="encoding"):
         TextToSpeechConfig(encoding="unknown")
+
+
+@pytest.mark.parametrize("kwargs", [{"encoding": "linear16"}, {"sample_rate": 16000}])
+def test_deepgram_raw_stt_requires_complete_format(kwargs: dict[str, object]) -> None:
+    with pytest.raises(ValueError, match="both encoding and sample_rate"):
+        SpeechToTextConfig(**kwargs)
+
+
+def test_deepgram_raw_stt_requires_positive_sample_rate() -> None:
+    with pytest.raises(ValueError, match="sample_rate"):
+        SpeechToTextConfig(encoding="linear16", sample_rate=0)

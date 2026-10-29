@@ -204,6 +204,7 @@ async def test_deepgram_stt_accepts_flat_parameters() -> None:
         model=SpeechToTextModel.NOVA_3_MEDICAL,
         language="de",
         encoding=SpeechToTextEncoding.LINEAR16,
+        sample_rate=16000,
         keyterms=["vocalbin"],
         smart_format=True,
         diarize=False,
@@ -214,6 +215,7 @@ async def test_deepgram_stt_accepts_flat_parameters() -> None:
         "model": "nova-3-medical",
         "language": "de",
         "encoding": "linear16",
+        "sample_rate": 16000,
         "keyterm": ["vocalbin"],
         "smart_format": True,
         "diarize": False,
@@ -550,3 +552,17 @@ async def test_deepgram_streaming_overrides_preserve_audio_format() -> None:
     await collect(service.stream(audio_stream(b"audio"), keyterms=["vocalbin"]))
     assert client.v2.calls[0]["sample_rate"] == "48000"
     assert client.v2.calls[0]["model"] == "flux-general-multi"
+
+
+async def test_deepgram_raw_stt_preserves_sample_rate_with_call_overrides() -> None:
+    client = FakeRestClient(transcription())
+    service = SpeechToText(
+        client=cast(Any, client),
+        encoding=SpeechToTextEncoding.LINEAR16,
+        sample_rate=48000,
+    )
+    await service.transcribe(b"raw pcm", keyterms=["vocalbin"])
+    assert client.media.calls[0]["sample_rate"] == 48000
+    assert client.media.calls[0]["encoding"] == "linear16"
+    await service.transcribe(b"raw pcm", sample_rate=16000)
+    assert client.media.calls[1]["sample_rate"] == 16000

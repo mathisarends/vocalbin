@@ -221,6 +221,9 @@ async def transcribe(audio: Path) -> str:
     return response.text
 ```
 
+For raw, headerless audio, supply both `encoding` and `sample_rate` on the
+constructor or `transcribe()`. Omit both for containerized recordings.
+
 `keyterms` are Nova 3 only; passing them with an older model raises before the
 request is sent. The response keeps the provider payload in `raw` alongside the
 normalized `text`, `confidence`, `detected_language`, and `request_id`.

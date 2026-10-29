@@ -46,6 +46,7 @@ class SpeechToTextConfig(BaseModel):
     model: SpeechToTextModel | str = SpeechToTextModel.NOVA_3
     language: str | None = None
     encoding: SpeechToTextEncoding | None = None
+    sample_rate: int | None = Field(default=None, gt=0)
     keyterms: list[str] | None = Field(default=None, serialization_alias="keyterm")
     smart_format: bool | None = None
     punctuate: bool | None = None
@@ -70,6 +71,12 @@ class SpeechToTextConfig(BaseModel):
         if not normalized:
             raise ValueError("language must not be blank")
         return normalized
+
+    @model_validator(mode="after")
+    def raw_audio_requires_encoding_and_sample_rate(self) -> Self:
+        if (self.encoding is None) != (self.sample_rate is None):
+            raise ValueError("raw audio requires both encoding and sample_rate")
+        return self
 
     @model_validator(mode="after")
     def keyterms_require_nova_3(self) -> Self:
