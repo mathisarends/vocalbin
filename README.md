@@ -604,6 +604,14 @@ rather than the OpenAI implementation.
 clients; injected clients remain owned by the caller. These capabilities can be
 imported directly from `vocalbin`.
 
+## First-audio latency
+
+Use a reusable service, `connect()` for Cartesia/Deepgram, and stream chunks
+directly to the consumer. Deepgram supports `flush_on="first_chunk"` for early
+phrase output. [The latency guide](docs/latency.md) explains the tradeoffs and
+includes a reproducible benchmark with cold/warm runs, median, p95 and simulated
+streaming-text input.
+
 ## Development
 
 ```bash

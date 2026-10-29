@@ -56,7 +56,7 @@ addopts = [
 testpaths = ["tests"]
 
 [tool.mypy]
-files = ["vocalbin", "tests/typing"]
+files = ["vocalbin", "tests/typing", "scripts/benchmark_tts.py"]
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
